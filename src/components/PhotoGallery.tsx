@@ -8,9 +8,10 @@ interface PhotoGalleryProps {
   photos: MenuPhoto[];
   onPhotosAdded: (files: File[]) => void;
   onDeletePhoto: (id: string) => void;
+  onPhotoClick?: (photo: MenuPhoto) => void;
 }
 
-export function PhotoGallery({ photos, onPhotosAdded, onDeletePhoto }: PhotoGalleryProps) {
+export function PhotoGallery({ photos, onPhotosAdded, onDeletePhoto, onPhotoClick }: PhotoGalleryProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
@@ -26,7 +27,14 @@ export function PhotoGallery({ photos, onPhotosAdded, onDeletePhoto }: PhotoGall
     fileInputRef.current?.click();
   };
 
-  const handlePhotoClick = (index: number) => {
+  const handlePhotoCardClick = (photo: MenuPhoto, index: number) => {
+    // Click adds to prompt, double-click opens lightbox
+    if (onPhotoClick) {
+      onPhotoClick(photo);
+    }
+  };
+
+  const handlePhotoDoubleClick = (index: number) => {
     setLightboxIndex(index);
   };
 
@@ -45,7 +53,7 @@ export function PhotoGallery({ photos, onPhotosAdded, onDeletePhoto }: PhotoGall
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-xl font-display font-semibold text-foreground">Menu Photos</h2>
-            <p className="text-sm text-muted-foreground">Drag photos to the prompt area</p>
+            <p className="text-sm text-muted-foreground">Click to add, double-click to enlarge, or drag</p>
           </div>
           <Button variant="outline" size="sm" onClick={openFilePicker}>
             <Upload className="w-4 h-4" />
@@ -59,7 +67,8 @@ export function PhotoGallery({ photos, onPhotosAdded, onDeletePhoto }: PhotoGall
               key={photo.id} 
               photo={photo} 
               onDelete={onDeletePhoto}
-              onClick={() => handlePhotoClick(index)}
+              onClick={() => handlePhotoCardClick(photo, index)}
+              onDoubleClick={() => handlePhotoDoubleClick(index)}
             />
           ))}
           

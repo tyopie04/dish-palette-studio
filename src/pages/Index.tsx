@@ -114,14 +114,26 @@ const Index = () => {
   const handleDragEnd = useCallback((event: DragEndEvent) => {
     setActivePhoto(null);
     
-    if (event.over?.id === "prompt-builder") {
+    // Check if dropped over prompt-builder or any area (more lenient drop detection)
+    if (event.over?.id === "prompt-builder" || event.delta.x !== 0 || event.delta.y !== 0) {
       const photo = photos.find((p) => p.id === event.active.id);
-      if (photo && !selectedPhotos.find((p) => p.id === photo.id)) {
+      // Only add if dropped over prompt-builder area specifically
+      if (event.over?.id === "prompt-builder" && photo && !selectedPhotos.find((p) => p.id === photo.id)) {
         setSelectedPhotos((prev) => [...prev, photo]);
         toast.success(`Added ${photo.name} to prompt`);
       }
     }
   }, [photos, selectedPhotos]);
+
+  // Click-to-add handler for menu photos
+  const handlePhotoClick = useCallback((photo: MenuPhoto) => {
+    if (!selectedPhotos.find((p) => p.id === photo.id)) {
+      setSelectedPhotos((prev) => [...prev, photo]);
+      toast.success(`Added ${photo.name} to prompt`);
+    } else {
+      toast.info(`${photo.name} is already in the prompt`);
+    }
+  }, [selectedPhotos]);
 
   const handleRemovePhoto = useCallback((id: string) => {
     setSelectedPhotos((prev) => prev.filter((p) => p.id !== id));
@@ -343,7 +355,12 @@ const Index = () => {
 
             <div className="grid lg:grid-cols-3 gap-6">
               <div className="lg:col-span-1 animate-slide-up" style={{ animationDelay: "0.1s" }}>
-                <PhotoGallery photos={photos} onPhotosAdded={handlePhotosAdded} onDeletePhoto={handleDeletePhoto} />
+                <PhotoGallery 
+                  photos={photos} 
+                  onPhotosAdded={handlePhotosAdded} 
+                  onDeletePhoto={handleDeletePhoto}
+                  onPhotoClick={handlePhotoClick}
+                />
               </div>
 
               <div className="lg:col-span-1 animate-slide-up" style={{ animationDelay: "0.2s" }}>
