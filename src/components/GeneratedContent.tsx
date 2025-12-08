@@ -132,49 +132,63 @@ export function GeneratedContent({ images, onRegenerate, onGenerateRandom, onEdi
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-3">
+      <div className="grid grid-cols-1 gap-4">
         {images.map((image, index) => (
-          <div
-            key={index}
-            className="relative group rounded-lg overflow-hidden cursor-pointer"
-            onClick={() => onImageClick?.(image)}
-          >
-            <img
-              src={image}
-              alt={`Generated content ${index + 1}`}
-              className="w-full h-auto object-cover transition-transform duration-300 group-hover:scale-105"
-            />
-            <div className="absolute inset-0 bg-background/80 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-2">
-              <Button 
-                variant="glass" 
-                size="icon" 
-                className="h-10 w-10"
-                onClick={(e) => { e.stopPropagation(); handleDownload(image, index); }}
-              >
-                <Download className="w-5 h-5" />
-              </Button>
-              <Button 
-                variant="glass" 
-                size="icon" 
-                className="h-10 w-10"
-                onClick={(e) => { e.stopPropagation(); handleShare(image); }}
-              >
-                <Share2 className="w-5 h-5" />
-              </Button>
-              {onEditImage && (
+          <div key={index} className="space-y-2">
+            <div
+              className="relative group rounded-lg overflow-hidden cursor-pointer"
+              onClick={() => onImageClick?.(image)}
+            >
+              <img
+                src={image}
+                alt={`Generated content ${index + 1}`}
+                className="w-full h-auto object-cover transition-transform duration-300 group-hover:scale-105"
+              />
+              <div className="absolute inset-0 bg-background/80 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-2">
                 <Button 
                   variant="glass" 
                   size="icon" 
                   className="h-10 w-10"
-                  onClick={(e) => { e.stopPropagation(); onEditImage(image); }}
+                  onClick={(e) => { e.stopPropagation(); handleDownload(image, index); }}
                 >
-                  <Pencil className="w-5 h-5" />
+                  <Download className="w-5 h-5" />
+                </Button>
+                <Button 
+                  variant="glass" 
+                  size="icon" 
+                  className="h-10 w-10"
+                  onClick={(e) => { e.stopPropagation(); handleShare(image); }}
+                >
+                  <Share2 className="w-5 h-5" />
+                </Button>
+              </div>
+              <p className="absolute bottom-2 left-2 text-xs text-muted-foreground bg-background/60 px-2 py-1 rounded">
+                Click to enlarge
+              </p>
+            </div>
+            {/* Edit button below each image */}
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="flex-1"
+                onClick={() => handleDownload(image, index)}
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Download
+              </Button>
+              {onEditImage && (
+                <Button 
+                  variant="glow" 
+                  size="sm" 
+                  className="flex-1"
+                  onClick={() => onEditImage(image)}
+                >
+                  <Pencil className="w-4 h-4 mr-2" />
+                  Edit
                 </Button>
               )}
             </div>
-            <p className="absolute bottom-2 left-2 text-xs text-muted-foreground bg-background/60 px-2 py-1 rounded">
-              Click to enlarge
-            </p>
           </div>
         ))}
       </div>

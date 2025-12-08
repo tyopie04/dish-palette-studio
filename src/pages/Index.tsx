@@ -4,7 +4,8 @@ import {
   DragEndEvent,
   DragOverlay,
   DragStartEvent,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
@@ -78,17 +79,23 @@ const Index = () => {
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
   const [editingImage, setEditingImage] = useState<string | null>(null);
   
-  // Lifted state for ratio/resolution so random generation can use them
+  // Lifted state for ratio/resolution/photo amount so random generation can use them
   const [selectedRatio, setSelectedRatio] = useState("1:1");
-  const [selectedResolution, setSelectedResolution] = useState("1K");
+  const [selectedResolution, setSelectedResolution] = useState("2K");
+  const [selectedPhotoAmount, setSelectedPhotoAmount] = useState("1");
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 10,
-      },
-    })
-  );
+  const mouseSensor = useSensor(MouseSensor, {
+    activationConstraint: {
+      distance: 8,
+    },
+  });
+  const touchSensor = useSensor(TouchSensor, {
+    activationConstraint: {
+      delay: 200,
+      tolerance: 5,
+    },
+  });
+  const sensors = useSensors(mouseSensor, touchSensor);
 
   const handleDragStart = useCallback((event: DragStartEvent) => {
     const photo = photos.find((p) => p.id === event.active.id);
@@ -113,7 +120,7 @@ const Index = () => {
     setSelectedPhotos((prev) => prev.filter((p) => p.id !== id));
   }, []);
 
-  const handleGenerate = useCallback(async (prompt: string, ratio: string, resolution: string, styleGuideUrl?: string) => {
+  const handleGenerate = useCallback(async (prompt: string, ratio: string, resolution: string, photoAmount: string, styleGuideUrl?: string) => {
     setIsGenerating(true);
     
     try {
@@ -129,7 +136,7 @@ const Index = () => {
       console.log('Sending', imageUrls.length, 'menu photos + style guide:', !!styleGuideBase64);
       
       const { data, error } = await supabase.functions.invoke('generate-image', {
-        body: { prompt, ratio, resolution, imageUrls, photoNames, styleGuideUrl: styleGuideBase64 }
+        body: { prompt, ratio, resolution, photoAmount: parseInt(photoAmount), imageUrls, photoNames, styleGuideUrl: styleGuideBase64 }
       });
 
       if (error) {
@@ -154,8 +161,8 @@ const Index = () => {
   }, [selectedPhotos]);
 
   const handleRegenerate = useCallback(() => {
-    handleGenerate("", selectedRatio, selectedResolution);
-  }, [handleGenerate, selectedRatio, selectedResolution]);
+    handleGenerate("", selectedRatio, selectedResolution, selectedPhotoAmount);
+  }, [handleGenerate, selectedRatio, selectedResolution, selectedPhotoAmount]);
 
   const handleGenerateRandom = useCallback(async () => {
     const count = Math.floor(Math.random() * 3) + 3;
@@ -185,6 +192,7 @@ const Index = () => {
           prompt: randomPrompt, 
           ratio: selectedRatio, 
           resolution: selectedResolution, 
+          photoAmount: parseInt(selectedPhotoAmount),
           imageUrls, 
           photoNames 
         }
@@ -307,6 +315,8 @@ const Index = () => {
                   setSelectedRatio={setSelectedRatio}
                   selectedResolution={selectedResolution}
                   setSelectedResolution={setSelectedResolution}
+                  selectedPhotoAmount={selectedPhotoAmount}
+                  setSelectedPhotoAmount={setSelectedPhotoAmount}
                 />
               </div>
 
