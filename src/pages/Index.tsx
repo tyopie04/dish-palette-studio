@@ -14,6 +14,7 @@ import { PromptBuilder } from "@/components/PromptBuilder";
 import { GeneratedContent } from "@/components/GeneratedContent";
 import { PhotoCard, MenuPhoto } from "@/components/PhotoCard";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 import menu1 from "@/assets/menu-1.jpg";
 import menu2 from "@/assets/menu-2.jpg";
@@ -72,15 +73,33 @@ const Index = () => {
   const handleGenerate = useCallback(async (prompt: string, style: string) => {
     setIsGenerating(true);
     
-    // Simulate AI generation
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    
-    // Use selected photos as generated content for demo
-    const generated = selectedPhotos.map((p) => p.src);
-    setGeneratedImages(generated.length > 0 ? generated : [menu1, menu2]);
+    try {
+      // Convert selected photo URLs to base64 for the API
+      const imageUrls = selectedPhotos.map((p) => p.src);
+      
+      const { data, error } = await supabase.functions.invoke('generate-image', {
+        body: { prompt, style, imageUrls }
+      });
+
+      if (error) {
+        console.error('Generation error:', error);
+        toast.error(error.message || 'Failed to generate content');
+        setIsGenerating(false);
+        return;
+      }
+
+      if (data?.images && data.images.length > 0) {
+        setGeneratedImages(data.images);
+        toast.success("Content generated successfully!");
+      } else {
+        toast.error('No images were generated');
+      }
+    } catch (err) {
+      console.error('Generation error:', err);
+      toast.error('Failed to generate content');
+    }
     
     setIsGenerating(false);
-    toast.success("Content generated successfully!");
   }, [selectedPhotos]);
 
   const handleRegenerate = useCallback(() => {
