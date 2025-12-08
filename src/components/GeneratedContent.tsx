@@ -1,19 +1,17 @@
-import { useState } from "react";
 import { Download, Share2, RefreshCw, Shuffle, Pencil } from "lucide-react";
 import { Button } from "./ui/button";
 import { toast } from "sonner";
-import { ImageLightbox } from "./ImageLightbox";
 
 interface GeneratedContentProps {
   images: string[];
   onRegenerate: () => void;
   onGenerateRandom?: () => void;
   onEditImage?: (image: string) => void;
+  onImageClick?: (image: string) => void;
   isGenerating?: boolean;
 }
 
-export function GeneratedContent({ images, onRegenerate, onGenerateRandom, onEditImage, isGenerating = false }: GeneratedContentProps) {
-  const [lightboxImage, setLightboxImage] = useState<string | null>(null);
+export function GeneratedContent({ images, onRegenerate, onGenerateRandom, onEditImage, onImageClick, isGenerating = false }: GeneratedContentProps) {
   const handleDownload = async (imageUrl: string, index: number) => {
     try {
       // For base64 images, create a download link directly
@@ -139,7 +137,7 @@ export function GeneratedContent({ images, onRegenerate, onGenerateRandom, onEdi
           <div
             key={index}
             className="relative group rounded-lg overflow-hidden cursor-pointer"
-            onClick={() => setLightboxImage(image)}
+            onClick={() => onImageClick?.(image)}
           >
             <img
               src={image}
@@ -181,13 +179,6 @@ export function GeneratedContent({ images, onRegenerate, onGenerateRandom, onEdi
         ))}
       </div>
 
-      {lightboxImage && (
-        <ImageLightbox 
-          image={lightboxImage} 
-          onClose={() => setLightboxImage(null)}
-          onEdit={onEditImage}
-        />
-      )}
     </div>
   );
 }

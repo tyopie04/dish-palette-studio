@@ -12,6 +12,7 @@ import { Header } from "@/components/Header";
 import { PhotoGallery } from "@/components/PhotoGallery";
 import { PromptBuilder } from "@/components/PromptBuilder";
 import { GeneratedContent } from "@/components/GeneratedContent";
+import { ImageLightbox } from "@/components/ImageLightbox";
 import { PhotoCard, MenuPhoto } from "@/components/PhotoCard";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -76,6 +77,7 @@ const Index = () => {
   const [generatedImages, setGeneratedImages] = useState<string[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [activePhoto, setActivePhoto] = useState<MenuPhoto | null>(null);
+  const [lightboxImage, setLightboxImage] = useState<string | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -234,11 +236,12 @@ const Index = () => {
   }, []);
 
   return (
-    <DndContext
-      sensors={sensors}
-      onDragStart={handleDragStart}
-      onDragEnd={handleDragEnd}
-    >
+    <>
+      <DndContext
+        sensors={sensors}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+      >
       <div className="min-h-screen bg-background">
         <Header />
         
@@ -276,6 +279,7 @@ const Index = () => {
                 onRegenerate={handleRegenerate}
                 onGenerateRandom={handleGenerateRandom}
                 onEditImage={handleEditImage}
+                onImageClick={setLightboxImage}
                 isGenerating={isGenerating}
               />
             </div>
@@ -295,6 +299,15 @@ const Index = () => {
         ) : null}
       </DragOverlay>
     </DndContext>
+
+    {lightboxImage && (
+      <ImageLightbox 
+        image={lightboxImage} 
+        onClose={() => setLightboxImage(null)}
+        onEdit={handleEditImage}
+      />
+    )}
+  </>
   );
 };
 
