@@ -188,4 +188,13 @@
     0%, 100% { box-shadow: 0 0 20px hsl(48 96% 53% / 0.15); }
     50% { box-shadow: 0 0 40px hsl(48 96% 53% / 0.25); }
   }
+
+  @keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+  }
+
+  .animate-shimmer {
+    animation: shimmer 2s ease-in-out infinite;
+  }
 }
