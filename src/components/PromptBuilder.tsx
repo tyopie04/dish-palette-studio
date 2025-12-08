@@ -8,12 +8,14 @@ import { useState } from "react";
 interface PromptBuilderProps {
   selectedPhotos: MenuPhoto[];
   onRemovePhoto: (id: string) => void;
-  onGenerate: (prompt: string, ratio: string, resolution: string, styleGuideUrl?: string) => void;
+  onGenerate: (prompt: string, ratio: string, resolution: string, photoAmount: string, styleGuideUrl?: string) => void;
   isGenerating: boolean;
   selectedRatio: string;
   setSelectedRatio: (ratio: string) => void;
   selectedResolution: string;
   setSelectedResolution: (resolution: string) => void;
+  selectedPhotoAmount: string;
+  setSelectedPhotoAmount: (amount: string) => void;
 }
 
 // Aspect ratio visual shapes
@@ -33,8 +35,13 @@ const ratioOptions = [
 
 const resolutionOptions = [
   { id: "1K", label: "1K", description: "1024px" },
-  { id: "2K", label: "2K", description: "2048px" },
-  { id: "4K", label: "4K", description: "4096px" },
+  { id: "2K", label: "2K", description: "2048px (Max)" },
+];
+
+const photoAmountOptions = [
+  { id: "1", label: "One", description: "1 image" },
+  { id: "2", label: "Two", description: "2 images" },
+  { id: "4", label: "Four", description: "4 images" },
 ];
 
 export function PromptBuilder({
@@ -46,6 +53,8 @@ export function PromptBuilder({
   setSelectedRatio,
   selectedResolution,
   setSelectedResolution,
+  selectedPhotoAmount,
+  setSelectedPhotoAmount,
 }: PromptBuilderProps) {
   const [prompt, setPrompt] = useState("");
   const [styleGuideUrl, setStyleGuideUrl] = useState<string | null>(null);
@@ -64,7 +73,7 @@ export function PromptBuilder({
 
   const handleGenerate = () => {
     if (prompt.trim() || selectedPhotos.length > 0) {
-      onGenerate(prompt, selectedRatio, selectedResolution, styleGuideUrl || undefined);
+      onGenerate(prompt, selectedRatio, selectedResolution, selectedPhotoAmount, styleGuideUrl || undefined);
     }
   };
 
@@ -233,7 +242,7 @@ export function PromptBuilder({
         <label className="text-sm font-medium text-foreground">
           Resolution
         </label>
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-2 gap-2">
           {resolutionOptions.map((res) => (
             <button
               key={res.id}
@@ -247,6 +256,30 @@ export function PromptBuilder({
             >
               <p className="text-sm font-medium text-foreground">{res.label}</p>
               <p className="text-xs text-muted-foreground">{res.description}</p>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Photo Amount Selection */}
+      <div className="space-y-2">
+        <label className="text-sm font-medium text-foreground">
+          Photo Amount
+        </label>
+        <div className="grid grid-cols-3 gap-2">
+          {photoAmountOptions.map((amt) => (
+            <button
+              key={amt.id}
+              onClick={() => setSelectedPhotoAmount(amt.id)}
+              className={cn(
+                "p-2 rounded-lg border text-center transition-all duration-300",
+                selectedPhotoAmount === amt.id
+                  ? "border-primary bg-primary/10 shadow-[0_0_15px_hsl(38_92%_50%/0.2)]"
+                  : "border-border hover:border-primary/50 bg-secondary/30"
+              )}
+            >
+              <p className="text-sm font-medium text-foreground">{amt.label}</p>
+              <p className="text-xs text-muted-foreground">{amt.description}</p>
             </button>
           ))}
         </div>

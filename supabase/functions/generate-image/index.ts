@@ -12,18 +12,17 @@ serve(async (req) => {
   }
 
   try {
-    const { prompt, ratio, resolution, imageUrls, photoNames, styleGuideUrl } = await req.json();
+    const { prompt, ratio, resolution, photoAmount = 1, imageUrls, photoNames, styleGuideUrl } = await req.json();
     
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
       throw new Error('LOVABLE_API_KEY is not configured');
     }
 
-    // Calculate exact pixel dimensions based on ratio and resolution
+    // Calculate exact pixel dimensions based on ratio and resolution (max 2K due to model limits)
     const resolutionBasePixels: Record<string, number> = {
       "1K": 1024,
       "2K": 2048,
-      "4K": 4096,
     };
 
     const ratioDimensions: Record<string, { w: number; h: number }> = {
@@ -65,27 +64,28 @@ STYLE GUIDE: A style reference image is provided. Replicate ONLY the visual styl
     }
     
     // Resolution quality hint for the model
-    const resolutionQuality = resolution === "4K" ? "ultra-high definition 4K" : 
-                               resolution === "2K" ? "high definition 2K" : "standard 1K";
+    const resolutionQuality = resolution === "2K" ? "high definition 2K" : "standard 1K";
+    const imageCount = Math.min(Math.max(photoAmount || 1, 1), 4);
     
-    const textPrompt = `Generate a ${resolutionQuality} professional burger restaurant marketing image. 
+    const textPrompt = `Generate ${imageCount > 1 ? imageCount + ' different variations of' : 'a'} ${resolutionQuality} professional burger restaurant marketing image${imageCount > 1 ? 's' : ''}. 
 
 OUTPUT SPECIFICATIONS:
-- Resolution: ${dimensionString} (${resolution} quality - this is critical, generate at FULL ${resolution} resolution)
+- Resolution: ${dimensionString} (${resolution} quality)
 - Aspect Ratio: ${ratioDesc}
 - Quality: Professional marketing grade, sharp details, high fidelity
+${imageCount > 1 ? `- IMPORTANT: Generate exactly ${imageCount} DIFFERENT image variations, each with unique composition/angle/style` : ''}
 
 CONTENT${dishContext}:
 ${prompt || 'Create an appetizing gourmet burger photo with professional food photography lighting'}
 
 RULES:
-1. Generate at EXACTLY ${dimensionString} - full ${resolution} resolution output
+1. Generate at ${dimensionString}
 2. Use ONLY the provided menu photo references for the actual burgers/food - replicate them exactly
 3. Burger restaurant content ONLY - absolutely no pasta, sushi, or other cuisines
 4. Professional marketing quality with appetizing presentation and sharp details${styleInstructions}`;
     
     console.log('Generating image with prompt:', textPrompt.substring(0, 400) + '...');
-    console.log('Target resolution:', dimensionString);
+    console.log('Target resolution:', dimensionString, 'Photo amount:', imageCount);
     console.log('Number of menu photos:', imageUrls?.length || 0);
     console.log('Style guide provided:', !!styleGuideUrl);
 
