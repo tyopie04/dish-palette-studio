@@ -1,7 +1,7 @@
 import { X, Download, Share2, Pencil } from "lucide-react";
 import { Button } from "./ui/button";
 import { toast } from "sonner";
-import { useEffect, useCallback } from "react";
+import { useEffect } from "react";
 
 interface ImageLightboxProps {
   image: string;
@@ -21,13 +21,6 @@ export function ImageLightbox({ image, onClose, onEdit }: ImageLightboxProps) {
       document.removeEventListener("keydown", handleEscape);
       document.body.style.overflow = "";
     };
-  }, [onClose]);
-
-  const handleBackdropClick = useCallback((e: React.MouseEvent) => {
-    // Only close if clicking the backdrop itself, not children
-    if (e.target === e.currentTarget) {
-      onClose();
-    }
   }, [onClose]);
 
   const handleDownload = async () => {
@@ -79,69 +72,68 @@ export function ImageLightbox({ image, onClose, onEdit }: ImageLightboxProps) {
 
   return (
     <div 
-      className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md"
-      onClick={handleBackdropClick}
+      className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center"
+      onClick={onClose}
     >
-      {/* Controls - positioned at top center */}
-      <div className="absolute top-6 left-1/2 -translate-x-1/2 flex gap-3 z-10">
-        <Button 
-          variant="glass" 
-          size="sm" 
-          className="bg-white/10 hover:bg-white/20 border-white/20 text-white"
-          onClick={(e) => { e.stopPropagation(); handleDownload(); }}
-        >
-          <Download className="w-4 h-4 mr-2" />
-          Download
-        </Button>
-        <Button 
-          variant="glass" 
-          size="sm" 
-          className="bg-white/10 hover:bg-white/20 border-white/20 text-white"
-          onClick={(e) => { e.stopPropagation(); handleShare(); }}
-        >
-          <Share2 className="w-4 h-4 mr-2" />
-          Share
-        </Button>
-        {onEdit && (
-          <Button 
-            variant="glass" 
-            size="sm" 
-            className="bg-white/10 hover:bg-white/20 border-white/20 text-white"
-            onClick={(e) => { e.stopPropagation(); onEdit(image); }}
-          >
-            <Pencil className="w-4 h-4 mr-2" />
-            Edit
-          </Button>
-        )}
-      </div>
-
       {/* Close button - top right */}
       <Button 
-        variant="glass" 
+        variant="ghost" 
         size="icon" 
-        className="absolute top-6 right-6 h-10 w-10 bg-white/10 hover:bg-white/20 border-white/20 z-10"
-        onClick={onClose}
+        className="absolute top-4 right-4 h-10 w-10 bg-white/10 hover:bg-white/20 text-white z-10 rounded-full"
+        onClick={(e) => { e.stopPropagation(); onClose(); }}
       >
-        <X className="w-5 h-5 text-white" />
+        <X className="w-5 h-5" />
       </Button>
       
-      {/* Centered image container - using flexbox for true centering */}
+      {/* Centered content container */}
       <div 
-        className="absolute inset-0 flex items-center justify-center p-16"
-        onClick={handleBackdropClick}
+        className="flex flex-col items-center gap-4 max-w-[90vw] max-h-[90vh]"
+        onClick={(e) => e.stopPropagation()}
       >
+        {/* Image */}
         <img
           src={image}
           alt="Generated content fullscreen"
-          className="max-w-full max-h-full object-contain rounded-xl shadow-2xl animate-scale-in"
-          style={{ maxWidth: 'calc(100vw - 128px)', maxHeight: 'calc(100vh - 128px)' }}
-          onClick={(e) => e.stopPropagation()}
+          className="max-w-full max-h-[75vh] object-contain rounded-xl shadow-2xl"
         />
+
+        {/* Action buttons below image */}
+        <div className="flex gap-3">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="bg-white/10 hover:bg-white/20 text-white"
+            onClick={handleDownload}
+          >
+            <Download className="w-4 h-4 mr-2" />
+            Download
+          </Button>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="bg-white/10 hover:bg-white/20 text-white"
+            onClick={handleShare}
+          >
+            <Share2 className="w-4 h-4 mr-2" />
+            Share
+          </Button>
+          {onEdit && (
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="bg-white/10 hover:bg-white/20 text-white"
+              onClick={() => onEdit(image)}
+            >
+              <Pencil className="w-4 h-4 mr-2" />
+              Edit
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Click anywhere hint */}
-      <p className="absolute bottom-6 left-1/2 -translate-x-1/2 text-white/60 text-sm pointer-events-none">
-        Click outside image or press Escape to close
+      <p className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/60 text-sm pointer-events-none">
+        Click outside or press Escape to close
       </p>
     </div>
   );
