@@ -12,19 +12,14 @@ serve(async (req) => {
   }
 
   try {
-    const { prompt, style, imageUrls } = await req.json();
+    const { prompt, style, photoNames } = await req.json();
     
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
       throw new Error('LOVABLE_API_KEY is not configured');
     }
 
-    console.log('Generating image with prompt:', prompt, 'style:', style);
-
-    // Build the content array for the message
-    const content: any[] = [];
-    
-    // Add the text prompt
+    // Build a descriptive prompt including photo names for context
     const styleDescriptions: Record<string, string> = {
       social: "Instagram-ready square format, vibrant and appetizing food photography",
       banner: "Wide promotional banner format, professional restaurant marketing",
@@ -33,22 +28,16 @@ serve(async (req) => {
     };
     
     const styleDesc = styleDescriptions[style] || styleDescriptions.social;
-    const fullPrompt = `Create a professional ${styleDesc} featuring: ${prompt || 'delicious restaurant food'}. Make it look appetizing, high-quality, and suitable for restaurant marketing.`;
     
-    content.push({
-      type: "text",
-      text: fullPrompt
-    });
-
-    // Add any reference images if provided
-    if (imageUrls && imageUrls.length > 0) {
-      for (const url of imageUrls) {
-        content.push({
-          type: "image_url",
-          image_url: { url }
-        });
-      }
+    // Include photo names in prompt if available
+    let dishContext = "";
+    if (photoNames && photoNames.length > 0) {
+      dishContext = ` featuring dishes like ${photoNames.join(", ")}`;
     }
+    
+    const fullPrompt = `Generate a professional ${styleDesc}${dishContext}. ${prompt || 'Create a delicious restaurant food image'}. Make it look appetizing, high-quality, and suitable for restaurant marketing. Ultra high resolution.`;
+    
+    console.log('Generating image with prompt:', fullPrompt);
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -61,7 +50,7 @@ serve(async (req) => {
         messages: [
           {
             role: "user",
-            content
+            content: fullPrompt
           }
         ],
         modalities: ["image", "text"]
@@ -91,6 +80,12 @@ serve(async (req) => {
     const data = await response.json();
     console.log('AI response received:', JSON.stringify(data, null, 2));
     
+    // Check for error in response
+    if (data.error) {
+      console.error('AI returned error:', data.error);
+      throw new Error(data.error.message || 'AI generation failed');
+    }
+    
     // Extract the generated image - check multiple possible response structures
     const message = data.choices?.[0]?.message;
     let generatedImages: string[] = [];
@@ -113,8 +108,10 @@ serve(async (req) => {
     
     if (generatedImages.length === 0) {
       console.error('No images found in response structure:', JSON.stringify(message, null, 2));
-      throw new Error('No image generated');
+      throw new Error('No image generated - the AI did not return an image');
     }
+
+    console.log('Successfully generated', generatedImages.length, 'image(s)');
 
     return new Response(
       JSON.stringify({ images: generatedImages }),
