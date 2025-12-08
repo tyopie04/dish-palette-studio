@@ -68,29 +68,12 @@ STYLE REFERENCE: A style guide image is provided. Copy ONLY the visual style fro
     const resolutionQuality = resolution === "4K" ? "ultra high definition 4K (4096 pixels)" : (resolution === "2K" ? "high definition 2K (2048 pixels)" : "standard 1K (1024 pixels)");
     const imageCount = Math.min(Math.max(photoAmount || 1, 1), 4);
     
-    // PROFESSIONAL ART DIRECTOR PROMPT - Background Synthesis approach
-    const textPrompt = `[ROLE]
-You are a Senior Art Director and High-End Retoucher. Your task is "Background Synthesis" for pre-existing commercial product assets.
+    // Simple, clean Nano Banana prompt
+    const textPrompt = `Create a professional food photography advertisement.
 
-[INPUT SPECIFICATION]
-${imageUrls?.length || 0} reference image(s) are provided as "Hero Objects" with transparent backgrounds (Alpha Channel).
-- The non-transparent pixels (the food items) are the GROUND TRUTH.
-- Your primary directive is: PRESERVATION. The Hero Objects must remain visually unchanged in geometry, texture, and color.
+${prompt || 'Arrange the food items in an appetizing, professional layout.'}${dishContext}
 
-[COMPOSITING INSTRUCTIONS]
-1. SCENE ANCHORING: Place the Hero Object(s) centrally in a 3D environment. They must sit on a surface, not float.
-2. LIGHTING MATCH: Analyze the lighting highlights on the Hero Object(s). Generate the scene lighting to match this direction and intensity exactly.
-3. SHADOW GENERATION: Generate realistic contact shadows (ambient occlusion) and cast shadows on the surface below each Hero Object to "ground" it.
-4. DEPTH OF FIELD: The Hero Object(s) must be in sharp focus. The generated background should have a subtle bokeh/blur to emphasize the products.
-
-[VISUAL STYLE]
-- Context: ${prompt || 'A professional studio setting with complementary backdrop'}${dishContext}
-- Aesthetic: ${resolutionQuality}, Michelin-guide photography, editorial food styling, appetizing, hyper-realistic
-- Framing: ${ratioDesc} at ${dimensionString}. Wide shot, maintain 10% negative space on all borders.
-${styleInstructions}
-
-[EXECUTION]
-Seamlessly integrate the Hero Object(s) into the described environment. Do not regenerate the objects; build the world *around* them.`;
+Use the provided menu photos as reference for the food items. Create a beautiful ${ratioDesc} composition at ${dimensionString}. ${resolutionQuality} quality, commercial food photography style.${styleInstructions}`;
     
     console.log('Generating image with prompt:', textPrompt.substring(0, 400) + '...');
     console.log('Target resolution:', dimensionString, 'Photo amount:', imageCount);
