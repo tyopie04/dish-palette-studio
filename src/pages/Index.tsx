@@ -12,7 +12,7 @@ import {
 import { Header } from "@/components/Header";
 import { PhotoGallery } from "@/components/PhotoGallery";
 import { PromptBuilder } from "@/components/PromptBuilder";
-import { GeneratedContent } from "@/components/GeneratedContent";
+import { GenerationHistory, GenerationEntry } from "@/components/GenerationHistory";
 import { ImageLightbox } from "@/components/ImageLightbox";
 import { ImageEditDialog } from "@/components/ImageEditDialog";
 import { PhotoCard, MenuPhoto } from "@/components/PhotoCard";
@@ -79,16 +79,17 @@ const compressImageToBase64 = async (url: string): Promise<string> => {
 const Index = () => {
   const [photos, setPhotos] = useState<MenuPhoto[]>(initialPhotos);
   const [selectedPhotos, setSelectedPhotos] = useState<MenuPhoto[]>([]);
-  const [generatedImages, setGeneratedImages] = useState<string[]>([]);
+  const [generationHistory, setGenerationHistory] = useState<GenerationEntry[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [activePhoto, setActivePhoto] = useState<MenuPhoto | null>(null);
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
   const [editingImage, setEditingImage] = useState<string | null>(null);
   
-  // Lifted state for ratio/resolution/photo amount so random generation can use them
+  // Lifted state for ratio/resolution/photo amount/style guide so random generation can use them
   const [selectedRatio, setSelectedRatio] = useState("1:1");
   const [selectedResolution, setSelectedResolution] = useState("2K");
   const [selectedPhotoAmount, setSelectedPhotoAmount] = useState("1");
+  const [styleGuideUrl, setStyleGuideUrl] = useState<string | null>(null);
 
   const mouseSensor = useSensor(MouseSensor, {
     activationConstraint: {
@@ -126,7 +127,16 @@ const Index = () => {
     setSelectedPhotos((prev) => prev.filter((p) => p.id !== id));
   }, []);
 
-  const handleGenerate = useCallback(async (prompt: string, ratio: string, resolution: string, photoAmount: string, styleGuideUrl?: string) => {
+  const addToHistory = useCallback((images: string[]) => {
+    const newEntry: GenerationEntry = {
+      id: `gen-${Date.now()}`,
+      images,
+      timestamp: new Date(),
+    };
+    setGenerationHistory((prev) => [newEntry, ...prev]);
+  }, []);
+
+  const handleGenerate = useCallback(async (prompt: string, ratio: string, resolution: string, photoAmount: string, styleGuideUrlParam?: string) => {
     setIsGenerating(true);
     
     try {
@@ -135,8 +145,8 @@ const Index = () => {
       const photoNames = selectedPhotos.map((p) => p.name);
       
       let styleGuideBase64: string | undefined;
-      if (styleGuideUrl) {
-        styleGuideBase64 = await compressImageToBase64(styleGuideUrl);
+      if (styleGuideUrlParam) {
+        styleGuideBase64 = await compressImageToBase64(styleGuideUrlParam);
       }
       
       console.log('Sending', imageUrls.length, 'menu photos + style guide:', !!styleGuideBase64);
@@ -153,7 +163,7 @@ const Index = () => {
       }
 
       if (data?.images && data.images.length > 0) {
-        setGeneratedImages(data.images);
+        addToHistory(data.images);
         toast.success("Content generated successfully!");
       } else {
         toast.error('No images were generated');
@@ -164,11 +174,11 @@ const Index = () => {
     }
     
     setIsGenerating(false);
-  }, [selectedPhotos]);
+  }, [selectedPhotos, addToHistory]);
 
   const handleRegenerate = useCallback(() => {
-    handleGenerate("", selectedRatio, selectedResolution, selectedPhotoAmount);
-  }, [handleGenerate, selectedRatio, selectedResolution, selectedPhotoAmount]);
+    handleGenerate("", selectedRatio, selectedResolution, selectedPhotoAmount, styleGuideUrl || undefined);
+  }, [handleGenerate, selectedRatio, selectedResolution, selectedPhotoAmount, styleGuideUrl]);
 
   const handleGenerateRandom = useCallback(async () => {
     const count = Math.floor(Math.random() * 3) + 3;
@@ -182,7 +192,13 @@ const Index = () => {
       const imageUrls = await Promise.all(imagePromises);
       const photoNames = randomPhotos.map((p) => p.name);
       
-      console.log('Random generation with', randomPhotos.length, 'photos:', photoNames, 'ratio:', selectedRatio, 'resolution:', selectedResolution);
+      // Include style guide if available
+      let styleGuideBase64: string | undefined;
+      if (styleGuideUrl) {
+        styleGuideBase64 = await compressImageToBase64(styleGuideUrl);
+      }
+      
+      console.log('Random generation with', randomPhotos.length, 'photos:', photoNames, 'ratio:', selectedRatio, 'resolution:', selectedResolution, 'photoAmount:', selectedPhotoAmount, 'styleGuide:', !!styleGuideBase64);
       
       const randomPrompts = [
         "Create a mouthwatering promotional shot with dramatic lighting",
@@ -200,7 +216,8 @@ const Index = () => {
           resolution: selectedResolution, 
           photoAmount: parseInt(selectedPhotoAmount),
           imageUrls, 
-          photoNames 
+          photoNames,
+          styleGuideUrl: styleGuideBase64
         }
       });
 
@@ -212,7 +229,7 @@ const Index = () => {
       }
 
       if (data?.images && data.images.length > 0) {
-        setGeneratedImages(data.images);
+        addToHistory(data.images);
         toast.success(`Random creation with ${randomPhotos.length} burgers!`);
       } else {
         toast.error('No images were generated');
@@ -223,7 +240,7 @@ const Index = () => {
     }
     
     setIsGenerating(false);
-  }, [photos, selectedRatio, selectedResolution]);
+  }, [photos, selectedRatio, selectedResolution, selectedPhotoAmount, styleGuideUrl, addToHistory]);
 
   const handlePhotosAdded = useCallback((files: File[]) => {
     const newPhotos: MenuPhoto[] = files.map((file, index) => ({
@@ -240,6 +257,24 @@ const Index = () => {
     setPhotos((prev) => prev.filter((p) => p.id !== id));
     setSelectedPhotos((prev) => prev.filter((p) => p.id !== id));
     toast.success("Photo deleted");
+  }, []);
+
+  const handleDeleteEntry = useCallback((entryId: string) => {
+    setGenerationHistory((prev) => prev.filter((e) => e.id !== entryId));
+    toast.success("Generation deleted");
+  }, []);
+
+  const handleDeleteImage = useCallback((entryId: string, imageIndex: number) => {
+    setGenerationHistory((prev) =>
+      prev.map((entry) => {
+        if (entry.id === entryId) {
+          const newImages = entry.images.filter((_, i) => i !== imageIndex);
+          return { ...entry, images: newImages };
+        }
+        return entry;
+      }).filter((entry) => entry.images.length > 0)
+    );
+    toast.success("Image deleted");
   }, []);
 
   const handleEditImage = useCallback((image: string) => {
@@ -260,7 +295,7 @@ const Index = () => {
       }
 
       if (data?.image) {
-        setGeneratedImages(prev => [data.image, ...prev]);
+        addToHistory([data.image]);
         toast.success("Image edited successfully!");
       } else {
         toast.error('No edited image was returned');
@@ -269,7 +304,7 @@ const Index = () => {
       console.error('Edit error:', err);
       toast.error('Failed to edit image');
     }
-  }, []);
+  }, [addToHistory]);
 
   // Memoize drag overlay content to prevent re-renders
   const dragOverlayContent = useMemo(() => {
@@ -323,16 +358,18 @@ const Index = () => {
                   setSelectedResolution={setSelectedResolution}
                   selectedPhotoAmount={selectedPhotoAmount}
                   setSelectedPhotoAmount={setSelectedPhotoAmount}
+                  styleGuideUrl={styleGuideUrl}
+                  setStyleGuideUrl={setStyleGuideUrl}
                 />
               </div>
 
               <div className="lg:col-span-1 animate-slide-up" style={{ animationDelay: "0.3s" }}>
-                <GeneratedContent
-                  images={generatedImages}
-                  onRegenerate={handleRegenerate}
-                  onGenerateRandom={handleGenerateRandom}
-                  onEditImage={handleEditImage}
+                <GenerationHistory
+                  history={generationHistory}
                   onImageClick={setLightboxImage}
+                  onDeleteEntry={handleDeleteEntry}
+                  onDeleteImage={handleDeleteImage}
+                  onGenerateNew={handleGenerateRandom}
                   isGenerating={isGenerating}
                 />
               </div>
