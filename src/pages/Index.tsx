@@ -154,6 +154,64 @@ const Index = () => {
     handleGenerate("", "1:1", "1K");
   }, [handleGenerate]);
 
+  const handleGenerateRandom = useCallback(async () => {
+    // Pick 3-5 random menu items
+    const count = Math.floor(Math.random() * 3) + 3; // 3, 4, or 5
+    const shuffled = [...photos].sort(() => Math.random() - 0.5);
+    const randomPhotos = shuffled.slice(0, count);
+    
+    setIsGenerating(true);
+    
+    try {
+      const imagePromises = randomPhotos.map((p) => compressImageToBase64(p.src));
+      const imageUrls = await Promise.all(imagePromises);
+      const photoNames = randomPhotos.map((p) => p.name);
+      
+      console.log('Random generation with', randomPhotos.length, 'photos:', photoNames);
+      
+      const randomPrompts = [
+        "Create a mouthwatering promotional shot with dramatic lighting",
+        "Design an appetizing hero image for social media",
+        "Generate a premium restaurant advertisement",
+        "Create an eye-catching menu showcase",
+        "Design a delicious burger collage"
+      ];
+      const randomPrompt = randomPrompts[Math.floor(Math.random() * randomPrompts.length)];
+      
+      const ratios = ["1:1", "16:9", "4:3"];
+      const randomRatio = ratios[Math.floor(Math.random() * ratios.length)];
+      
+      const { data, error } = await supabase.functions.invoke('generate-image', {
+        body: { 
+          prompt: randomPrompt, 
+          ratio: randomRatio, 
+          resolution: "2K", 
+          imageUrls, 
+          photoNames 
+        }
+      });
+
+      if (error) {
+        console.error('Generation error:', error);
+        toast.error(error.message || 'Failed to generate content');
+        setIsGenerating(false);
+        return;
+      }
+
+      if (data?.images && data.images.length > 0) {
+        setGeneratedImages(data.images);
+        toast.success(`Random creation with ${randomPhotos.length} burgers!`);
+      } else {
+        toast.error('No images were generated');
+      }
+    } catch (err) {
+      console.error('Generation error:', err);
+      toast.error('Failed to generate content');
+    }
+    
+    setIsGenerating(false);
+  }, [photos]);
+
   const handlePhotosAdded = useCallback((files: File[]) => {
     const newPhotos: MenuPhoto[] = files.map((file, index) => ({
       id: `uploaded-${Date.now()}-${index}`,
@@ -209,9 +267,10 @@ const Index = () => {
 
             {/* Generated Content */}
             <div className="lg:col-span-1 animate-slide-up" style={{ animationDelay: "0.3s" }}>
-            <GeneratedContent
+              <GeneratedContent
                 images={generatedImages}
                 onRegenerate={handleRegenerate}
+                onGenerateRandom={handleGenerateRandom}
                 isGenerating={isGenerating}
               />
             </div>

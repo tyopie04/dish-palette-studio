@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Download, Share2, RefreshCw } from "lucide-react";
+import { Download, Share2, RefreshCw, Shuffle } from "lucide-react";
 import { Button } from "./ui/button";
 import { toast } from "sonner";
 import { ImageLightbox } from "./ImageLightbox";
@@ -7,10 +7,11 @@ import { ImageLightbox } from "./ImageLightbox";
 interface GeneratedContentProps {
   images: string[];
   onRegenerate: () => void;
+  onGenerateRandom?: () => void;
   isGenerating?: boolean;
 }
 
-export function GeneratedContent({ images, onRegenerate, isGenerating = false }: GeneratedContentProps) {
+export function GeneratedContent({ images, onRegenerate, onGenerateRandom, isGenerating = false }: GeneratedContentProps) {
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
   const handleDownload = async (imageUrl: string, index: number) => {
     try {
@@ -87,16 +88,26 @@ export function GeneratedContent({ images, onRegenerate, isGenerating = false }:
   if (images.length === 0) {
     return (
       <div className="glass-card p-6 text-center">
-        <div className="py-12">
+        <div className="py-8">
           <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-secondary/50 flex items-center justify-center">
             <span className="text-3xl">✨</span>
           </div>
           <h3 className="text-lg font-display font-semibold text-foreground mb-2">
             Your Creations
           </h3>
-          <p className="text-sm text-muted-foreground max-w-xs mx-auto">
+          <p className="text-sm text-muted-foreground max-w-xs mx-auto mb-4">
             Generated content will appear here. Start by adding photos and a prompt!
           </p>
+          {onGenerateRandom && (
+            <Button 
+              variant="glow" 
+              onClick={onGenerateRandom}
+              className="mt-2"
+            >
+              <Shuffle className="w-4 h-4 mr-2" />
+              Generate Random
+            </Button>
+          )}
         </div>
       </div>
     );
@@ -104,14 +115,22 @@ export function GeneratedContent({ images, onRegenerate, isGenerating = false }:
 
   return (
     <div className="glass-card p-6 space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <h3 className="text-lg font-display font-semibold text-foreground">
           Generated Content
         </h3>
-        <Button variant="ghost" size="sm" onClick={onRegenerate}>
-          <RefreshCw className="w-4 h-4" />
-          Regenerate
-        </Button>
+        <div className="flex gap-2">
+          {onGenerateRandom && (
+            <Button variant="outline" size="sm" onClick={onGenerateRandom}>
+              <Shuffle className="w-4 h-4" />
+              Random
+            </Button>
+          )}
+          <Button variant="ghost" size="sm" onClick={onRegenerate}>
+            <RefreshCw className="w-4 h-4" />
+            Regenerate
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-3">
