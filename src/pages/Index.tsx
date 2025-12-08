@@ -32,7 +32,7 @@ const initialPhotos: MenuPhoto[] = [
 ];
 
 const Index = () => {
-  const [photos] = useState<MenuPhoto[]>(initialPhotos);
+  const [photos, setPhotos] = useState<MenuPhoto[]>(initialPhotos);
   const [selectedPhotos, setSelectedPhotos] = useState<MenuPhoto[]>([]);
   const [generatedImages, setGeneratedImages] = useState<string[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -87,8 +87,15 @@ const Index = () => {
     handleGenerate("", "social");
   }, [handleGenerate]);
 
-  const handleUpload = useCallback(() => {
-    toast.info("Upload functionality coming soon!");
+  const handlePhotosAdded = useCallback((files: File[]) => {
+    const newPhotos: MenuPhoto[] = files.map((file, index) => ({
+      id: `uploaded-${Date.now()}-${index}`,
+      name: file.name.replace(/\.[^/.]+$/, ""),
+      src: URL.createObjectURL(file),
+      category: "Uploaded",
+    }));
+    setPhotos((prev) => [...newPhotos, ...prev]);
+    toast.success(`Added ${files.length} photo${files.length > 1 ? "s" : ""}`);
   }, []);
 
   return (
@@ -114,7 +121,7 @@ const Index = () => {
           <div className="grid lg:grid-cols-3 gap-6">
             {/* Photo Gallery */}
             <div className="lg:col-span-1 animate-slide-up" style={{ animationDelay: "0.1s" }}>
-              <PhotoGallery photos={photos} onUpload={handleUpload} />
+              <PhotoGallery photos={photos} onPhotosAdded={handlePhotosAdded} />
             </div>
 
             {/* Prompt Builder */}

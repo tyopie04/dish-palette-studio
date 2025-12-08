@@ -1,21 +1,46 @@
+import { useRef } from "react";
 import { PhotoCard, MenuPhoto } from "./PhotoCard";
 import { Plus, Upload } from "lucide-react";
 import { Button } from "./ui/button";
 
 interface PhotoGalleryProps {
   photos: MenuPhoto[];
-  onUpload: () => void;
+  onPhotosAdded: (files: File[]) => void;
 }
 
-export function PhotoGallery({ photos, onUpload }: PhotoGalleryProps) {
+export function PhotoGallery({ photos, onPhotosAdded }: PhotoGalleryProps) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length > 0) {
+      onPhotosAdded(files);
+    }
+    // Reset input so same file can be selected again
+    e.target.value = "";
+  };
+
+  const openFilePicker = () => {
+    fileInputRef.current?.click();
+  };
+
   return (
     <div className="space-y-4">
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        multiple
+        onChange={handleFileChange}
+        className="hidden"
+      />
+      
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-display font-semibold text-foreground">Menu Photos</h2>
           <p className="text-sm text-muted-foreground">Drag photos to the prompt area</p>
         </div>
-        <Button variant="glass" size="sm" onClick={onUpload}>
+        <Button variant="outline" size="sm" onClick={openFilePicker}>
           <Upload className="w-4 h-4" />
           Upload
         </Button>
@@ -27,8 +52,8 @@ export function PhotoGallery({ photos, onUpload }: PhotoGalleryProps) {
         ))}
         
         <button
-          onClick={onUpload}
-          className="aspect-square rounded-lg border-2 border-dashed border-border hover:border-primary/50 transition-colors duration-300 flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-primary"
+          onClick={openFilePicker}
+          className="aspect-square rounded-lg border-2 border-dashed border-border hover:border-foreground/50 transition-colors duration-200 flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-foreground"
         >
           <Plus className="w-8 h-8" />
           <span className="text-xs">Add Photo</span>
