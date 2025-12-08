@@ -24,12 +24,12 @@ import menu5 from "@/assets/menu-5.jpg";
 import menu6 from "@/assets/menu-6.jpg";
 
 const initialPhotos: MenuPhoto[] = [
-  { id: "1", name: "Truffle Pasta", src: menu1, category: "Pasta" },
-  { id: "2", name: "Ribeye Steak", src: menu2, category: "Mains" },
-  { id: "3", name: "Chocolate Lava", src: menu3, category: "Desserts" },
-  { id: "4", name: "Sushi Platter", src: menu4, category: "Japanese" },
-  { id: "5", name: "Gourmet Burger", src: menu5, category: "Burgers" },
-  { id: "6", name: "Greek Salad", src: menu6, category: "Salads" },
+  { id: "1", name: "Classic Cheeseburger", src: menu1, category: "Burgers" },
+  { id: "2", name: "BBQ Bacon Burger", src: menu2, category: "Burgers" },
+  { id: "3", name: "Mushroom Swiss Burger", src: menu3, category: "Burgers" },
+  { id: "4", name: "Spicy Jalapeño Burger", src: menu4, category: "Burgers" },
+  { id: "5", name: "Double Stack Burger", src: menu5, category: "Burgers" },
+  { id: "6", name: "Veggie Burger", src: menu6, category: "Burgers" },
 ];
 
 // Compress and convert image to base64 (max 512px, JPEG quality 0.7)
@@ -108,7 +108,7 @@ const Index = () => {
     setSelectedPhotos((prev) => prev.filter((p) => p.id !== id));
   }, []);
 
-  const handleGenerate = useCallback(async (prompt: string, style: string) => {
+  const handleGenerate = useCallback(async (prompt: string, ratio: string, resolution: string) => {
     setIsGenerating(true);
     
     try {
@@ -121,7 +121,7 @@ const Index = () => {
       console.log('Sending', imageUrls.length, 'compressed images');
       
       const { data, error } = await supabase.functions.invoke('generate-image', {
-        body: { prompt, style, imageUrls, photoNames }
+        body: { prompt, ratio, resolution, imageUrls, photoNames }
       });
 
       if (error) {
@@ -146,7 +146,7 @@ const Index = () => {
   }, [selectedPhotos]);
 
   const handleRegenerate = useCallback(() => {
-    handleGenerate("", "social");
+    handleGenerate("", "1:1", "1K");
   }, [handleGenerate]);
 
   const handlePhotosAdded = useCallback((files: File[]) => {

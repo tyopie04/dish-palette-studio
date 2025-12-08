@@ -8,15 +8,21 @@ import { useState } from "react";
 interface PromptBuilderProps {
   selectedPhotos: MenuPhoto[];
   onRemovePhoto: (id: string) => void;
-  onGenerate: (prompt: string, style: string) => void;
+  onGenerate: (prompt: string, ratio: string, resolution: string) => void;
   isGenerating: boolean;
 }
 
-const styleOptions = [
-  { id: "social", label: "Social Media", description: "Instagram-ready square format" },
-  { id: "banner", label: "Banner", description: "Wide promotional banner" },
-  { id: "story", label: "Story", description: "Vertical story format" },
-  { id: "artistic", label: "Artistic", description: "Creative artistic style" },
+const ratioOptions = [
+  { id: "1:1", label: "1:1", description: "Square" },
+  { id: "16:9", label: "16:9", description: "Landscape" },
+  { id: "9:16", label: "9:16", description: "Portrait" },
+  { id: "4:3", label: "4:3", description: "Standard" },
+];
+
+const resolutionOptions = [
+  { id: "1K", label: "1K", description: "1024px" },
+  { id: "2K", label: "2K", description: "2048px" },
+  { id: "4K", label: "4K", description: "4096px" },
 ];
 
 export function PromptBuilder({
@@ -26,7 +32,8 @@ export function PromptBuilder({
   isGenerating,
 }: PromptBuilderProps) {
   const [prompt, setPrompt] = useState("");
-  const [selectedStyle, setSelectedStyle] = useState("social");
+  const [selectedRatio, setSelectedRatio] = useState("1:1");
+  const [selectedResolution, setSelectedResolution] = useState("1K");
   
   const { setNodeRef, isOver } = useDroppable({
     id: "prompt-builder",
@@ -34,12 +41,12 @@ export function PromptBuilder({
 
   const handleGenerate = () => {
     if (prompt.trim() || selectedPhotos.length > 0) {
-      onGenerate(prompt, selectedStyle);
+      onGenerate(prompt, selectedRatio, selectedResolution);
     }
   };
 
   return (
-    <div className="glass-card p-6 space-y-6">
+    <div className="glass-card p-6 space-y-5">
       <div>
         <h2 className="text-xl font-display font-semibold text-foreground mb-1">
           Content Creator
@@ -61,7 +68,7 @@ export function PromptBuilder({
         {selectedPhotos.length === 0 ? (
           <div className="text-center text-muted-foreground">
             <ImageIcon className="w-10 h-10 mx-auto mb-2 opacity-50" />
-            <p className="text-sm">Drop menu photos here</p>
+            <p className="text-sm">Drop burger photos here</p>
           </div>
         ) : (
           selectedPhotos.map((photo) => (
@@ -93,30 +100,54 @@ export function PromptBuilder({
         <textarea
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
-          placeholder="e.g., Create a festive holiday promotion featuring our signature dishes..."
+          placeholder="e.g., Create a promotional shot of our signature burgers with dramatic lighting..."
           className="w-full h-24 px-4 py-3 bg-secondary/50 border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none font-body"
         />
       </div>
 
-      {/* Style Selection */}
-      <div className="space-y-3">
+      {/* Ratio Selection */}
+      <div className="space-y-2">
         <label className="text-sm font-medium text-foreground">
-          Content Style
+          Aspect Ratio
         </label>
-        <div className="grid grid-cols-2 gap-2">
-          {styleOptions.map((style) => (
+        <div className="grid grid-cols-4 gap-2">
+          {ratioOptions.map((ratio) => (
             <button
-              key={style.id}
-              onClick={() => setSelectedStyle(style.id)}
+              key={ratio.id}
+              onClick={() => setSelectedRatio(ratio.id)}
               className={cn(
-                "p-3 rounded-lg border text-left transition-all duration-300",
-                selectedStyle === style.id
+                "p-2 rounded-lg border text-center transition-all duration-300",
+                selectedRatio === ratio.id
                   ? "border-primary bg-primary/10 shadow-[0_0_15px_hsl(38_92%_50%/0.2)]"
                   : "border-border hover:border-primary/50 bg-secondary/30"
               )}
             >
-              <p className="text-sm font-medium text-foreground">{style.label}</p>
-              <p className="text-xs text-muted-foreground">{style.description}</p>
+              <p className="text-sm font-medium text-foreground">{ratio.label}</p>
+              <p className="text-xs text-muted-foreground">{ratio.description}</p>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Resolution Selection */}
+      <div className="space-y-2">
+        <label className="text-sm font-medium text-foreground">
+          Resolution
+        </label>
+        <div className="grid grid-cols-3 gap-2">
+          {resolutionOptions.map((res) => (
+            <button
+              key={res.id}
+              onClick={() => setSelectedResolution(res.id)}
+              className={cn(
+                "p-2 rounded-lg border text-center transition-all duration-300",
+                selectedResolution === res.id
+                  ? "border-primary bg-primary/10 shadow-[0_0_15px_hsl(38_92%_50%/0.2)]"
+                  : "border-border hover:border-primary/50 bg-secondary/30"
+              )}
+            >
+              <p className="text-sm font-medium text-foreground">{res.label}</p>
+              <p className="text-xs text-muted-foreground">{res.description}</p>
             </button>
           ))}
         </div>
