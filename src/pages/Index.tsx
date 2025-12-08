@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import {
   DndContext,
   DragEndEvent,
@@ -13,6 +13,7 @@ import { PhotoGallery } from "@/components/PhotoGallery";
 import { PromptBuilder } from "@/components/PromptBuilder";
 import { GeneratedContent } from "@/components/GeneratedContent";
 import { ImageLightbox } from "@/components/ImageLightbox";
+import { ImageEditDialog } from "@/components/ImageEditDialog";
 import { PhotoCard, MenuPhoto } from "@/components/PhotoCard";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -44,7 +45,6 @@ const compressImageToBase64 = async (url: string): Promise<string> => {
       let width = img.width;
       let height = img.height;
       
-      // Scale down if larger than maxSize
       if (width > height && width > maxSize) {
         height = (height * maxSize) / width;
         width = maxSize;
@@ -61,8 +61,6 @@ const compressImageToBase64 = async (url: string): Promise<string> => {
         return;
       }
       ctx.drawImage(img, 0, 0, width, height);
-      
-      // Convert to JPEG with 0.7 quality for smaller file size
       const base64 = canvas.toDataURL("image/jpeg", 0.7);
       resolve(base64);
     };
@@ -78,11 +76,16 @@ const Index = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [activePhoto, setActivePhoto] = useState<MenuPhoto | null>(null);
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
+  const [editingImage, setEditingImage] = useState<string | null>(null);
+  
+  // Lifted state for ratio/resolution so random generation can use them
+  const [selectedRatio, setSelectedRatio] = useState("1:1");
+  const [selectedResolution, setSelectedResolution] = useState("1K");
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 8,
+        distance: 10,
       },
     })
   );
@@ -114,12 +117,10 @@ const Index = () => {
     setIsGenerating(true);
     
     try {
-      // Compress all selected images and convert to base64
       const imagePromises = selectedPhotos.map((p) => compressImageToBase64(p.src));
       const imageUrls = await Promise.all(imagePromises);
       const photoNames = selectedPhotos.map((p) => p.name);
       
-      // Compress style guide if provided
       let styleGuideBase64: string | undefined;
       if (styleGuideUrl) {
         styleGuideBase64 = await compressImageToBase64(styleGuideUrl);
@@ -153,12 +154,11 @@ const Index = () => {
   }, [selectedPhotos]);
 
   const handleRegenerate = useCallback(() => {
-    handleGenerate("", "1:1", "1K");
-  }, [handleGenerate]);
+    handleGenerate("", selectedRatio, selectedResolution);
+  }, [handleGenerate, selectedRatio, selectedResolution]);
 
   const handleGenerateRandom = useCallback(async () => {
-    // Pick 3-5 random menu items
-    const count = Math.floor(Math.random() * 3) + 3; // 3, 4, or 5
+    const count = Math.floor(Math.random() * 3) + 3;
     const shuffled = [...photos].sort(() => Math.random() - 0.5);
     const randomPhotos = shuffled.slice(0, count);
     
@@ -169,7 +169,7 @@ const Index = () => {
       const imageUrls = await Promise.all(imagePromises);
       const photoNames = randomPhotos.map((p) => p.name);
       
-      console.log('Random generation with', randomPhotos.length, 'photos:', photoNames);
+      console.log('Random generation with', randomPhotos.length, 'photos:', photoNames, 'ratio:', selectedRatio, 'resolution:', selectedResolution);
       
       const randomPrompts = [
         "Create a mouthwatering promotional shot with dramatic lighting",
@@ -180,14 +180,11 @@ const Index = () => {
       ];
       const randomPrompt = randomPrompts[Math.floor(Math.random() * randomPrompts.length)];
       
-      const ratios = ["1:1", "16:9", "4:3"];
-      const randomRatio = ratios[Math.floor(Math.random() * ratios.length)];
-      
       const { data, error } = await supabase.functions.invoke('generate-image', {
         body: { 
           prompt: randomPrompt, 
-          ratio: randomRatio, 
-          resolution: "2K", 
+          ratio: selectedRatio, 
+          resolution: selectedResolution, 
           imageUrls, 
           photoNames 
         }
@@ -212,7 +209,7 @@ const Index = () => {
     }
     
     setIsGenerating(false);
-  }, [photos]);
+  }, [photos, selectedRatio, selectedResolution]);
 
   const handlePhotosAdded = useCallback((files: File[]) => {
     const newPhotos: MenuPhoto[] = files.map((file, index) => ({
@@ -232,8 +229,47 @@ const Index = () => {
   }, []);
 
   const handleEditImage = useCallback((image: string) => {
-    toast.info("Edit feature coming soon! For now, you can regenerate with a modified prompt.");
+    setLightboxImage(null);
+    setEditingImage(image);
   }, []);
+
+  const handleApplyEdit = useCallback(async (image: string, editPrompt: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('edit-image', {
+        body: { imageUrl: image, editPrompt }
+      });
+
+      if (error) {
+        console.error('Edit error:', error);
+        toast.error(error.message || 'Failed to edit image');
+        return;
+      }
+
+      if (data?.image) {
+        setGeneratedImages(prev => [data.image, ...prev]);
+        toast.success("Image edited successfully!");
+      } else {
+        toast.error('No edited image was returned');
+      }
+    } catch (err) {
+      console.error('Edit error:', err);
+      toast.error('Failed to edit image');
+    }
+  }, []);
+
+  // Memoize drag overlay content to prevent re-renders
+  const dragOverlayContent = useMemo(() => {
+    if (!activePhoto) return null;
+    return (
+      <div className="w-24 h-24 rounded-lg overflow-hidden shadow-2xl opacity-80 pointer-events-none">
+        <img
+          src={activePhoto.src}
+          alt={activePhoto.name}
+          className="w-full h-full object-cover"
+        />
+      </div>
+    );
+  }, [activePhoto]);
 
   return (
     <>
@@ -242,72 +278,74 @@ const Index = () => {
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
-      <div className="min-h-screen bg-background">
-        <Header />
-        
-        <main className="container mx-auto px-4 py-8">
-          <div className="mb-8 animate-fade-in">
-            <h1 className="text-3xl sm:text-4xl font-display font-bold text-foreground mb-2">
-              Create <span className="gradient-text">Stunning</span> Content
-            </h1>
-            <p className="text-muted-foreground max-w-xl">
-              Transform your menu photos into captivating marketing content. 
-              Simply drag photos, describe your vision, and let AI do the magic.
-            </p>
-          </div>
-
-          <div className="grid lg:grid-cols-3 gap-6">
-            {/* Photo Gallery */}
-            <div className="lg:col-span-1 animate-slide-up" style={{ animationDelay: "0.1s" }}>
-              <PhotoGallery photos={photos} onPhotosAdded={handlePhotosAdded} onDeletePhoto={handleDeletePhoto} />
+        <div className="min-h-screen bg-background">
+          <Header />
+          
+          <main className="container mx-auto px-4 py-8">
+            <div className="mb-8 animate-fade-in">
+              <h1 className="text-3xl sm:text-4xl font-display font-bold text-foreground mb-2">
+                Create <span className="gradient-text">Stunning</span> Content
+              </h1>
+              <p className="text-muted-foreground max-w-xl">
+                Transform your menu photos into captivating marketing content. 
+                Simply drag photos, describe your vision, and let AI do the magic.
+              </p>
             </div>
 
-            {/* Prompt Builder */}
-            <div className="lg:col-span-1 animate-slide-up" style={{ animationDelay: "0.2s" }}>
-              <PromptBuilder
-                selectedPhotos={selectedPhotos}
-                onRemovePhoto={handleRemovePhoto}
-                onGenerate={handleGenerate}
-                isGenerating={isGenerating}
-              />
+            <div className="grid lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-1 animate-slide-up" style={{ animationDelay: "0.1s" }}>
+                <PhotoGallery photos={photos} onPhotosAdded={handlePhotosAdded} onDeletePhoto={handleDeletePhoto} />
+              </div>
+
+              <div className="lg:col-span-1 animate-slide-up" style={{ animationDelay: "0.2s" }}>
+                <PromptBuilder
+                  selectedPhotos={selectedPhotos}
+                  onRemovePhoto={handleRemovePhoto}
+                  onGenerate={handleGenerate}
+                  isGenerating={isGenerating}
+                  selectedRatio={selectedRatio}
+                  setSelectedRatio={setSelectedRatio}
+                  selectedResolution={selectedResolution}
+                  setSelectedResolution={setSelectedResolution}
+                />
+              </div>
+
+              <div className="lg:col-span-1 animate-slide-up" style={{ animationDelay: "0.3s" }}>
+                <GeneratedContent
+                  images={generatedImages}
+                  onRegenerate={handleRegenerate}
+                  onGenerateRandom={handleGenerateRandom}
+                  onEditImage={handleEditImage}
+                  onImageClick={setLightboxImage}
+                  isGenerating={isGenerating}
+                />
+              </div>
             </div>
+          </main>
+        </div>
 
-            {/* Generated Content */}
-            <div className="lg:col-span-1 animate-slide-up" style={{ animationDelay: "0.3s" }}>
-              <GeneratedContent
-                images={generatedImages}
-                onRegenerate={handleRegenerate}
-                onGenerateRandom={handleGenerateRandom}
-                onEditImage={handleEditImage}
-                onImageClick={setLightboxImage}
-                isGenerating={isGenerating}
-              />
-            </div>
-          </div>
-        </main>
-      </div>
+        <DragOverlay dropAnimation={null}>
+          {dragOverlayContent}
+        </DragOverlay>
+      </DndContext>
 
-      <DragOverlay>
-        {activePhoto ? (
-          <div className="w-24 h-24 rounded-lg overflow-hidden shadow-2xl opacity-80">
-            <img
-              src={activePhoto.src}
-              alt={activePhoto.name}
-              className="w-full h-full object-cover"
-            />
-          </div>
-        ) : null}
-      </DragOverlay>
-    </DndContext>
+      {lightboxImage && (
+        <ImageLightbox 
+          image={lightboxImage} 
+          onClose={() => setLightboxImage(null)}
+          onEdit={handleEditImage}
+        />
+      )}
 
-    {lightboxImage && (
-      <ImageLightbox 
-        image={lightboxImage} 
-        onClose={() => setLightboxImage(null)}
-        onEdit={handleEditImage}
-      />
-    )}
-  </>
+      {editingImage && (
+        <ImageEditDialog
+          image={editingImage}
+          isOpen={!!editingImage}
+          onClose={() => setEditingImage(null)}
+          onEdit={handleApplyEdit}
+        />
+      )}
+    </>
   );
 };
 
