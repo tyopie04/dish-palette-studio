@@ -32,6 +32,18 @@ const initialPhotos: MenuPhoto[] = [
   { id: "6", name: "Greek Salad", src: menu6, category: "Salads" },
 ];
 
+// Helper function to convert image URL to base64
+const imageUrlToBase64 = async (url: string): Promise<string> => {
+  const response = await fetch(url);
+  const blob = await response.blob();
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+};
+
 const Index = () => {
   const [photos, setPhotos] = useState<MenuPhoto[]>(initialPhotos);
   const [selectedPhotos, setSelectedPhotos] = useState<MenuPhoto[]>([]);
@@ -74,8 +86,9 @@ const Index = () => {
     setIsGenerating(true);
     
     try {
-      // Convert selected photo URLs to base64 for the API
-      const imageUrls = selectedPhotos.map((p) => p.src);
+      // Convert selected photo URLs to base64 for the API (handles blob URLs)
+      const imageBase64Promises = selectedPhotos.map((p) => imageUrlToBase64(p.src));
+      const imageUrls = await Promise.all(imageBase64Promises);
       
       const { data, error } = await supabase.functions.invoke('generate-image', {
         body: { prompt, style, imageUrls }
