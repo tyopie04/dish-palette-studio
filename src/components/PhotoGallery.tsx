@@ -6,9 +6,10 @@ import { Button } from "./ui/button";
 interface PhotoGalleryProps {
   photos: MenuPhoto[];
   onPhotosAdded: (files: File[]) => void;
+  onDeletePhoto: (id: string) => void;
 }
 
-export function PhotoGallery({ photos, onPhotosAdded }: PhotoGalleryProps) {
+export function PhotoGallery({ photos, onPhotosAdded, onDeletePhoto }: PhotoGalleryProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -48,7 +49,7 @@ export function PhotoGallery({ photos, onPhotosAdded }: PhotoGalleryProps) {
       
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         {photos.map((photo) => (
-          <PhotoCard key={photo.id} photo={photo} />
+          <PhotoCard key={photo.id} photo={photo} onDelete={onDeletePhoto} />
         ))}
         
         <button

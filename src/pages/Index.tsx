@@ -98,6 +98,12 @@ const Index = () => {
     toast.success(`Added ${files.length} photo${files.length > 1 ? "s" : ""}`);
   }, []);
 
+  const handleDeletePhoto = useCallback((id: string) => {
+    setPhotos((prev) => prev.filter((p) => p.id !== id));
+    setSelectedPhotos((prev) => prev.filter((p) => p.id !== id));
+    toast.success("Photo deleted");
+  }, []);
+
   return (
     <DndContext
       sensors={sensors}
@@ -121,7 +127,7 @@ const Index = () => {
           <div className="grid lg:grid-cols-3 gap-6">
             {/* Photo Gallery */}
             <div className="lg:col-span-1 animate-slide-up" style={{ animationDelay: "0.1s" }}>
-              <PhotoGallery photos={photos} onPhotosAdded={handlePhotosAdded} />
+              <PhotoGallery photos={photos} onPhotosAdded={handlePhotosAdded} onDeletePhoto={handleDeletePhoto} />
             </div>
 
             {/* Prompt Builder */}
