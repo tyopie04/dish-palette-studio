@@ -122,7 +122,7 @@ export function GeneratedContent({ images, onRegenerate, onGenerateRandom, onEdi
           {onGenerateRandom && (
             <Button variant="outline" size="sm" onClick={onGenerateRandom}>
               <Shuffle className="w-4 h-4" />
-              Random
+              Choose for Me
             </Button>
           )}
           <Button variant="ghost" size="sm" onClick={onRegenerate}>
@@ -132,8 +132,9 @@ export function GeneratedContent({ images, onRegenerate, onGenerateRandom, onEdi
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4">
-        {images.map((image, index) => (
+      <div className="max-h-[500px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent">
+        <div className="grid grid-cols-1 gap-4">
+          {images.map((image, index) => (
           <div key={index} className="space-y-2">
             <div
               className="relative group rounded-lg overflow-hidden cursor-pointer"
@@ -191,8 +192,8 @@ export function GeneratedContent({ images, onRegenerate, onGenerateRandom, onEdi
             </div>
           </div>
         ))}
+        </div>
       </div>
-
     </div>
   );
 }
