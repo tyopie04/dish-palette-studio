@@ -89,15 +89,32 @@ serve(async (req) => {
     }
 
     const data = await response.json();
-    console.log('AI response received');
+    console.log('AI response received:', JSON.stringify(data, null, 2));
     
-    // Extract the generated image
-    const images = data.choices?.[0]?.message?.images;
-    if (!images || images.length === 0) {
+    // Extract the generated image - check multiple possible response structures
+    const message = data.choices?.[0]?.message;
+    let generatedImages: string[] = [];
+    
+    // Check for images array (Nano Banana format)
+    if (message?.images && message.images.length > 0) {
+      generatedImages = message.images
+        .map((img: any) => img.image_url?.url || img.url)
+        .filter(Boolean);
+    }
+    
+    // Check for inline image in content (alternative format)
+    if (generatedImages.length === 0 && message?.content) {
+      // Sometimes the image is embedded in the content as base64
+      const base64Match = message.content.match(/data:image\/[^;]+;base64,[^\s"]+/g);
+      if (base64Match) {
+        generatedImages = base64Match;
+      }
+    }
+    
+    if (generatedImages.length === 0) {
+      console.error('No images found in response structure:', JSON.stringify(message, null, 2));
       throw new Error('No image generated');
     }
-
-    const generatedImages = images.map((img: any) => img.image_url?.url).filter(Boolean);
 
     return new Response(
       JSON.stringify({ images: generatedImages }),
