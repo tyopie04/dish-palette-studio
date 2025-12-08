@@ -41,14 +41,14 @@ const initialPhotos: MenuPhoto[] = [
   { id: "6", name: "Signature Burger 6", src: menu6, category: "Burgers" },
 ];
 
-// Compress and convert image to base64 (max 512px, JPEG quality 0.7)
+// Higher quality image processing for AI generation (max 2048px, PNG format)
 const compressImageToBase64 = async (url: string): Promise<string> => {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.crossOrigin = "anonymous";
     img.onload = () => {
       const canvas = document.createElement("canvas");
-      const maxSize = 512;
+      const maxSize = 2048;
       let width = img.width;
       let height = img.height;
       
@@ -68,7 +68,7 @@ const compressImageToBase64 = async (url: string): Promise<string> => {
         return;
       }
       ctx.drawImage(img, 0, 0, width, height);
-      const base64 = canvas.toDataURL("image/jpeg", 0.7);
+      const base64 = canvas.toDataURL("image/png");
       resolve(base64);
     };
     img.onerror = () => reject(new Error("Failed to load image"));
