@@ -53,7 +53,7 @@ serve(async (req) => {
     // Include photo names in prompt if available
     let dishContext = "";
     if (photoNames && photoNames.length > 0) {
-      dishContext = ` showcasing these exact menu items: ${photoNames.join(", ")}`;
+      dishContext = ` featuring these menu items: ${photoNames.join(", ")}`;
     }
     
     // Style guide instructions
@@ -61,29 +61,31 @@ serve(async (req) => {
     if (styleGuideUrl) {
       styleInstructions = `
 
-STYLE GUIDE: A style reference image is provided. Replicate ONLY the visual style from this image (lighting, color grading, composition, mood, background treatment) but DO NOT copy any food items from it. The food must come exclusively from the menu photo references.`;
+STYLE REFERENCE: A style guide image is provided. Copy ONLY the visual style from this reference (lighting setup, color grading, composition style, mood, background treatment). DO NOT copy any food from the style reference - use ONLY the burgers from the menu photo references.`;
     }
     
     // Resolution quality hint for the model
-    const resolutionQuality = resolution === "4K" ? "ultra high definition 4K" : (resolution === "2K" ? "high definition 2K" : "standard 1K");
+    const resolutionQuality = resolution === "4K" ? "ultra high definition 4K (4096 pixels)" : (resolution === "2K" ? "high definition 2K (2048 pixels)" : "standard 1K (1024 pixels)");
     const imageCount = Math.min(Math.max(photoAmount || 1, 1), 4);
     
-    const textPrompt = `Generate ${imageCount > 1 ? imageCount + ' different variations of' : 'a'} ${resolutionQuality} professional burger restaurant marketing image${imageCount > 1 ? 's' : ''}. 
+    const textPrompt = `Generate ${imageCount > 1 ? imageCount + ' different variations of' : 'a'} ${resolutionQuality} professional burger restaurant marketing image${imageCount > 1 ? 's' : ''}.
 
 OUTPUT SPECIFICATIONS:
-- Resolution: ${dimensionString} (${resolution} quality)
+- Exact Resolution: ${dimensionString}
 - Aspect Ratio: ${ratioDesc}
-- Quality: Professional marketing grade, sharp details, high fidelity
-${imageCount > 1 ? `- IMPORTANT: Generate exactly ${imageCount} DIFFERENT image variations, each with unique composition/angle/style` : ''}
+- Quality: ${resolution} resolution, professional marketing grade
+${imageCount > 1 ? `- Generate exactly ${imageCount} DIFFERENT image variations with unique angles/compositions` : ''}
 
 CONTENT${dishContext}:
 ${prompt || 'Create an appetizing gourmet burger photo with professional food photography lighting'}
 
-RULES:
-1. Generate at ${dimensionString}
-2. Use ONLY the provided menu photo references for the actual burgers/food - replicate them exactly
-3. Burger restaurant content ONLY - absolutely no pasta, sushi, or other cuisines
-4. Professional marketing quality with appetizing presentation and sharp details${styleInstructions}`;
+CRITICAL RULES - MUST FOLLOW:
+1. PRESERVE EXACT BURGER INGREDIENTS: The burgers in the output MUST have the EXACT SAME ingredients, layers, toppings, bun type, and composition as the reference menu photos. Do NOT add, remove, or change any burger ingredients.
+2. ONLY CHANGE: Lighting, camera angle, background, plating, and presentation style may be adjusted.
+3. NEVER CHANGE: The actual burger construction, ingredients inside, patty count, cheese type, vegetables, sauces, or bun style from the reference photos.
+4. Generate at exactly ${dimensionString} resolution.
+5. Burger restaurant content ONLY - no other cuisines.
+6. Professional marketing quality with sharp details.${styleInstructions}`;
     
     console.log('Generating image with prompt:', textPrompt.substring(0, 400) + '...');
     console.log('Target resolution:', dimensionString, 'Photo amount:', imageCount);

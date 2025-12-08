@@ -16,10 +16,11 @@ interface PhotoCardProps {
   isDragging?: boolean;
   onDelete?: (id: string) => void;
   onClick?: () => void;
+  onDoubleClick?: () => void;
 }
 
-export const PhotoCard = memo(function PhotoCard({ photo, isDragging, onDelete, onClick }: PhotoCardProps) {
-  const { attributes, listeners, setNodeRef, transform } = useDraggable({
+export const PhotoCard = memo(function PhotoCard({ photo, isDragging, onDelete, onClick, onDoubleClick }: PhotoCardProps) {
+  const { attributes, listeners, setNodeRef, transform, isDragging: isCurrentlyDragging } = useDraggable({
     id: photo.id,
     data: photo,
   });
@@ -37,14 +38,26 @@ export const PhotoCard = memo(function PhotoCard({ photo, isDragging, onDelete, 
   };
 
   const handleClick = (e: React.MouseEvent) => {
-    // Only trigger click if not dragging
-    if (!transform && onClick) {
+    // Only trigger click if not currently dragging
+    if (!isCurrentlyDragging && !transform && onClick) {
       onClick();
     }
   };
 
+  const handleDoubleClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!isCurrentlyDragging && !transform && onDoubleClick) {
+      onDoubleClick();
+    }
+  };
+
   return (
-    <div className="photo-card group aspect-square relative" onClick={handleClick}>
+    <div 
+      className="photo-card group aspect-square relative cursor-pointer" 
+      onClick={handleClick}
+      onDoubleClick={handleDoubleClick}
+      title="Click to add to prompt, double-click to enlarge"
+    >
       <div
         ref={setNodeRef}
         style={style}
