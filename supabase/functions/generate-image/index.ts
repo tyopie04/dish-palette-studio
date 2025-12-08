@@ -64,13 +64,25 @@ serve(async (req) => {
 STYLE GUIDE: A style reference image is provided. Replicate ONLY the visual style from this image (lighting, color grading, composition, mood, background treatment) but DO NOT copy any food items from it. The food must come exclusively from the menu photo references.`;
     }
     
-    const textPrompt = `Generate a professional burger restaurant marketing image at EXACTLY ${dimensionString} resolution (${ratioDesc})${dishContext}. ${prompt || 'Create an appetizing gourmet burger photo'}. 
+    // Resolution quality hint for the model
+    const resolutionQuality = resolution === "4K" ? "ultra-high definition 4K" : 
+                               resolution === "2K" ? "high definition 2K" : "standard 1K";
+    
+    const textPrompt = `Generate a ${resolutionQuality} professional burger restaurant marketing image. 
 
-CRITICAL INSTRUCTIONS:
-1. OUTPUT SIZE: Generate at EXACTLY ${dimensionString} - this is ${resolution} resolution
-2. FOOD SOURCE: Use ONLY the menu photo references for the actual burgers/food - copy them exactly as shown
-3. FOCUS: Burger restaurant content ONLY - no pasta, sushi, or other cuisines
-4. QUALITY: Professional marketing quality with appetizing presentation${styleInstructions}`;
+OUTPUT SPECIFICATIONS:
+- Resolution: ${dimensionString} (${resolution} quality - this is critical, generate at FULL ${resolution} resolution)
+- Aspect Ratio: ${ratioDesc}
+- Quality: Professional marketing grade, sharp details, high fidelity
+
+CONTENT${dishContext}:
+${prompt || 'Create an appetizing gourmet burger photo with professional food photography lighting'}
+
+RULES:
+1. Generate at EXACTLY ${dimensionString} - full ${resolution} resolution output
+2. Use ONLY the provided menu photo references for the actual burgers/food - replicate them exactly
+3. Burger restaurant content ONLY - absolutely no pasta, sushi, or other cuisines
+4. Professional marketing quality with appetizing presentation and sharp details${styleInstructions}`;
     
     console.log('Generating image with prompt:', textPrompt.substring(0, 400) + '...');
     console.log('Target resolution:', dimensionString);
