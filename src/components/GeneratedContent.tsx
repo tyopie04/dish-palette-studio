@@ -5,9 +5,10 @@ import { toast } from "sonner";
 interface GeneratedContentProps {
   images: string[];
   onRegenerate: () => void;
+  isGenerating?: boolean;
 }
 
-export function GeneratedContent({ images, onRegenerate }: GeneratedContentProps) {
+export function GeneratedContent({ images, onRegenerate, isGenerating = false }: GeneratedContentProps) {
   const handleDownload = async (imageUrl: string, index: number) => {
     try {
       // For base64 images, create a download link directly
@@ -56,6 +57,29 @@ export function GeneratedContent({ images, onRegenerate }: GeneratedContentProps
       console.error('Share error:', error);
     }
   };
+
+  if (isGenerating) {
+    return (
+      <div className="glass-card p-6 space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-display font-semibold text-foreground">
+            Generating...
+          </h3>
+        </div>
+        <div className="space-y-3">
+          <div className="relative rounded-lg overflow-hidden bg-muted">
+            <div className="aspect-square w-full animate-pulse bg-gradient-to-br from-muted via-muted-foreground/10 to-muted" />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="flex flex-col items-center gap-3">
+                <div className="w-10 h-10 border-3 border-primary border-t-transparent rounded-full animate-spin" />
+                <p className="text-sm text-muted-foreground">Creating your content...</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (images.length === 0) {
     return (

@@ -19,23 +19,36 @@ serve(async (req) => {
       throw new Error('LOVABLE_API_KEY is not configured');
     }
 
-    // Map ratio to description
-    const ratioDescriptions: Record<string, string> = {
-      "1:1": "square format (1:1 aspect ratio)",
-      "16:9": "wide landscape format (16:9 aspect ratio)",
-      "9:16": "tall portrait/story format (9:16 aspect ratio)",
-      "4:3": "standard format (4:3 aspect ratio)",
+    // Calculate exact pixel dimensions based on ratio and resolution
+    const resolutionBasePixels: Record<string, number> = {
+      "1K": 1024,
+      "2K": 2048,
+      "4K": 4096,
     };
 
-    // Map resolution to size hint
-    const resolutionHints: Record<string, string> = {
-      "1K": "1024px resolution",
-      "2K": "2048px high resolution",
-      "4K": "4096px ultra high resolution",
+    const ratioDimensions: Record<string, { w: number; h: number }> = {
+      "1:1": { w: 1, h: 1 },
+      "16:9": { w: 16, h: 9 },
+      "9:16": { w: 9, h: 16 },
+      "4:3": { w: 4, h: 3 },
     };
 
-    const ratioDesc = ratioDescriptions[ratio] || ratioDescriptions["1:1"];
-    const resolutionDesc = resolutionHints[resolution] || resolutionHints["1K"];
+    const basePixels = resolutionBasePixels[resolution] || 1024;
+    const ratioConfig = ratioDimensions[ratio] || { w: 1, h: 1 };
+    
+    // Calculate dimensions where the larger dimension equals basePixels
+    let width: number;
+    let height: number;
+    if (ratioConfig.w >= ratioConfig.h) {
+      width = basePixels;
+      height = Math.round((basePixels * ratioConfig.h) / ratioConfig.w);
+    } else {
+      height = basePixels;
+      width = Math.round((basePixels * ratioConfig.w) / ratioConfig.h);
+    }
+
+    const dimensionString = `${width}x${height} pixels`;
+    const ratioDesc = `${ratio} aspect ratio`;
     
     // Include photo names in prompt if available
     let dishContext = "";
@@ -43,9 +56,9 @@ serve(async (req) => {
       dishContext = ` featuring ${photoNames.join(", ")}`;
     }
     
-    const textPrompt = `Generate a professional burger restaurant marketing image in ${ratioDesc} at ${resolutionDesc}${dishContext}. ${prompt || 'Create an appetizing gourmet burger photo'}. 
+    const textPrompt = `Generate a professional burger restaurant marketing image at exactly ${dimensionString} (${ratioDesc})${dishContext}. ${prompt || 'Create an appetizing gourmet burger photo'}. 
 
-IMPORTANT: This is for a burger restaurant. Focus on burgers and burger-related items ONLY. Use the reference images as the exact style guide - match the burger presentation, lighting, and composition shown. Make it look delicious, high-quality, and perfect for restaurant marketing. Do NOT include pasta, sushi, or other non-burger items.`;
+IMPORTANT: This is for a burger restaurant. Generate the image at EXACTLY ${dimensionString}. Focus on burgers and burger-related items ONLY. Use the reference images as the exact style guide - match the burger presentation, lighting, and composition shown. Make it look delicious, high-quality, and perfect for restaurant marketing. Do NOT include pasta, sushi, or other non-burger items.`;
     
     console.log('Generating image with prompt:', textPrompt.substring(0, 300) + '...');
     console.log('Number of reference images:', imageUrls?.length || 0);

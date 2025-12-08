@@ -112,13 +112,12 @@ const Index = () => {
     setIsGenerating(true);
     
     try {
-      // Compress images and convert to base64 (limit to 2 images to avoid payload issues)
-      const photosToProcess = selectedPhotos.slice(0, 2);
-      const imagePromises = photosToProcess.map((p) => compressImageToBase64(p.src));
+      // Compress all selected images and convert to base64
+      const imagePromises = selectedPhotos.map((p) => compressImageToBase64(p.src));
       const imageUrls = await Promise.all(imagePromises);
       const photoNames = selectedPhotos.map((p) => p.name);
       
-      console.log('Sending', imageUrls.length, 'compressed images');
+      console.log('Sending', imageUrls.length, 'compressed images to generate-image');
       
       const { data, error } = await supabase.functions.invoke('generate-image', {
         body: { prompt, ratio, resolution, imageUrls, photoNames }
@@ -204,9 +203,10 @@ const Index = () => {
 
             {/* Generated Content */}
             <div className="lg:col-span-1 animate-slide-up" style={{ animationDelay: "0.3s" }}>
-              <GeneratedContent
+            <GeneratedContent
                 images={generatedImages}
                 onRegenerate={handleRegenerate}
+                isGenerating={isGenerating}
               />
             </div>
           </div>
