@@ -68,24 +68,26 @@ STYLE REFERENCE: A style guide image is provided. Copy ONLY the visual style fro
     const resolutionQuality = resolution === "4K" ? "ultra high definition 4K (4096 pixels)" : (resolution === "2K" ? "high definition 2K (2048 pixels)" : "standard 1K (1024 pixels)");
     const imageCount = Math.min(Math.max(photoAmount || 1, 1), 4);
     
-    const textPrompt = `Generate ${imageCount > 1 ? imageCount + ' different variations of' : 'a'} ${resolutionQuality} professional burger restaurant marketing image${imageCount > 1 ? 's' : ''}.
+    // OPTIMIZED 5-PART PROMPT STRUCTURE for maximum quality
+    const textPrompt = `[SUBJECT]
+${imageCount > 1 ? `Generate ${imageCount} distinct variations of` : 'Create'} ultra-detailed professional burger photography${dishContext}. ${prompt || 'Appetizing gourmet burger with premium presentation.'}
 
-OUTPUT SPECIFICATIONS:
-- Exact Resolution: ${dimensionString}
-- Aspect Ratio: ${ratioDesc}
-- Quality: ${resolution} resolution, professional marketing grade
-${imageCount > 1 ? `- Generate exactly ${imageCount} DIFFERENT image variations with unique angles/compositions` : ''}
+[STYLE]
+Photorealistic commercial food photography. Magazine-quality editorial style. Studio-grade professional lighting with soft key light, fill light, and rim highlights creating depth and dimension. Rich, appetizing color grading with enhanced saturation on ingredients.
 
-CONTENT${dishContext}:
-${prompt || 'Create an appetizing gourmet burger photo with professional food photography lighting'}
+[COMPOSITION]
+${ratioDesc} format at ${dimensionString}. Dynamic angle showcasing burger layers and textures. Shallow depth of field with tack-sharp focus on the burger. ${imageCount > 1 ? 'Each variation uses unique camera angle and composition.' : 'Compelling hero shot composition.'}
 
-CRITICAL RULES - MUST FOLLOW:
-1. PRESERVE EXACT BURGER INGREDIENTS: The burgers in the output MUST have the EXACT SAME ingredients, layers, toppings, bun type, and composition as the reference menu photos. Do NOT add, remove, or change any burger ingredients.
-2. ONLY CHANGE: Lighting, camera angle, background, plating, and presentation style may be adjusted.
-3. NEVER CHANGE: The actual burger construction, ingredients inside, patty count, cheese type, vegetables, sauces, or bun style from the reference photos.
-4. Generate at exactly ${dimensionString} resolution.
-5. Burger restaurant content ONLY - no other cuisines.
-6. Professional marketing quality with sharp details.${styleInstructions}`;
+[TECHNICAL]
+${resolutionQuality} output. 8K texture detail on all surfaces - visible sesame seeds, meat grain, cheese melt, vegetable freshness. Crisp edges, no blur or artifacts. Professional color science with warm appetizing tones.${styleInstructions}
+
+[CRITICAL CONSTRAINTS]
+- PRESERVE EXACT BURGER CONSTRUCTION: Every ingredient, layer, patty count, cheese type, vegetables, sauces, and bun style from reference photos MUST remain identical.
+- ONLY MODIFY: Lighting setup, camera angle, background environment, plating style, garnishes around (not on) the burger.
+- NEVER ADD OR REMOVE: Any burger ingredients, toppings, or structural elements.
+
+[EXCLUDE]
+Blurry images, low resolution, watermarks, text overlays, artificial look, plastic appearance, unappetizing colors, dark shadows obscuring details, amateur photography, distorted proportions, unrealistic ingredients.`;
     
     console.log('Generating image with prompt:', textPrompt.substring(0, 400) + '...');
     console.log('Target resolution:', dimensionString, 'Photo amount:', imageCount);
