@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { Download, Share2, RefreshCw } from "lucide-react";
 import { Button } from "./ui/button";
 import { toast } from "sonner";
+import { ImageLightbox } from "./ImageLightbox";
 
 interface GeneratedContentProps {
   images: string[];
@@ -9,6 +11,7 @@ interface GeneratedContentProps {
 }
 
 export function GeneratedContent({ images, onRegenerate, isGenerating = false }: GeneratedContentProps) {
+  const [lightboxImage, setLightboxImage] = useState<string | null>(null);
   const handleDownload = async (imageUrl: string, index: number) => {
     try {
       // For base64 images, create a download link directly
@@ -115,19 +118,20 @@ export function GeneratedContent({ images, onRegenerate, isGenerating = false }:
         {images.map((image, index) => (
           <div
             key={index}
-            className="relative group rounded-lg overflow-hidden"
+            className="relative group rounded-lg overflow-hidden cursor-pointer"
+            onClick={() => setLightboxImage(image)}
           >
             <img
               src={image}
               alt={`Generated content ${index + 1}`}
-              className="w-full h-auto object-cover"
+              className="w-full h-auto object-cover transition-transform duration-300 group-hover:scale-105"
             />
             <div className="absolute inset-0 bg-background/80 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-2">
               <Button 
                 variant="glass" 
                 size="icon" 
                 className="h-10 w-10"
-                onClick={() => handleDownload(image, index)}
+                onClick={(e) => { e.stopPropagation(); handleDownload(image, index); }}
               >
                 <Download className="w-5 h-5" />
               </Button>
@@ -135,14 +139,24 @@ export function GeneratedContent({ images, onRegenerate, isGenerating = false }:
                 variant="glass" 
                 size="icon" 
                 className="h-10 w-10"
-                onClick={() => handleShare(image)}
+                onClick={(e) => { e.stopPropagation(); handleShare(image); }}
               >
                 <Share2 className="w-5 h-5" />
               </Button>
             </div>
+            <p className="absolute bottom-2 left-2 text-xs text-muted-foreground bg-background/60 px-2 py-1 rounded">
+              Click to enlarge
+            </p>
           </div>
         ))}
       </div>
+
+      {lightboxImage && (
+        <ImageLightbox 
+          image={lightboxImage} 
+          onClose={() => setLightboxImage(null)} 
+        />
+      )}
     </div>
   );
 }
