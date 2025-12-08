@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { prompt, ratio, resolution, imageUrls, photoNames } = await req.json();
+    const { prompt, ratio, resolution, imageUrls, photoNames, styleGuideUrl } = await req.json();
     
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
@@ -53,20 +53,42 @@ serve(async (req) => {
     // Include photo names in prompt if available
     let dishContext = "";
     if (photoNames && photoNames.length > 0) {
-      dishContext = ` featuring ${photoNames.join(", ")}`;
+      dishContext = ` showcasing these exact menu items: ${photoNames.join(", ")}`;
     }
     
-    const textPrompt = `Generate a professional burger restaurant marketing image at exactly ${dimensionString} (${ratioDesc})${dishContext}. ${prompt || 'Create an appetizing gourmet burger photo'}. 
+    // Style guide instructions
+    let styleInstructions = "";
+    if (styleGuideUrl) {
+      styleInstructions = `
 
-IMPORTANT: This is for a burger restaurant. Generate the image at EXACTLY ${dimensionString}. Focus on burgers and burger-related items ONLY. Use the reference images as the exact style guide - match the burger presentation, lighting, and composition shown. Make it look delicious, high-quality, and perfect for restaurant marketing. Do NOT include pasta, sushi, or other non-burger items.`;
+STYLE GUIDE: A style reference image is provided. Replicate ONLY the visual style from this image (lighting, color grading, composition, mood, background treatment) but DO NOT copy any food items from it. The food must come exclusively from the menu photo references.`;
+    }
     
-    console.log('Generating image with prompt:', textPrompt.substring(0, 300) + '...');
-    console.log('Number of reference images:', imageUrls?.length || 0);
+    const textPrompt = `Generate a professional burger restaurant marketing image at EXACTLY ${dimensionString} resolution (${ratioDesc})${dishContext}. ${prompt || 'Create an appetizing gourmet burger photo'}. 
+
+CRITICAL INSTRUCTIONS:
+1. OUTPUT SIZE: Generate at EXACTLY ${dimensionString} - this is ${resolution} resolution
+2. FOOD SOURCE: Use ONLY the menu photo references for the actual burgers/food - copy them exactly as shown
+3. FOCUS: Burger restaurant content ONLY - no pasta, sushi, or other cuisines
+4. QUALITY: Professional marketing quality with appetizing presentation${styleInstructions}`;
+    
+    console.log('Generating image with prompt:', textPrompt.substring(0, 400) + '...');
+    console.log('Target resolution:', dimensionString);
+    console.log('Number of menu photos:', imageUrls?.length || 0);
+    console.log('Style guide provided:', !!styleGuideUrl);
 
     // Build content array with text and images
     const content: any[] = [{ type: "text", text: textPrompt }];
     
-    // Add reference images if provided
+    // Add style guide first if provided (so AI knows it's the style reference)
+    if (styleGuideUrl) {
+      content.push({
+        type: "image_url",
+        image_url: { url: styleGuideUrl }
+      });
+    }
+    
+    // Add menu photo references (these are the food sources)
     if (imageUrls && imageUrls.length > 0) {
       for (const url of imageUrls) {
         content.push({

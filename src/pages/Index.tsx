@@ -108,7 +108,7 @@ const Index = () => {
     setSelectedPhotos((prev) => prev.filter((p) => p.id !== id));
   }, []);
 
-  const handleGenerate = useCallback(async (prompt: string, ratio: string, resolution: string) => {
+  const handleGenerate = useCallback(async (prompt: string, ratio: string, resolution: string, styleGuideUrl?: string) => {
     setIsGenerating(true);
     
     try {
@@ -117,10 +117,16 @@ const Index = () => {
       const imageUrls = await Promise.all(imagePromises);
       const photoNames = selectedPhotos.map((p) => p.name);
       
-      console.log('Sending', imageUrls.length, 'compressed images to generate-image');
+      // Compress style guide if provided
+      let styleGuideBase64: string | undefined;
+      if (styleGuideUrl) {
+        styleGuideBase64 = await compressImageToBase64(styleGuideUrl);
+      }
+      
+      console.log('Sending', imageUrls.length, 'menu photos + style guide:', !!styleGuideBase64);
       
       const { data, error } = await supabase.functions.invoke('generate-image', {
-        body: { prompt, ratio, resolution, imageUrls, photoNames }
+        body: { prompt, ratio, resolution, imageUrls, photoNames, styleGuideUrl: styleGuideBase64 }
       });
 
       if (error) {

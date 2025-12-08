@@ -1,6 +1,6 @@
 import { useDroppable } from "@dnd-kit/core";
 import { MenuPhoto } from "./PhotoCard";
-import { X, Sparkles, Image as ImageIcon } from "lucide-react";
+import { X, Sparkles, Image as ImageIcon, Palette } from "lucide-react";
 import { Button } from "./ui/button";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
@@ -8,9 +8,17 @@ import { useState } from "react";
 interface PromptBuilderProps {
   selectedPhotos: MenuPhoto[];
   onRemovePhoto: (id: string) => void;
-  onGenerate: (prompt: string, ratio: string, resolution: string) => void;
+  onGenerate: (prompt: string, ratio: string, resolution: string, styleGuideUrl?: string) => void;
   isGenerating: boolean;
 }
+
+// Aspect ratio visual shapes
+const ratioShapes: Record<string, { w: number; h: number }> = {
+  "1:1": { w: 16, h: 16 },
+  "16:9": { w: 20, h: 11 },
+  "9:16": { w: 11, h: 20 },
+  "4:3": { w: 18, h: 14 },
+};
 
 const ratioOptions = [
   { id: "1:1", label: "1:1", description: "Square" },
@@ -34,14 +42,23 @@ export function PromptBuilder({
   const [prompt, setPrompt] = useState("");
   const [selectedRatio, setSelectedRatio] = useState("1:1");
   const [selectedResolution, setSelectedResolution] = useState("1K");
+  const [styleGuideUrl, setStyleGuideUrl] = useState<string | null>(null);
   
   const { setNodeRef, isOver } = useDroppable({
     id: "prompt-builder",
   });
 
+  const handleStyleGuideUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const url = URL.createObjectURL(file);
+      setStyleGuideUrl(url);
+    }
+  };
+
   const handleGenerate = () => {
     if (prompt.trim() || selectedPhotos.length > 0) {
-      onGenerate(prompt, selectedRatio, selectedResolution);
+      onGenerate(prompt, selectedRatio, selectedResolution, styleGuideUrl || undefined);
     }
   };
 
@@ -105,27 +122,81 @@ export function PromptBuilder({
         />
       </div>
 
+      {/* Style Guide */}
+      <div className="space-y-2">
+        <label className="text-sm font-medium text-foreground flex items-center gap-2">
+          <Palette className="w-4 h-4" />
+          Style Guide (optional)
+        </label>
+        <p className="text-xs text-muted-foreground">
+          Upload an image to replicate its style (lighting, composition, colors). Food in this image won't be used.
+        </p>
+        {styleGuideUrl ? (
+          <div className="relative group w-full h-24 rounded-lg overflow-hidden border border-border">
+            <img
+              src={styleGuideUrl}
+              alt="Style guide"
+              className="w-full h-full object-cover"
+            />
+            <button
+              onClick={() => setStyleGuideUrl(null)}
+              className="absolute top-2 right-2 w-6 h-6 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+            >
+              <X className="w-4 h-4" />
+            </button>
+            <div className="absolute bottom-0 left-0 right-0 bg-background/80 px-2 py-1">
+              <p className="text-xs text-muted-foreground">Style reference</p>
+            </div>
+          </div>
+        ) : (
+          <label className="block w-full p-4 border-2 border-dashed border-border rounded-lg cursor-pointer hover:border-primary/50 transition-colors text-center">
+            <Palette className="w-6 h-6 mx-auto mb-1 text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">Click to upload style reference</p>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleStyleGuideUpload}
+              className="hidden"
+            />
+          </label>
+        )}
+      </div>
+
       {/* Ratio Selection */}
       <div className="space-y-2">
         <label className="text-sm font-medium text-foreground">
           Aspect Ratio
         </label>
         <div className="grid grid-cols-4 gap-2">
-          {ratioOptions.map((ratio) => (
-            <button
-              key={ratio.id}
-              onClick={() => setSelectedRatio(ratio.id)}
-              className={cn(
-                "p-2 rounded-lg border text-center transition-all duration-300",
-                selectedRatio === ratio.id
-                  ? "border-primary bg-primary/10 shadow-[0_0_15px_hsl(38_92%_50%/0.2)]"
-                  : "border-border hover:border-primary/50 bg-secondary/30"
-              )}
-            >
-              <p className="text-sm font-medium text-foreground">{ratio.label}</p>
-              <p className="text-xs text-muted-foreground">{ratio.description}</p>
-            </button>
-          ))}
+          {ratioOptions.map((ratio) => {
+            const shape = ratioShapes[ratio.id];
+            return (
+              <button
+                key={ratio.id}
+                onClick={() => setSelectedRatio(ratio.id)}
+                className={cn(
+                  "p-2 rounded-lg border text-center transition-all duration-300 flex flex-col items-center gap-2",
+                  selectedRatio === ratio.id
+                    ? "border-primary bg-primary/10 shadow-[0_0_15px_hsl(38_92%_50%/0.2)]"
+                    : "border-border hover:border-primary/50 bg-secondary/30"
+                )}
+              >
+                {/* Aspect ratio shape indicator */}
+                <div 
+                  className="border-2 border-current rounded-sm"
+                  style={{ 
+                    width: shape.w, 
+                    height: shape.h,
+                    opacity: selectedRatio === ratio.id ? 1 : 0.5 
+                  }}
+                />
+                <div>
+                  <p className="text-xs font-medium text-foreground">{ratio.label}</p>
+                  <p className="text-[10px] text-muted-foreground">{ratio.description}</p>
+                </div>
+              </button>
+            );
+          })}
         </div>
       </div>
 
