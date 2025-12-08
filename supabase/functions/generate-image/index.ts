@@ -101,6 +101,8 @@ Use the provided menu photos as reference for the food items. Create a beautiful
       }
     }
 
+    console.log('Thinking mode enabled with budget: 2048 tokens');
+    
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -115,7 +117,19 @@ Use the provided menu photos as reference for the food items. Create a beautiful
             content
           }
         ],
-        modalities: ["image", "text"]
+        modalities: ["image", "text"],
+        // Enable Gemini 3 reasoning engine for better scene planning
+        generationConfig: {
+          thinkingConfig: {
+            includeThoughts: true,
+            thinkingBudget: 2048
+          }
+        },
+        // Alternative format for gateway compatibility
+        thinking: {
+          type: "enabled",
+          budget_tokens: 2048
+        }
       }),
     });
 
