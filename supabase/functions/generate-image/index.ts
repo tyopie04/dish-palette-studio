@@ -75,8 +75,15 @@ ${imageCount > 1 ? `Generate ${imageCount} distinct variations of` : 'Create'} u
 [STYLE]
 Photorealistic commercial food photography. Magazine-quality editorial style. Studio-grade professional lighting with soft key light, fill light, and rim highlights creating depth and dimension. Rich, appetizing color grading with enhanced saturation on ingredients.
 
-[COMPOSITION]
-${ratioDesc} format at ${dimensionString}. Dynamic angle showcasing burger layers and textures. Shallow depth of field with tack-sharp focus on the burger. ${imageCount > 1 ? 'Each variation uses unique camera angle and composition.' : 'Compelling hero shot composition.'}
+[COMPOSITION - CRITICAL]
+${ratioDesc} format at ${dimensionString}. 
+MANDATORY FRAMING RULES:
+- ALL elements mentioned in the prompt MUST be FULLY VISIBLE and COMPLETELY within the frame
+- NO cropping, cutting off, or partial visibility of ANY food items, drinks, or props
+- Maintain safe margins from all edges - nothing should touch or extend beyond frame boundaries
+- Center the main subject with supporting items arranged harmoniously around it
+- Use proper spacing so every element has room to be fully displayed
+${imageCount > 1 ? 'Each variation uses unique camera angle while keeping all elements fully in frame.' : 'Hero shot with all elements perfectly contained within boundaries.'}
 
 [TECHNICAL]
 ${resolutionQuality} output. 8K texture detail on all surfaces - visible sesame seeds, meat grain, cheese melt, vegetable freshness. Crisp edges, no blur or artifacts. Professional color science with warm appetizing tones.${styleInstructions}
@@ -85,9 +92,10 @@ ${resolutionQuality} output. 8K texture detail on all surfaces - visible sesame 
 - PRESERVE EXACT BURGER CONSTRUCTION: Every ingredient, layer, patty count, cheese type, vegetables, sauces, and bun style from reference photos MUST remain identical.
 - ONLY MODIFY: Lighting setup, camera angle, background environment, plating style, garnishes around (not on) the burger.
 - NEVER ADD OR REMOVE: Any burger ingredients, toppings, or structural elements.
+- KEEP EVERYTHING IN FRAME: Every single element must be 100% visible with no cropping whatsoever.
 
 [EXCLUDE]
-Blurry images, low resolution, watermarks, text overlays, artificial look, plastic appearance, unappetizing colors, dark shadows obscuring details, amateur photography, distorted proportions, unrealistic ingredients.`;
+Cropped elements, cut-off food items, objects extending beyond frame, partial visibility, elements touching edges, blurry images, low resolution, watermarks, text overlays, artificial look, plastic appearance, unappetizing colors, dark shadows obscuring details, amateur photography, distorted proportions, unrealistic ingredients.`;
     
     console.log('Generating image with prompt:', textPrompt.substring(0, 400) + '...');
     console.log('Target resolution:', dimensionString, 'Photo amount:', imageCount);
