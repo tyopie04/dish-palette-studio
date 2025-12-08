@@ -3,7 +3,7 @@ import { MenuPhoto } from "./PhotoCard";
 import { X, Sparkles, Image as ImageIcon, Palette } from "lucide-react";
 import { Button } from "./ui/button";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface PromptBuilderProps {
   selectedPhotos: MenuPhoto[];
@@ -16,6 +16,8 @@ interface PromptBuilderProps {
   setSelectedResolution: (resolution: string) => void;
   selectedPhotoAmount: string;
   setSelectedPhotoAmount: (amount: string) => void;
+  styleGuideUrl: string | null;
+  setStyleGuideUrl: (url: string | null) => void;
 }
 
 // Aspect ratio visual shapes
@@ -56,9 +58,10 @@ export function PromptBuilder({
   setSelectedResolution,
   selectedPhotoAmount,
   setSelectedPhotoAmount,
+  styleGuideUrl,
+  setStyleGuideUrl,
 }: PromptBuilderProps) {
   const [prompt, setPrompt] = useState("");
-  const [styleGuideUrl, setStyleGuideUrl] = useState<string | null>(null);
   
   const { setNodeRef, isOver } = useDroppable({
     id: "prompt-builder",
@@ -215,7 +218,7 @@ export function PromptBuilder({
                 className={cn(
                   "p-2 rounded-lg border text-center transition-all duration-300 flex flex-col items-center gap-2",
                   selectedRatio === ratio.id
-                    ? "border-primary bg-primary/10 shadow-[0_0_15px_hsl(38_92%_50%/0.2)]"
+                    ? "border-primary bg-primary/10 shadow-[0_0_15px_hsl(48_96%_53%/0.2)]"
                     : "border-border hover:border-primary/50 bg-secondary/30"
                 )}
               >
@@ -251,7 +254,7 @@ export function PromptBuilder({
               className={cn(
                 "p-2 rounded-lg border text-center transition-all duration-300",
                 selectedResolution === res.id
-                  ? "border-primary bg-primary/10 shadow-[0_0_15px_hsl(38_92%_50%/0.2)]"
+                  ? "border-primary bg-primary/10 shadow-[0_0_15px_hsl(48_96%_53%/0.2)]"
                   : "border-border hover:border-primary/50 bg-secondary/30"
               )}
             >
@@ -275,7 +278,7 @@ export function PromptBuilder({
               className={cn(
                 "p-2 rounded-lg border text-center transition-all duration-300",
                 selectedPhotoAmount === amt.id
-                  ? "border-primary bg-primary/10 shadow-[0_0_15px_hsl(38_92%_50%/0.2)]"
+                  ? "border-primary bg-primary/10 shadow-[0_0_15px_hsl(48_96%_53%/0.2)]"
                   : "border-border hover:border-primary/50 bg-secondary/30"
               )}
             >

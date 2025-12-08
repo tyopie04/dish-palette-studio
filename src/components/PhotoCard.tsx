@@ -15,9 +15,10 @@ interface PhotoCardProps {
   photo: MenuPhoto;
   isDragging?: boolean;
   onDelete?: (id: string) => void;
+  onClick?: () => void;
 }
 
-export const PhotoCard = memo(function PhotoCard({ photo, isDragging, onDelete }: PhotoCardProps) {
+export const PhotoCard = memo(function PhotoCard({ photo, isDragging, onDelete, onClick }: PhotoCardProps) {
   const { attributes, listeners, setNodeRef, transform } = useDraggable({
     id: photo.id,
     data: photo,
@@ -35,8 +36,15 @@ export const PhotoCard = memo(function PhotoCard({ photo, isDragging, onDelete }
     onDelete?.(photo.id);
   };
 
+  const handleClick = (e: React.MouseEvent) => {
+    // Only trigger click if not dragging
+    if (!transform && onClick) {
+      onClick();
+    }
+  };
+
   return (
-    <div className="photo-card group aspect-square relative">
+    <div className="photo-card group aspect-square relative" onClick={handleClick}>
       <div
         ref={setNodeRef}
         style={style}
