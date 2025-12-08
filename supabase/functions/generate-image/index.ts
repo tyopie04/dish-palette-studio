@@ -68,46 +68,29 @@ STYLE REFERENCE: A style guide image is provided. Copy ONLY the visual style fro
     const resolutionQuality = resolution === "4K" ? "ultra high definition 4K (4096 pixels)" : (resolution === "2K" ? "high definition 2K (2048 pixels)" : "standard 1K (1024 pixels)");
     const imageCount = Math.min(Math.max(photoAmount || 1, 1), 4);
     
-    // COMPOSITING-FOCUSED PROMPT - treats reference images as final products
-    const textPrompt = `[TASK: IMAGE COMPOSITING - NOT GENERATION]
-This is a COMPOSITING task. You are arranging existing product photos into a professional advertisement layout.
+    // PROFESSIONAL ART DIRECTOR PROMPT - Background Synthesis approach
+    const textPrompt = `[ROLE]
+You are a Senior Art Director and High-End Retoucher. Your task is "Background Synthesis" for pre-existing commercial product assets.
 
-[REFERENCE IMAGES ARE FINAL PRODUCTS]
-The uploaded menu photos are FINISHED, FINAL product images. They must appear in the output EXACTLY as provided:
-- DO NOT modify, enhance, or alter ANY product in ANY way
-- DO NOT add ingredients, textures, seeds, toppings, or details
-- DO NOT change colors, lighting on products, or any visual aspect of the products themselves
-- The products are PIXEL-PERFECT as uploaded - treat them as sacred and untouchable
+[INPUT SPECIFICATION]
+${imageUrls?.length || 0} reference image(s) are provided as "Hero Objects" with transparent backgrounds (Alpha Channel).
+- The non-transparent pixels (the food items) are the GROUND TRUTH.
+- Your primary directive is: PRESERVATION. The Hero Objects must remain visually unchanged in geometry, texture, and color.
 
 [COMPOSITING INSTRUCTIONS]
-${prompt || 'Arrange the products in a professional advertisement layout.'}
+1. SCENE ANCHORING: Place the Hero Object(s) centrally in a 3D environment. They must sit on a surface, not float.
+2. LIGHTING MATCH: Analyze the lighting highlights on the Hero Object(s). Generate the scene lighting to match this direction and intensity exactly.
+3. SHADOW GENERATION: Generate realistic contact shadows (ambient occlusion) and cast shadows on the surface below each Hero Object to "ground" it.
+4. DEPTH OF FIELD: The Hero Object(s) must be in sharp focus. The generated background should have a subtle bokeh/blur to emphasize the products.
 
-[OUTPUT REQUIREMENTS]
-- Canvas: ${ratioDesc} at ${dimensionString}
-- CRITICAL FRAMING: Every product must be 100% FULLY VISIBLE within the canvas
-- Leave generous margins (at least 5% from each edge) - NOTHING touches or extends beyond borders
-- Scale products DOWN if needed to ensure they all fit completely within frame
-- Arrange products with proper spacing so nothing overlaps edges
-${imageCount > 1 ? `- Create ${imageCount} different arrangement variations, each with all products fully visible` : ''}
+[VISUAL STYLE]
+- Context: ${prompt || 'A professional studio setting with complementary backdrop'}${dishContext}
+- Aesthetic: ${resolutionQuality}, Michelin-guide photography, editorial food styling, appetizing, hyper-realistic
+- Framing: ${ratioDesc} at ${dimensionString}. Wide shot, maintain 10% negative space on all borders.
+${styleInstructions}
 
-[WHAT YOU CAN CHANGE]
-- Background/backdrop behind the products
-- Shadows and reflections cast BY the products
-- Overall scene lighting/atmosphere (but NOT the products themselves)
-- Camera angle/perspective of the scene arrangement
-- Relative positioning and scale of products to each other
-
-[WHAT YOU CANNOT CHANGE - ABSOLUTE RULES]
-- The products themselves - they must appear IDENTICAL to the reference photos
-- No adding seeds, textures, ingredients, or details to any food
-- No modifying buns, patties, toppings, or any burger components
-- No changing the appearance of chips, drinks, or any other items
-
-[QUALITY]
-${resolutionQuality}. Professional advertisement quality. Clean, commercial look.${styleInstructions}
-
-[MUST AVOID]
-Any product modification, cropped products, cut-off elements, products touching frame edges, products extending beyond canvas, added ingredients, changed textures, altered food appearance.`;
+[EXECUTION]
+Seamlessly integrate the Hero Object(s) into the described environment. Do not regenerate the objects; build the world *around* them.`;
     
     console.log('Generating image with prompt:', textPrompt.substring(0, 400) + '...');
     console.log('Target resolution:', dimensionString, 'Photo amount:', imageCount);
