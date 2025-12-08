@@ -56,12 +56,16 @@ serve(async (req) => {
       dishContext = ` featuring these menu items: ${photoNames.join(", ")}`;
     }
     
-    // Style guide instructions
+    // Style guide instructions - user prompt can override style guide colors/visuals
     let styleInstructions = "";
     if (styleGuideUrl) {
       styleInstructions = `
 
-STYLE REFERENCE: A style guide image is provided. Copy ONLY the visual style from this reference (lighting setup, color grading, composition style, mood, background treatment). DO NOT copy any food from the style reference - use ONLY the burgers from the menu photo references.`;
+STYLE REFERENCE: A style guide image is provided. Use this reference for general visual style (lighting setup, composition style, mood, background treatment). 
+
+IMPORTANT - USER PROMPT OVERRIDES STYLE GUIDE: If the user's text prompt specifies different colors, saturation, brightness, contrast, or any other visual adjustments, PRIORITIZE THE USER'S TEXT INSTRUCTIONS over the style guide. The style guide is a starting point, but the user's explicit requests take precedence for colors and visual effects.
+
+DO NOT copy any food from the style reference - use ONLY the food items from the menu photo references.`;
     }
     
     // Resolution quality hint for the model

@@ -3,7 +3,8 @@ import { MenuPhoto } from "./PhotoCard";
 import { X, Sparkles, Image as ImageIcon, Palette } from "lucide-react";
 import { Button } from "./ui/button";
 import { cn } from "@/lib/utils";
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { ImageLightbox } from "./ImageLightbox";
 
 interface PromptBuilderProps {
   selectedPhotos: MenuPhoto[];
@@ -62,6 +63,7 @@ export function PromptBuilder({
   setStyleGuideUrl,
 }: PromptBuilderProps) {
   const [prompt, setPrompt] = useState("");
+  const [styleGuideLightboxOpen, setStyleGuideLightboxOpen] = useState(false);
   
   const { setNodeRef, isOver } = useDroppable({
     id: "prompt-builder",
@@ -155,16 +157,17 @@ export function PromptBuilder({
             <img
               src={styleGuideUrl}
               alt="Style guide"
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover cursor-pointer hover:opacity-90 transition-opacity"
+              onClick={() => setStyleGuideLightboxOpen(true)}
             />
             <button
-              onClick={() => setStyleGuideUrl(null)}
-              className="absolute top-2 right-2 w-6 h-6 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+              onClick={(e) => { e.stopPropagation(); setStyleGuideUrl(null); }}
+              className="absolute top-2 right-2 w-6 h-6 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10"
             >
               <X className="w-4 h-4" />
             </button>
-            <div className="absolute bottom-0 left-0 right-0 bg-background/80 px-2 py-1">
-              <p className="text-xs text-muted-foreground">Style reference</p>
+            <div className="absolute bottom-0 left-0 right-0 bg-background/80 px-2 py-1 pointer-events-none">
+              <p className="text-xs text-muted-foreground">Click to enlarge • Style reference</p>
             </div>
           </div>
         ) : (
@@ -309,6 +312,14 @@ export function PromptBuilder({
           </>
         )}
       </Button>
+
+      {/* Style Guide Lightbox */}
+      {styleGuideUrl && styleGuideLightboxOpen && (
+        <ImageLightbox
+          image={styleGuideUrl}
+          onClose={() => setStyleGuideLightboxOpen(false)}
+        />
+      )}
     </div>
   );
 }
