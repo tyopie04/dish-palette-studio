@@ -12,14 +12,14 @@ serve(async (req) => {
   }
 
   try {
-    const { prompt, style, photoNames } = await req.json();
+    const { prompt, style, imageUrls, photoNames } = await req.json();
     
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
       throw new Error('LOVABLE_API_KEY is not configured');
     }
 
-    // Build a descriptive prompt including photo names for context
+    // Build a descriptive prompt
     const styleDescriptions: Record<string, string> = {
       social: "Instagram-ready square format, vibrant and appetizing food photography",
       banner: "Wide promotional banner format, professional restaurant marketing",
@@ -35,9 +35,23 @@ serve(async (req) => {
       dishContext = ` featuring dishes like ${photoNames.join(", ")}`;
     }
     
-    const fullPrompt = `Generate a professional ${styleDesc}${dishContext}. ${prompt || 'Create a delicious restaurant food image'}. Make it look appetizing, high-quality, and suitable for restaurant marketing. Ultra high resolution.`;
+    const textPrompt = `Generate a professional ${styleDesc}${dishContext}. ${prompt || 'Create a delicious restaurant food image'}. Use the reference images as a guide for the style and presentation. Make it look appetizing, high-quality, and suitable for restaurant marketing. Keep the same food items and styling as shown in the reference images.`;
     
-    console.log('Generating image with prompt:', fullPrompt);
+    console.log('Generating image with prompt:', textPrompt.substring(0, 200) + '...');
+    console.log('Number of reference images:', imageUrls?.length || 0);
+
+    // Build content array with text and images
+    const content: any[] = [{ type: "text", text: textPrompt }];
+    
+    // Add reference images if provided
+    if (imageUrls && imageUrls.length > 0) {
+      for (const url of imageUrls) {
+        content.push({
+          type: "image_url",
+          image_url: { url }
+        });
+      }
+    }
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -50,7 +64,7 @@ serve(async (req) => {
         messages: [
           {
             role: "user",
-            content: fullPrompt
+            content
           }
         ],
         modalities: ["image", "text"]
@@ -78,7 +92,7 @@ serve(async (req) => {
     }
 
     const data = await response.json();
-    console.log('AI response received:', JSON.stringify(data, null, 2));
+    console.log('AI response status:', response.status);
     
     // Check for error in response
     if (data.error) {
@@ -86,7 +100,7 @@ serve(async (req) => {
       throw new Error(data.error.message || 'AI generation failed');
     }
     
-    // Extract the generated image - check multiple possible response structures
+    // Extract the generated image
     const message = data.choices?.[0]?.message;
     let generatedImages: string[] = [];
     
@@ -97,9 +111,8 @@ serve(async (req) => {
         .filter(Boolean);
     }
     
-    // Check for inline image in content (alternative format)
+    // Check for inline image in content
     if (generatedImages.length === 0 && message?.content) {
-      // Sometimes the image is embedded in the content as base64
       const base64Match = message.content.match(/data:image\/[^;]+;base64,[^\s"]+/g);
       if (base64Match) {
         generatedImages = base64Match;
@@ -107,8 +120,8 @@ serve(async (req) => {
     }
     
     if (generatedImages.length === 0) {
-      console.error('No images found in response structure:', JSON.stringify(message, null, 2));
-      throw new Error('No image generated - the AI did not return an image');
+      console.error('No images found. Full response:', JSON.stringify(data, null, 2));
+      throw new Error('No image generated - try a simpler prompt or fewer reference images');
     }
 
     console.log('Successfully generated', generatedImages.length, 'image(s)');
