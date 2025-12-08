@@ -19,6 +19,11 @@ import { PhotoCard, MenuPhoto } from "@/components/PhotoCard";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
+// ============================================
+// PERMANENT MENU PHOTOS - DO NOT MODIFY OR DELETE
+// These are the user's custom burger images that should
+// always remain as the default stock photos.
+// ============================================
 import menu1 from "@/assets/menu-1.jpg";
 import menu2 from "@/assets/menu-2.jpg";
 import menu3 from "@/assets/menu-3.jpg";
@@ -26,13 +31,14 @@ import menu4 from "@/assets/menu-4.jpg";
 import menu5 from "@/assets/menu-5.jpg";
 import menu6 from "@/assets/menu-6.jpg";
 
+// PERMANENT DEFAULT PHOTOS - DO NOT MODIFY THIS ARRAY
 const initialPhotos: MenuPhoto[] = [
-  { id: "1", name: "Classic Cheeseburger", src: menu1, category: "Burgers" },
-  { id: "2", name: "BBQ Bacon Burger", src: menu2, category: "Burgers" },
-  { id: "3", name: "Mushroom Swiss Burger", src: menu3, category: "Burgers" },
-  { id: "4", name: "Spicy Jalapeño Burger", src: menu4, category: "Burgers" },
-  { id: "5", name: "Double Stack Burger", src: menu5, category: "Burgers" },
-  { id: "6", name: "Veggie Burger", src: menu6, category: "Burgers" },
+  { id: "1", name: "Signature Burger 1", src: menu1, category: "Burgers" },
+  { id: "2", name: "Signature Burger 2", src: menu2, category: "Burgers" },
+  { id: "3", name: "Signature Burger 3", src: menu3, category: "Burgers" },
+  { id: "4", name: "Signature Burger 4", src: menu4, category: "Burgers" },
+  { id: "5", name: "Signature Burger 5", src: menu5, category: "Burgers" },
+  { id: "6", name: "Signature Burger 6", src: menu6, category: "Burgers" },
 ];
 
 // Compress and convert image to base64 (max 512px, JPEG quality 0.7)

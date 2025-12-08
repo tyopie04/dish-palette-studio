@@ -35,7 +35,8 @@ const ratioOptions = [
 
 const resolutionOptions = [
   { id: "1K", label: "1K", description: "1024px" },
-  { id: "2K", label: "2K", description: "2048px (Max)" },
+  { id: "2K", label: "2K", description: "2048px" },
+  { id: "4K", label: "4K", description: "4096px" },
 ];
 
 const photoAmountOptions = [
@@ -242,7 +243,7 @@ export function PromptBuilder({
         <label className="text-sm font-medium text-foreground">
           Resolution
         </label>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-3 gap-2">
           {resolutionOptions.map((res) => (
             <button
               key={res.id}
