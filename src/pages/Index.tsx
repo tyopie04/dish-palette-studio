@@ -32,6 +32,44 @@ const initialPhotos: MenuPhoto[] = [
   { id: "6", name: "Greek Salad", src: menu6, category: "Salads" },
 ];
 
+// Compress and convert image to base64 (max 512px, JPEG quality 0.7)
+const compressImageToBase64 = async (url: string): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      const maxSize = 512;
+      let width = img.width;
+      let height = img.height;
+      
+      // Scale down if larger than maxSize
+      if (width > height && width > maxSize) {
+        height = (height * maxSize) / width;
+        width = maxSize;
+      } else if (height > maxSize) {
+        width = (width * maxSize) / height;
+        height = maxSize;
+      }
+      
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        reject(new Error("Could not get canvas context"));
+        return;
+      }
+      ctx.drawImage(img, 0, 0, width, height);
+      
+      // Convert to JPEG with 0.7 quality for smaller file size
+      const base64 = canvas.toDataURL("image/jpeg", 0.7);
+      resolve(base64);
+    };
+    img.onerror = () => reject(new Error("Failed to load image"));
+    img.src = url;
+  });
+};
+
 const Index = () => {
   const [photos, setPhotos] = useState<MenuPhoto[]>(initialPhotos);
   const [selectedPhotos, setSelectedPhotos] = useState<MenuPhoto[]>([]);
@@ -74,11 +112,16 @@ const Index = () => {
     setIsGenerating(true);
     
     try {
-      // Send photo names for context instead of base64 images
+      // Compress images and convert to base64 (limit to 2 images to avoid payload issues)
+      const photosToProcess = selectedPhotos.slice(0, 2);
+      const imagePromises = photosToProcess.map((p) => compressImageToBase64(p.src));
+      const imageUrls = await Promise.all(imagePromises);
       const photoNames = selectedPhotos.map((p) => p.name);
       
+      console.log('Sending', imageUrls.length, 'compressed images');
+      
       const { data, error } = await supabase.functions.invoke('generate-image', {
-        body: { prompt, style, photoNames }
+        body: { prompt, style, imageUrls, photoNames }
       });
 
       if (error) {
