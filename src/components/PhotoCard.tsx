@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { useDraggable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
 import { cn } from "@/lib/utils";
@@ -16,7 +17,7 @@ interface PhotoCardProps {
   onDelete?: (id: string) => void;
 }
 
-export function PhotoCard({ photo, isDragging, onDelete }: PhotoCardProps) {
+export const PhotoCard = memo(function PhotoCard({ photo, isDragging, onDelete }: PhotoCardProps) {
   const { attributes, listeners, setNodeRef, transform } = useDraggable({
     id: photo.id,
     data: photo,
@@ -42,7 +43,7 @@ export function PhotoCard({ photo, isDragging, onDelete }: PhotoCardProps) {
         {...listeners}
         {...attributes}
         className={cn(
-          "w-full h-full cursor-grab active:cursor-grabbing",
+          "w-full h-full cursor-grab active:cursor-grabbing touch-none",
           isDragging && "opacity-50"
         )}
       >
@@ -51,6 +52,7 @@ export function PhotoCard({ photo, isDragging, onDelete }: PhotoCardProps) {
           alt={photo.name}
           className="w-full h-full object-cover"
           draggable={false}
+          loading="lazy"
         />
       </div>
       {onDelete && (
@@ -68,4 +70,4 @@ export function PhotoCard({ photo, isDragging, onDelete }: PhotoCardProps) {
       </div>
     </div>
   );
-}
+});

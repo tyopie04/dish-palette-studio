@@ -10,6 +10,10 @@ interface PromptBuilderProps {
   onRemovePhoto: (id: string) => void;
   onGenerate: (prompt: string, ratio: string, resolution: string, styleGuideUrl?: string) => void;
   isGenerating: boolean;
+  selectedRatio: string;
+  setSelectedRatio: (ratio: string) => void;
+  selectedResolution: string;
+  setSelectedResolution: (resolution: string) => void;
 }
 
 // Aspect ratio visual shapes
@@ -38,10 +42,12 @@ export function PromptBuilder({
   onRemovePhoto,
   onGenerate,
   isGenerating,
+  selectedRatio,
+  setSelectedRatio,
+  selectedResolution,
+  setSelectedResolution,
 }: PromptBuilderProps) {
   const [prompt, setPrompt] = useState("");
-  const [selectedRatio, setSelectedRatio] = useState("1:1");
-  const [selectedResolution, setSelectedResolution] = useState("1K");
   const [styleGuideUrl, setStyleGuideUrl] = useState<string | null>(null);
   
   const { setNodeRef, isOver } = useDroppable({
