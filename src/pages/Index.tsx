@@ -229,6 +229,10 @@ const Index = () => {
     toast.success("Photo deleted");
   }, []);
 
+  const handleEditImage = useCallback((image: string) => {
+    toast.info("Edit feature coming soon! For now, you can regenerate with a modified prompt.");
+  }, []);
+
   return (
     <DndContext
       sensors={sensors}
@@ -271,6 +275,7 @@ const Index = () => {
                 images={generatedImages}
                 onRegenerate={handleRegenerate}
                 onGenerateRandom={handleGenerateRandom}
+                onEditImage={handleEditImage}
                 isGenerating={isGenerating}
               />
             </div>

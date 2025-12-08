@@ -91,16 +91,16 @@ export function PromptBuilder({
           selectedPhotos.map((photo) => (
             <div
               key={photo.id}
-              className="relative group w-20 h-20 rounded-lg overflow-hidden"
+              className="relative group w-20 h-20 rounded-lg overflow-visible"
             >
               <img
                 src={photo.src}
                 alt={photo.name}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover rounded-lg"
               />
               <button
                 onClick={() => onRemovePhoto(photo.id)}
-                className="absolute -top-1 -right-1 w-5 h-5 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                className="absolute -top-2 -right-2 w-6 h-6 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-md border-2 border-background"
               >
                 <X className="w-3 h-3" />
               </button>
@@ -149,9 +149,31 @@ export function PromptBuilder({
             </div>
           </div>
         ) : (
-          <label className="block w-full p-4 border-2 border-dashed border-border rounded-lg cursor-pointer hover:border-primary/50 transition-colors text-center">
+          <label 
+            className="block w-full p-4 border-2 border-dashed border-border rounded-lg cursor-pointer hover:border-primary/50 transition-colors text-center"
+            onDragOver={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              e.currentTarget.classList.add('border-primary', 'bg-primary/5');
+            }}
+            onDragLeave={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              e.currentTarget.classList.remove('border-primary', 'bg-primary/5');
+            }}
+            onDrop={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              e.currentTarget.classList.remove('border-primary', 'bg-primary/5');
+              const files = e.dataTransfer.files;
+              if (files.length > 0 && files[0].type.startsWith('image/')) {
+                const url = URL.createObjectURL(files[0]);
+                setStyleGuideUrl(url);
+              }
+            }}
+          >
             <Palette className="w-6 h-6 mx-auto mb-1 text-muted-foreground" />
-            <p className="text-sm text-muted-foreground">Click to upload style reference</p>
+            <p className="text-sm text-muted-foreground">Click or drag image here</p>
             <input
               type="file"
               accept="image/*"

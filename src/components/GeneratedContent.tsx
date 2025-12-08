@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Download, Share2, RefreshCw, Shuffle } from "lucide-react";
+import { Download, Share2, RefreshCw, Shuffle, Pencil } from "lucide-react";
 import { Button } from "./ui/button";
 import { toast } from "sonner";
 import { ImageLightbox } from "./ImageLightbox";
@@ -8,10 +8,11 @@ interface GeneratedContentProps {
   images: string[];
   onRegenerate: () => void;
   onGenerateRandom?: () => void;
+  onEditImage?: (image: string) => void;
   isGenerating?: boolean;
 }
 
-export function GeneratedContent({ images, onRegenerate, onGenerateRandom, isGenerating = false }: GeneratedContentProps) {
+export function GeneratedContent({ images, onRegenerate, onGenerateRandom, onEditImage, isGenerating = false }: GeneratedContentProps) {
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
   const handleDownload = async (imageUrl: string, index: number) => {
     try {
@@ -162,6 +163,16 @@ export function GeneratedContent({ images, onRegenerate, onGenerateRandom, isGen
               >
                 <Share2 className="w-5 h-5" />
               </Button>
+              {onEditImage && (
+                <Button 
+                  variant="glass" 
+                  size="icon" 
+                  className="h-10 w-10"
+                  onClick={(e) => { e.stopPropagation(); onEditImage(image); }}
+                >
+                  <Pencil className="w-5 h-5" />
+                </Button>
+              )}
             </div>
             <p className="absolute bottom-2 left-2 text-xs text-muted-foreground bg-background/60 px-2 py-1 rounded">
               Click to enlarge
@@ -173,7 +184,8 @@ export function GeneratedContent({ images, onRegenerate, onGenerateRandom, isGen
       {lightboxImage && (
         <ImageLightbox 
           image={lightboxImage} 
-          onClose={() => setLightboxImage(null)} 
+          onClose={() => setLightboxImage(null)}
+          onEdit={onEditImage}
         />
       )}
     </div>
