@@ -12,32 +12,42 @@ serve(async (req) => {
   }
 
   try {
-    const { prompt, style, imageUrls, photoNames } = await req.json();
+    const { prompt, ratio, resolution, imageUrls, photoNames } = await req.json();
     
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
       throw new Error('LOVABLE_API_KEY is not configured');
     }
 
-    // Build a descriptive prompt
-    const styleDescriptions: Record<string, string> = {
-      social: "Instagram-ready square format, vibrant and appetizing food photography",
-      banner: "Wide promotional banner format, professional restaurant marketing",
-      story: "Vertical story format, engaging and scroll-stopping",
-      artistic: "Creative artistic style, unique and memorable visual"
+    // Map ratio to description
+    const ratioDescriptions: Record<string, string> = {
+      "1:1": "square format (1:1 aspect ratio)",
+      "16:9": "wide landscape format (16:9 aspect ratio)",
+      "9:16": "tall portrait/story format (9:16 aspect ratio)",
+      "4:3": "standard format (4:3 aspect ratio)",
     };
-    
-    const styleDesc = styleDescriptions[style] || styleDescriptions.social;
+
+    // Map resolution to size hint
+    const resolutionHints: Record<string, string> = {
+      "1K": "1024px resolution",
+      "2K": "2048px high resolution",
+      "4K": "4096px ultra high resolution",
+    };
+
+    const ratioDesc = ratioDescriptions[ratio] || ratioDescriptions["1:1"];
+    const resolutionDesc = resolutionHints[resolution] || resolutionHints["1K"];
     
     // Include photo names in prompt if available
     let dishContext = "";
     if (photoNames && photoNames.length > 0) {
-      dishContext = ` featuring dishes like ${photoNames.join(", ")}`;
+      dishContext = ` featuring ${photoNames.join(", ")}`;
     }
     
-    const textPrompt = `Generate a professional ${styleDesc}${dishContext}. ${prompt || 'Create a delicious restaurant food image'}. Use the reference images as a guide for the style and presentation. Make it look appetizing, high-quality, and suitable for restaurant marketing. Keep the same food items and styling as shown in the reference images.`;
+    const textPrompt = `Generate a professional burger restaurant marketing image in ${ratioDesc} at ${resolutionDesc}${dishContext}. ${prompt || 'Create an appetizing gourmet burger photo'}. 
+
+IMPORTANT: This is for a burger restaurant. Focus on burgers and burger-related items ONLY. Use the reference images as the exact style guide - match the burger presentation, lighting, and composition shown. Make it look delicious, high-quality, and perfect for restaurant marketing. Do NOT include pasta, sushi, or other non-burger items.`;
     
-    console.log('Generating image with prompt:', textPrompt.substring(0, 200) + '...');
+    console.log('Generating image with prompt:', textPrompt.substring(0, 300) + '...');
     console.log('Number of reference images:', imageUrls?.length || 0);
 
     // Build content array with text and images
