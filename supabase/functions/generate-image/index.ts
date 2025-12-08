@@ -19,10 +19,11 @@ serve(async (req) => {
       throw new Error('LOVABLE_API_KEY is not configured');
     }
 
-    // Calculate exact pixel dimensions based on ratio and resolution (max 2K due to model limits)
+    // Calculate exact pixel dimensions based on ratio and resolution
     const resolutionBasePixels: Record<string, number> = {
       "1K": 1024,
       "2K": 2048,
+      "4K": 4096,
     };
 
     const ratioDimensions: Record<string, { w: number; h: number }> = {
@@ -64,7 +65,7 @@ STYLE GUIDE: A style reference image is provided. Replicate ONLY the visual styl
     }
     
     // Resolution quality hint for the model
-    const resolutionQuality = resolution === "2K" ? "high definition 2K" : "standard 1K";
+    const resolutionQuality = resolution === "4K" ? "ultra high definition 4K" : (resolution === "2K" ? "high definition 2K" : "standard 1K");
     const imageCount = Math.min(Math.max(photoAmount || 1, 1), 4);
     
     const textPrompt = `Generate ${imageCount > 1 ? imageCount + ' different variations of' : 'a'} ${resolutionQuality} professional burger restaurant marketing image${imageCount > 1 ? 's' : ''}. 
