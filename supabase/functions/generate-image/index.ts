@@ -20,10 +20,11 @@ serve(async (req) => {
     }
 
     // Calculate exact pixel dimensions based on ratio and resolution
+    // MEMORY OPTIMIZATION: Cap at 2K to avoid edge function memory limits
     const resolutionBasePixels: Record<string, number> = {
       "1K": 1024,
       "2K": 2048,
-      "4K": 4096,
+      "4K": 2048, // Capped at 2K due to edge function memory constraints
     };
 
     const ratioDimensions: Record<string, { w: number; h: number }> = {
@@ -97,8 +98,13 @@ BURGER PROPORTIONS: Keep burgers realistically proportioned to surroundings and 
     }
     
     // Add menu photo references (these are the food sources)
+    // MEMORY OPTIMIZATION: Limit to 3 reference images to stay within memory limits
     if (imageUrls && imageUrls.length > 0) {
-      for (const url of imageUrls) {
+      const limitedUrls = imageUrls.slice(0, 3);
+      if (imageUrls.length > 3) {
+        console.log(`Limiting reference images from ${imageUrls.length} to 3 for memory optimization`);
+      }
+      for (const url of limitedUrls) {
         content.push({
           type: "image_url",
           image_url: { url }
@@ -106,13 +112,16 @@ BURGER PROPORTIONS: Keep burgers realistically proportioned to surroundings and 
       }
     }
 
-    // Map resolution to API format
+    // Map resolution to API format (capped at 2K for memory)
     const resolutionApiFormat: Record<string, string> = {
       "1K": "1024",
       "2K": "2048",
-      "4K": "4096",
+      "4K": "2048", // Capped at 2K
     };
     const apiResolution = resolutionApiFormat[resolution] || "1024";
+    
+    // Also reduce thinking budget when using high resolution to save memory
+    const thinkingBudget = resolution === "4K" ? 1024 : 2048;
 
     console.log('Using Nano Banana PRO with thinking enabled');
     console.log('Requesting via imageConfig - aspectRatio:', ratio, 'resolution:', apiResolution);
@@ -143,7 +152,7 @@ BURGER PROPORTIONS: Keep burgers realistically proportioned to surroundings and 
             modalities: ["image", "text"],
             generationConfig: {
               thinkingConfig: {
-                thinkingBudget: 2048
+                thinkingBudget: thinkingBudget
               },
               imageConfig: {
                 aspectRatio: ratio,
