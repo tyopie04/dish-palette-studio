@@ -139,13 +139,16 @@ const Index = () => {
     setSelectedPhotos((prev) => prev.filter((p) => p.id !== id));
   }, []);
 
-  const addLoadingEntry = useCallback(() => {
+  const addLoadingEntry = useCallback((ratio?: string, resolution?: string, photoCount?: number) => {
     const id = `gen-${Date.now()}`;
     const newEntry: GenerationEntry = {
       id,
       images: [],
       timestamp: new Date(),
       isLoading: true,
+      ratio,
+      resolution,
+      photoCount,
     };
     setGenerationHistory((prev) => [newEntry, ...prev]);
     return id;
@@ -166,7 +169,7 @@ const Index = () => {
   }, []);
 
   const handleGenerate = useCallback(async (prompt: string, ratio: string, resolution: string, photoAmount: string, styleGuideUrlParam?: string) => {
-    const loadingId = addLoadingEntry();
+    const loadingId = addLoadingEntry(ratio, resolution, selectedPhotos.length);
     
     try {
       const imagePromises = selectedPhotos.map((p) => compressImageToBase64(p.src));
@@ -214,7 +217,7 @@ const Index = () => {
     const shuffled = [...photos].sort(() => Math.random() - 0.5);
     const randomPhotos = shuffled.slice(0, count);
     
-    const loadingId = addLoadingEntry();
+    const loadingId = addLoadingEntry(selectedRatio, selectedResolution, randomPhotos.length);
     
     try {
       const imagePromises = randomPhotos.map((p) => compressImageToBase64(p.src));
@@ -312,7 +315,7 @@ const Index = () => {
   }, []);
 
   const handleApplyEdit = useCallback(async (image: string, editPrompt: string) => {
-    const loadingId = addLoadingEntry();
+    const loadingId = addLoadingEntry("Edit", "Original", 1);
     
     try {
       const { data, error } = await supabase.functions.invoke('edit-image', {

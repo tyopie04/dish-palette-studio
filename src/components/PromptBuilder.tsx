@@ -4,7 +4,10 @@ import { X, Sparkles, Image as ImageIcon, Palette } from "lucide-react";
 import { Button } from "./ui/button";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
-import { ImageLightbox } from "./ImageLightbox";
+import {
+  Dialog,
+  DialogContent,
+} from "./ui/dialog";
 
 interface PromptBuilderProps {
   selectedPhotos: MenuPhoto[];
@@ -302,13 +305,16 @@ export function PromptBuilder({
         Generate Content
       </Button>
 
-      {/* Style Guide Lightbox */}
-      {styleGuideUrl && styleGuideLightboxOpen && (
-        <ImageLightbox
-          image={styleGuideUrl}
-          onClose={() => setStyleGuideLightboxOpen(false)}
-        />
-      )}
+      {/* Style Guide Dialog */}
+      <Dialog open={styleGuideLightboxOpen} onOpenChange={setStyleGuideLightboxOpen}>
+        <DialogContent className="max-w-3xl p-2 bg-background/95 backdrop-blur-md border-border">
+          <img
+            src={styleGuideUrl || ""}
+            alt="Style guide"
+            className="w-full h-auto max-h-[80vh] object-contain rounded-lg"
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

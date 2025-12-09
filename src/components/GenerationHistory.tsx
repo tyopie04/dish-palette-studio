@@ -1,13 +1,17 @@
-import { Download, Trash2, Shuffle } from "lucide-react";
+import { Download, Trash2, Shuffle, Info } from "lucide-react";
 import { Button } from "./ui/button";
 import { ScrollArea } from "./ui/scroll-area";
 import { toast } from "sonner";
+import { useState, useEffect } from "react";
 
 export interface GenerationEntry {
   id: string;
   images: string[];
   timestamp: Date;
   isLoading?: boolean;
+  ratio?: string;
+  resolution?: string;
+  photoCount?: number;
 }
 
 interface GenerationHistoryProps {
@@ -16,6 +20,36 @@ interface GenerationHistoryProps {
   onDeleteEntry: (id: string) => void;
   onDeleteImage: (entryId: string, imageIndex: number) => void;
   onGenerateNew: () => void;
+}
+
+// Loading timer component
+function LoadingTimer({ startTime }: { startTime: Date }) {
+  const [elapsed, setElapsed] = useState(0);
+  const estimatedTime = 30; // 30 seconds estimated
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setElapsed(Math.floor((Date.now() - startTime.getTime()) / 1000));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [startTime]);
+
+  const progress = Math.min((elapsed / estimatedTime) * 100, 95);
+  const remaining = Math.max(estimatedTime - elapsed, 0);
+
+  return (
+    <div className="space-y-2 w-full px-4">
+      <div className="h-2 bg-secondary rounded-full overflow-hidden">
+        <div 
+          className="h-full bg-primary transition-all duration-1000 ease-out rounded-full"
+          style={{ width: `${progress}%` }}
+        />
+      </div>
+      <p className="text-xs text-muted-foreground text-center">
+        {remaining > 0 ? `~${remaining}s remaining` : "Almost there..."}
+      </p>
+    </div>
+  );
 }
 
 export function GenerationHistory({
@@ -56,7 +90,7 @@ export function GenerationHistory({
   };
 
   return (
-    <div className="glass-card p-6 space-y-4 h-full flex flex-col">
+    <div className="glass-card p-6 space-y-4 h-[calc(100vh-200px)] flex flex-col">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-display font-semibold text-foreground">
           Generated Content
@@ -66,15 +100,15 @@ export function GenerationHistory({
       {/* Choose for Me button at top */}
       <Button
         variant="glow"
-        className="w-full"
+        className="w-full flex-shrink-0"
         onClick={onGenerateNew}
       >
         <Shuffle className="w-4 h-4 mr-2" />
         Choose for Me
       </Button>
 
-      {/* Scrollable history */}
-      <ScrollArea className="flex-1 -mx-2 px-2">
+      {/* Scrollable history with fixed height */}
+      <ScrollArea className="flex-1 min-h-0 -mx-2 px-2">
         <div className="space-y-6">
           {history.length === 0 ? (
             <div className="text-center py-8">
@@ -128,12 +162,8 @@ export function GenerationHistory({
                           Creating your masterpiece...
                         </p>
                         
-                        {/* Decorative elements */}
-                        <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-1">
-                          <div className="w-2 h-2 rounded-full bg-primary/40 animate-bounce" style={{ animationDelay: '0ms' }} />
-                          <div className="w-2 h-2 rounded-full bg-primary/40 animate-bounce" style={{ animationDelay: '150ms' }} />
-                          <div className="w-2 h-2 rounded-full bg-primary/40 animate-bounce" style={{ animationDelay: '300ms' }} />
-                        </div>
+                        {/* Time remaining bar - centered */}
+                        <LoadingTimer startTime={entry.timestamp} />
                       </div>
                     </div>
                   ) : (
@@ -153,6 +183,17 @@ export function GenerationHistory({
                               Click to enlarge
                             </p>
                           </div>
+                          
+                          {/* Info badge showing settings */}
+                          {(entry.ratio || entry.resolution) && (
+                            <div className="absolute top-2 left-2 flex items-center gap-1 bg-background/80 backdrop-blur-sm px-2 py-1 rounded text-xs text-muted-foreground">
+                              <Info className="w-3 h-3" />
+                              {entry.ratio && <span>{entry.ratio}</span>}
+                              {entry.ratio && entry.resolution && <span>•</span>}
+                              {entry.resolution && <span>{entry.resolution}</span>}
+                              {entry.photoCount && <span>• {entry.photoCount} photos</span>}
+                            </div>
+                          )}
                         </div>
 
                         {/* Action buttons below each image */}
