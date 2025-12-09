@@ -160,6 +160,12 @@ BURGER PROPORTIONS: Keep burgers realistically proportioned to surroundings and 
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
+      if (response.status === 503 || response.status === 502 || response.status === 504) {
+        return new Response(JSON.stringify({ error: "AI service temporarily unavailable. Please try again in a moment." }), {
+          status: 503,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
       
       throw new Error(`AI gateway error: ${response.status}`);
     }
