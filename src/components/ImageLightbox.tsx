@@ -1,4 +1,4 @@
-import { X, Download, Share2, Pencil } from "lucide-react";
+import { X, Download, Share2, Pencil, Info } from "lucide-react";
 import { Button } from "./ui/button";
 import { toast } from "sonner";
 import { useEffect } from "react";
@@ -7,9 +7,11 @@ interface ImageLightboxProps {
   image: string;
   onClose: () => void;
   onEdit?: (image: string) => void;
+  ratio?: string;
+  resolution?: string;
 }
 
-export function ImageLightbox({ image, onClose, onEdit }: ImageLightboxProps) {
+export function ImageLightbox({ image, onClose, onEdit, ratio, resolution }: ImageLightboxProps) {
   // Close on escape key
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -94,8 +96,18 @@ export function ImageLightbox({ image, onClose, onEdit }: ImageLightboxProps) {
         <img
           src={image}
           alt="Generated content fullscreen"
-          className="max-w-full max-h-[75vh] object-contain rounded-xl shadow-2xl"
+          className="max-w-full max-h-[70vh] object-contain rounded-xl shadow-2xl"
         />
+
+        {/* Info badge */}
+        {(ratio || resolution) && (
+          <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm px-3 py-1.5 rounded-full text-sm text-white/80">
+            <Info className="w-4 h-4" />
+            {ratio && <span>{ratio}</span>}
+            {ratio && resolution && <span>•</span>}
+            {resolution && <span>{resolution}</span>}
+          </div>
+        )}
 
         {/* Action buttons below image */}
         <div className="flex gap-3">

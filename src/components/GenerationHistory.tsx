@@ -1,4 +1,4 @@
-import { Download, Trash2, Shuffle, Info } from "lucide-react";
+import { Download, Trash2, Shuffle } from "lucide-react";
 import { Button } from "./ui/button";
 import { ScrollArea } from "./ui/scroll-area";
 import { toast } from "sonner";
@@ -11,12 +11,11 @@ export interface GenerationEntry {
   isLoading?: boolean;
   ratio?: string;
   resolution?: string;
-  photoCount?: number;
 }
 
 interface GenerationHistoryProps {
   history: GenerationEntry[];
-  onImageClick: (image: string) => void;
+  onImageClick: (image: string, ratio?: string, resolution?: string) => void;
   onDeleteEntry: (id: string) => void;
   onDeleteImage: (entryId: string, imageIndex: number) => void;
   onGenerateNew: () => void;
@@ -149,8 +148,8 @@ export function GenerationHistory({
 
                 <div className="grid gap-3">
                   {entry.isLoading ? (
-                    <div className="relative rounded-lg overflow-hidden border border-border bg-secondary/30 aspect-square">
-                      <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
+                    <div className="relative rounded-lg overflow-hidden border border-border bg-secondary/30 aspect-square flex items-center justify-center">
+                      <div className="flex flex-col items-center justify-center gap-4 w-full">
                         {/* Animated shimmer overlay */}
                         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-secondary/50 to-transparent animate-shimmer" />
                         
@@ -162,7 +161,7 @@ export function GenerationHistory({
                           Creating your masterpiece...
                         </p>
                         
-                        {/* Time remaining bar - centered */}
+                        {/* Time remaining bar */}
                         <LoadingTimer startTime={entry.timestamp} />
                       </div>
                     </div>
@@ -171,7 +170,7 @@ export function GenerationHistory({
                       <div key={imgIndex} className="space-y-2">
                         <div
                           className="relative group rounded-lg overflow-hidden cursor-pointer border border-border"
-                          onClick={() => onImageClick(image)}
+                          onClick={() => onImageClick(image, entry.ratio, entry.resolution)}
                         >
                           <img
                             src={image}
@@ -183,17 +182,6 @@ export function GenerationHistory({
                               Click to enlarge
                             </p>
                           </div>
-                          
-                          {/* Info badge showing settings */}
-                          {(entry.ratio || entry.resolution) && (
-                            <div className="absolute top-2 left-2 flex items-center gap-1 bg-background/80 backdrop-blur-sm px-2 py-1 rounded text-xs text-muted-foreground">
-                              <Info className="w-3 h-3" />
-                              {entry.ratio && <span>{entry.ratio}</span>}
-                              {entry.ratio && entry.resolution && <span>•</span>}
-                              {entry.resolution && <span>{entry.resolution}</span>}
-                              {entry.photoCount && <span>• {entry.photoCount} photos</span>}
-                            </div>
-                          )}
                         </div>
 
                         {/* Action buttons below each image */}

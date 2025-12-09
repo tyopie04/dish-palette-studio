@@ -83,6 +83,7 @@ const Index = () => {
   
   const [activePhoto, setActivePhoto] = useState<MenuPhoto | null>(null);
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
+  const [lightboxMeta, setLightboxMeta] = useState<{ ratio?: string; resolution?: string }>({});
   const [editingImage, setEditingImage] = useState<string | null>(null);
   
   // Lifted state for ratio/resolution/photo amount/style guide so random generation can use them
@@ -139,7 +140,7 @@ const Index = () => {
     setSelectedPhotos((prev) => prev.filter((p) => p.id !== id));
   }, []);
 
-  const addLoadingEntry = useCallback((ratio?: string, resolution?: string, photoCount?: number) => {
+  const addLoadingEntry = useCallback((ratio?: string, resolution?: string) => {
     const id = `gen-${Date.now()}`;
     const newEntry: GenerationEntry = {
       id,
@@ -148,7 +149,6 @@ const Index = () => {
       isLoading: true,
       ratio,
       resolution,
-      photoCount,
     };
     setGenerationHistory((prev) => [newEntry, ...prev]);
     return id;
@@ -169,7 +169,7 @@ const Index = () => {
   }, []);
 
   const handleGenerate = useCallback(async (prompt: string, ratio: string, resolution: string, photoAmount: string, styleGuideUrlParam?: string) => {
-    const loadingId = addLoadingEntry(ratio, resolution, selectedPhotos.length);
+    const loadingId = addLoadingEntry(ratio, resolution);
     
     try {
       const imagePromises = selectedPhotos.map((p) => compressImageToBase64(p.src));
@@ -217,7 +217,7 @@ const Index = () => {
     const shuffled = [...photos].sort(() => Math.random() - 0.5);
     const randomPhotos = shuffled.slice(0, count);
     
-    const loadingId = addLoadingEntry(selectedRatio, selectedResolution, randomPhotos.length);
+    const loadingId = addLoadingEntry(selectedRatio, selectedResolution);
     
     try {
       const imagePromises = randomPhotos.map((p) => compressImageToBase64(p.src));
@@ -309,13 +309,18 @@ const Index = () => {
     toast.success("Image deleted");
   }, []);
 
+  const handleImageClick = useCallback((image: string, ratio?: string, resolution?: string) => {
+    setLightboxImage(image);
+    setLightboxMeta({ ratio, resolution });
+  }, []);
+
   const handleEditImage = useCallback((image: string) => {
     setLightboxImage(null);
     setEditingImage(image);
   }, []);
 
   const handleApplyEdit = useCallback(async (image: string, editPrompt: string) => {
-    const loadingId = addLoadingEntry("Edit", "Original", 1);
+    const loadingId = addLoadingEntry("Edit", "Original");
     
     try {
       const { data, error } = await supabase.functions.invoke('edit-image', {
@@ -385,6 +390,7 @@ const Index = () => {
                   onPhotosAdded={handlePhotosAdded} 
                   onDeletePhoto={handleDeletePhoto}
                   onPhotoClick={handlePhotoClick}
+                  onReorder={setPhotos}
                 />
               </div>
 
@@ -407,11 +413,10 @@ const Index = () => {
               <div className="lg:col-span-1 animate-slide-up" style={{ animationDelay: "0.3s" }}>
                 <GenerationHistory
                   history={generationHistory}
-                  onImageClick={setLightboxImage}
+                  onImageClick={handleImageClick}
                   onDeleteEntry={handleDeleteEntry}
                   onDeleteImage={handleDeleteImage}
                   onGenerateNew={handleGenerateRandom}
-                  
                 />
               </div>
             </div>
@@ -428,6 +433,8 @@ const Index = () => {
           image={lightboxImage} 
           onClose={() => setLightboxImage(null)}
           onEdit={handleEditImage}
+          ratio={lightboxMeta.ratio}
+          resolution={lightboxMeta.resolution}
         />
       )}
 

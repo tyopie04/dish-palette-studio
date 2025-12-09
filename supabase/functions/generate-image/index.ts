@@ -72,14 +72,13 @@ DO NOT copy any food from the style reference - use ONLY the food items from the
     const resolutionQuality = resolution === "4K" ? "ultra high definition 4K (4096 pixels)" : (resolution === "2K" ? "high definition 2K (2048 pixels)" : "standard 1K (1024 pixels)");
     const imageCount = Math.min(Math.max(photoAmount || 1, 1), 4);
     
-    // Simple, clean Nano Banana prompt with saturation control
-    const textPrompt = `Create a professional food photography advertisement.
+    // Simple, clean Nano Banana prompt - trusts the model to understand user intent
+    const textPrompt = `PRIORITY: Follow the user's prompt exactly. Respect their lighting, mood, and color choices.
 
-${prompt || 'Arrange the food items in an appetizing, professional layout.'}${dishContext}
+${prompt || 'Create a professional food photography advertisement.'}${dishContext}
 
-Use the provided menu photos as reference for the food items. Create a beautiful ${ratioDesc} composition at ${dimensionString}. ${resolutionQuality} quality, commercial food photography style.
-
-COLOR GUIDANCE: Use natural, realistic color saturation. Avoid over-saturated or overly vibrant colors. Keep the image looking natural and appetizing without artificial color boosting.${styleInstructions}`;
+COMPOSITION: ${ratioDesc} at ${dimensionString}, ${resolutionQuality} quality.
+BURGER PROPORTIONS: Keep burgers realistically proportioned to surroundings and consistent in size.${styleInstructions}`;
     
     console.log('Generating image with prompt:', textPrompt.substring(0, 400) + '...');
     console.log('Target resolution:', dimensionString, 'Photo amount:', imageCount);
