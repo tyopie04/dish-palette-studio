@@ -5,7 +5,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Brain: Gemini 2.5 Pro for reasoning and blueprint creation
+// Brain: Gemini 2.5 Pro for reasoning and blueprint creation (MULTIMODAL)
 async function createImageBlueprint(
   LOVABLE_API_KEY: string,
   userPrompt: string,
@@ -13,23 +13,28 @@ async function createImageBlueprint(
   resolution: string,
   dimensionString: string,
   photoNames: string[],
-  hasStyleGuide: boolean
+  hasStyleGuide: boolean,
+  imageUrls?: string[],      // Actual menu photo URLs for visual analysis
+  styleGuideUrl?: string     // Style guide image URL
 ): Promise<{ blueprint: string; reasoning: string }> {
   
-  const systemPrompt = `You are an expert food photography art director. Your job is to analyze the user's request and create a precise, detailed blueprint for an AI image generator to follow.
+  const systemPrompt = `You are an expert food photography art director. Your job is to VISUALLY ANALYZE the provided reference photos and create a precise, detailed blueprint for an AI image generator to follow.
 
-TASK: Create an extremely detailed image generation prompt that will produce exactly what the user wants.
+CRITICAL: You MUST describe the ACTUAL FOOD you see in the reference images. DO NOT rely on text names or labels - they may be inaccurate. Look at the images and describe what you actually see (burger, steak, salad, etc.).
+
+TASK: Create an extremely detailed image generation prompt that will produce exactly what the user wants, featuring the ACTUAL food items shown in the reference photos.
 
 INPUT CONTEXT:
 - Aspect ratio: ${ratio}
 - Resolution: ${dimensionString}
-- Menu items available: ${photoNames.length > 0 ? photoNames.join(', ') : 'None specified'}
+- Number of reference food photos: ${imageUrls?.length || 0}
 - Style guide provided: ${hasStyleGuide ? 'Yes - use it for lighting, mood, and composition style' : 'No'}
 
 YOUR OUTPUT MUST BE A JSON OBJECT with these fields:
 {
-  "reasoning": "Your analysis of what the user wants and why you're making certain creative decisions (2-3 sentences)",
+  "reasoning": "Your analysis of what food items you ACTUALLY SEE in the photos and why you're making certain creative decisions (2-3 sentences)",
   "imagePrompt": "The complete, detailed prompt for the image generator. Be EXTREMELY specific about:
+    - DESCRIBE THE ACTUAL FOOD FROM THE PHOTOS (e.g., 'a juicy gourmet burger with melted cheese, lettuce, and sesame seed bun' NOT 'dressed beef')
     - Exact positioning and arrangement of food items
     - Lighting direction, quality, and color temperature
     - Background details (color, texture, gradient direction if any)
@@ -43,13 +48,39 @@ YOUR OUTPUT MUST BE A JSON OBJECT with these fields:
 }
 
 RULES:
-1. ALWAYS prioritize the user's explicit requests over assumptions
-2. If user mentions colors, lighting, or mood - use EXACTLY what they specify
-3. Be specific about spatial relationships (left/right, foreground/background, etc.)
-4. Include realistic proportions and food styling details
-5. The imagePrompt should be self-contained - the image generator won't see the original user request`;
+1. ALWAYS describe the actual food you SEE in the reference images - ignore misleading text labels
+2. ALWAYS prioritize the user's explicit requests over assumptions
+3. If user mentions colors, lighting, or mood - use EXACTLY what they specify
+4. Be specific about spatial relationships (left/right, foreground/background, etc.)
+5. Include realistic proportions and food styling details
+6. The imagePrompt should be self-contained - the image generator won't see the original user request`;
 
-  console.log('[BRAIN] Calling Gemini 2.5 Pro for reasoning...');
+  console.log('[BRAIN] Calling Gemini 2.5 Pro for MULTIMODAL reasoning...');
+  console.log('[BRAIN] Reference images to analyze:', imageUrls?.length || 0);
+  console.log('[BRAIN] Style guide provided:', !!styleGuideUrl);
+  
+  // Build multimodal content array
+  const brainContent: any[] = [{ type: "text", text: userPrompt }];
+  
+  // Add style guide first if provided (for visual style reference)
+  if (styleGuideUrl) {
+    console.log('[BRAIN] Adding style guide image for visual analysis');
+    brainContent.push({
+      type: "image_url",
+      image_url: { url: styleGuideUrl }
+    });
+  }
+  
+  // Add ALL menu photo references for the Brain to SEE
+  if (imageUrls && imageUrls.length > 0) {
+    console.log('[BRAIN] Adding', imageUrls.length, 'reference images for visual analysis');
+    for (const url of imageUrls) {
+      brainContent.push({
+        type: "image_url",
+        image_url: { url }
+      });
+    }
+  }
   
   const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
@@ -61,7 +92,7 @@ RULES:
       model: "google/gemini-2.5-pro",
       messages: [
         { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt }
+        { role: "user", content: brainContent }
       ]
     }),
   });
@@ -91,7 +122,7 @@ RULES:
     }
     
     const parsed = JSON.parse(jsonStr);
-    console.log('[BRAIN] Reasoning:', parsed.reasoning);
+    console.log('[BRAIN] Complete. Reasoning:', parsed.reasoning);
     console.log('[BRAIN] Blueprint prompt length:', parsed.imagePrompt?.length || 0);
     
     return {
@@ -158,8 +189,8 @@ serve(async (req) => {
     console.log('Photo names:', photoNames?.join(', ') || 'None');
     console.log('Style guide provided:', !!styleGuideUrl);
 
-    // ========== PHASE 1: BRAIN (Gemini 2.5 Pro) ==========
-    // The Brain analyzes the request and creates a detailed blueprint
+    // ========== PHASE 1: BRAIN (Gemini 2.5 Pro - MULTIMODAL) ==========
+    // The Brain SEES the actual images and creates a detailed blueprint
     const { blueprint, reasoning } = await createImageBlueprint(
       LOVABLE_API_KEY,
       prompt || 'Create a professional food photography advertisement.',
@@ -167,7 +198,9 @@ serve(async (req) => {
       resolution,
       dimensionString,
       photoNames || [],
-      !!styleGuideUrl
+      !!styleGuideUrl,
+      imageUrls,      // Pass actual images to Brain
+      styleGuideUrl   // Pass style guide to Brain
     );
     
     console.log('[BRAIN] Complete. Reasoning:', reasoning);
