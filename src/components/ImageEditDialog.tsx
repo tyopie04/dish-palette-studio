@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
 import { Button } from "./ui/button";
 import { Textarea } from "./ui/textarea";
-import { Wand2, Loader2 } from "lucide-react";
+import { Wand2 } from "lucide-react";
 
 interface ImageEditDialogProps {
   image: string;
@@ -13,18 +13,15 @@ interface ImageEditDialogProps {
 
 export function ImageEditDialog({ image, isOpen, onClose, onEdit }: ImageEditDialogProps) {
   const [editPrompt, setEditPrompt] = useState("");
-  const [isEditing, setIsEditing] = useState(false);
 
-  const handleEdit = async () => {
+  const handleEdit = () => {
     if (!editPrompt.trim()) return;
-    setIsEditing(true);
-    try {
-      await onEdit(image, editPrompt);
-      setEditPrompt("");
-      onClose();
-    } finally {
-      setIsEditing(false);
-    }
+    // Close dialog immediately and fire edit in background
+    const prompt = editPrompt;
+    setEditPrompt("");
+    onClose();
+    // Fire the edit asynchronously - it will create a loading entry
+    onEdit(image, prompt);
   };
 
   const quickEdits = [
@@ -86,25 +83,16 @@ export function ImageEditDialog({ image, isOpen, onClose, onEdit }: ImageEditDia
 
           {/* Actions */}
           <div className="flex gap-3 justify-end">
-            <Button variant="outline" onClick={onClose} disabled={isEditing}>
+            <Button variant="outline" onClick={onClose}>
               Cancel
             </Button>
             <Button
               variant="glow"
               onClick={handleEdit}
-              disabled={!editPrompt.trim() || isEditing}
+              disabled={!editPrompt.trim()}
             >
-              {isEditing ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Editing...
-                </>
-              ) : (
-                <>
-                  <Wand2 className="w-4 h-4" />
-                  Apply Edit
-                </>
-              )}
+              <Wand2 className="w-4 h-4" />
+              Apply Edit
             </Button>
           </div>
         </div>
