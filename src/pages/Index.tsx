@@ -183,27 +183,14 @@ const Index = () => {
     setGenerationHistory((prev) => prev.filter((entry) => entry.id !== id));
   }, []);
 
-  // Helper to extract images from AI gateway response
+  // Helper to extract images from edge function response
   const extractImagesFromResponse = (data: any): string[] => {
-    const message = data.choices?.[0]?.message;
-    let generatedImages: string[] = [];
-    
-    // Check for images array (Nano Banana format)
-    if (message?.images && message.images.length > 0) {
-      generatedImages = message.images
-        .map((img: any) => img.image_url?.url || img.url)
-        .filter(Boolean);
+    // Edge function returns { images: [...] } directly
+    if (data?.images && Array.isArray(data.images)) {
+      return data.images.filter((img: string) => typeof img === 'string' && img.startsWith('data:image'));
     }
     
-    // Check for inline image in content
-    if (generatedImages.length === 0 && message?.content) {
-      const base64Match = message.content.match(/data:image\/[^;]+;base64,[^\s"]+/g);
-      if (base64Match) {
-        generatedImages = base64Match;
-      }
-    }
-    
-    return generatedImages;
+    return [];
   };
 
   const handleGenerate = useCallback(async (prompt: string, ratio: string, resolution: string, photoAmount: string, styleGuideUrlParam?: string) => {
