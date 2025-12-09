@@ -9,6 +9,7 @@ export interface MenuPhoto {
   name: string;
   src: string;
   category: string;
+  thumbnailSrc?: string;
 }
 
 interface PhotoCardProps {
@@ -76,7 +77,7 @@ export const PhotoCard = memo(function PhotoCard({
           onDragStart={onReorderDragStart}
           onDragEnd={onReorderDragEnd}
           className="absolute top-2 left-2 z-20 p-1 rounded bg-background/90 text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing"
-          title="Drag to reorder (hold 1s to swap)"
+          title="Drag to reorder"
           onClick={(e) => e.stopPropagation()}
         >
           <GripVertical className="w-4 h-4" />
@@ -95,7 +96,7 @@ export const PhotoCard = memo(function PhotoCard({
         )}
       >
         <img
-          src={photo.src}
+          src={photo.thumbnailSrc || photo.src}
           alt={photo.name}
           className="w-full h-full object-cover"
           draggable={false}
