@@ -20,10 +20,11 @@ serve(async (req) => {
     }
 
     // Calculate exact pixel dimensions based on ratio and resolution
+    // Note: Image generation models typically max out around 1536px
     const resolutionBasePixels: Record<string, number> = {
       "1K": 1024,
-      "2K": 2048,
-      "4K": 4096,
+      "2K": 1536,  // Capped for model compatibility
+      "4K": 1536,  // Capped for model compatibility
     };
 
     const ratioDimensions: Record<string, { w: number; h: number }> = {
@@ -106,8 +107,6 @@ BURGER PROPORTIONS: Keep burgers realistically proportioned to surroundings and 
       }
     }
 
-    console.log('Thinking mode enabled with budget: 2048 tokens');
-    
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -115,26 +114,14 @@ BURGER PROPORTIONS: Keep burgers realistically proportioned to surroundings and 
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-pro-image-preview",
+        model: "google/gemini-2.5-flash-image-preview",
         messages: [
           {
             role: "user",
             content
           }
         ],
-        modalities: ["image", "text"],
-        // Enable Gemini 3 reasoning engine for better scene planning
-        generationConfig: {
-          thinkingConfig: {
-            includeThoughts: true,
-            thinkingBudget: 2048
-          }
-        },
-        // Alternative format for gateway compatibility
-        thinking: {
-          type: "enabled",
-          budget_tokens: 2048
-        }
+        modalities: ["image", "text"]
       }),
     });
 
