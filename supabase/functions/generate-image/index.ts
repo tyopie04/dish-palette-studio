@@ -20,11 +20,11 @@ serve(async (req) => {
     }
 
     // Calculate exact pixel dimensions based on ratio and resolution
-    // MEMORY OPTIMIZATION: Cap at 2K to avoid edge function memory limits
+    // FULL RESOLUTION SUPPORT - no capping
     const resolutionBasePixels: Record<string, number> = {
       "1K": 1024,
       "2K": 2048,
-      "4K": 2048, // Capped at 2K due to edge function memory constraints
+      "4K": 4096,
     };
 
     const ratioDimensions: Record<string, { w: number; h: number }> = {
@@ -97,14 +97,9 @@ BURGER PROPORTIONS: Keep burgers realistically proportioned to surroundings and 
       });
     }
     
-    // Add menu photo references (these are the food sources)
-    // MEMORY OPTIMIZATION: Limit to 3 reference images to stay within memory limits
+    // Add ALL menu photo references - no limiting
     if (imageUrls && imageUrls.length > 0) {
-      const limitedUrls = imageUrls.slice(0, 3);
-      if (imageUrls.length > 3) {
-        console.log(`Limiting reference images from ${imageUrls.length} to 3 for memory optimization`);
-      }
-      for (const url of limitedUrls) {
+      for (const url of imageUrls) {
         content.push({
           type: "image_url",
           image_url: { url }
@@ -112,16 +107,16 @@ BURGER PROPORTIONS: Keep burgers realistically proportioned to surroundings and 
       }
     }
 
-    // Map resolution to API format (capped at 2K for memory)
+    // Map resolution to API format - full resolution support
     const resolutionApiFormat: Record<string, string> = {
       "1K": "1024",
       "2K": "2048",
-      "4K": "2048", // Capped at 2K
+      "4K": "4096",
     };
     const apiResolution = resolutionApiFormat[resolution] || "1024";
     
-    // Also reduce thinking budget when using high resolution to save memory
-    const thinkingBudget = resolution === "4K" ? 1024 : 2048;
+    // Full thinking budget
+    const thinkingBudget = 2048;
 
     console.log('Using Nano Banana PRO with thinking enabled');
     console.log('Requesting via imageConfig - aspectRatio:', ratio, 'resolution:', apiResolution);
@@ -211,45 +206,17 @@ BURGER PROPORTIONS: Keep burgers realistically proportioned to surroundings and 
       throw new Error(`AI gateway error: ${response.status}`);
     }
 
-    const data = await response.json();
-    console.log('AI response status:', response.status);
+    // STREAM the response directly to client instead of buffering in memory
+    // This avoids the WORKER_LIMIT error by not holding the entire response in memory
+    console.log('AI response status:', response.status, '- streaming response to client');
     
-    // Check for error in response
-    if (data.error) {
-      console.error('AI returned error:', data.error);
-      throw new Error(data.error.message || 'AI generation failed');
-    }
-    
-    // Extract the generated image
-    const message = data.choices?.[0]?.message;
-    let generatedImages: string[] = [];
-    
-    // Check for images array (Nano Banana format)
-    if (message?.images && message.images.length > 0) {
-      generatedImages = message.images
-        .map((img: any) => img.image_url?.url || img.url)
-        .filter(Boolean);
-    }
-    
-    // Check for inline image in content
-    if (generatedImages.length === 0 && message?.content) {
-      const base64Match = message.content.match(/data:image\/[^;]+;base64,[^\s"]+/g);
-      if (base64Match) {
-        generatedImages = base64Match;
-      }
-    }
-    
-    if (generatedImages.length === 0) {
-      console.error('No images found. Full response:', JSON.stringify(data, null, 2));
-      throw new Error('No image generated - try a simpler prompt or fewer reference images');
-    }
-
-    console.log('Successfully generated', generatedImages.length, 'image(s)');
-
-    return new Response(
-      JSON.stringify({ images: generatedImages }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return new Response(response.body, {
+      status: response.status,
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'application/json',
+      },
+    });
   } catch (error) {
     console.error('Error in generate-image function:', error);
     return new Response(

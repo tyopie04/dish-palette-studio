@@ -183,6 +183,29 @@ const Index = () => {
     setGenerationHistory((prev) => prev.filter((entry) => entry.id !== id));
   }, []);
 
+  // Helper to extract images from AI gateway response
+  const extractImagesFromResponse = (data: any): string[] => {
+    const message = data.choices?.[0]?.message;
+    let generatedImages: string[] = [];
+    
+    // Check for images array (Nano Banana format)
+    if (message?.images && message.images.length > 0) {
+      generatedImages = message.images
+        .map((img: any) => img.image_url?.url || img.url)
+        .filter(Boolean);
+    }
+    
+    // Check for inline image in content
+    if (generatedImages.length === 0 && message?.content) {
+      const base64Match = message.content.match(/data:image\/[^;]+;base64,[^\s"]+/g);
+      if (base64Match) {
+        generatedImages = base64Match;
+      }
+    }
+    
+    return generatedImages;
+  };
+
   const handleGenerate = useCallback(async (prompt: string, ratio: string, resolution: string, photoAmount: string, styleGuideUrlParam?: string) => {
     const loadingId = addLoadingEntry(ratio, resolution);
     
@@ -209,10 +232,18 @@ const Index = () => {
         return;
       }
 
-      if (data?.images && data.images.length > 0) {
-        updateEntryWithImages(loadingId, data.images);
+      // Handle streamed response - now contains raw AI gateway format
+      const images = extractImagesFromResponse(data);
+      
+      if (images.length > 0) {
+        updateEntryWithImages(loadingId, images);
         toast.success("Content generated successfully!");
+      } else if (data?.error) {
+        console.error('AI error:', data.error);
+        toast.error(data.error.message || 'AI generation failed');
+        removeLoadingEntry(loadingId);
       } else {
+        console.error('No images found in response:', data);
         toast.error('No images were generated');
         removeLoadingEntry(loadingId);
       }
@@ -274,10 +305,18 @@ const Index = () => {
         return;
       }
 
-      if (data?.images && data.images.length > 0) {
-        updateEntryWithImages(loadingId, data.images);
+      // Handle streamed response - now contains raw AI gateway format
+      const images = extractImagesFromResponse(data);
+
+      if (images.length > 0) {
+        updateEntryWithImages(loadingId, images);
         toast.success(`Random creation with ${randomPhotos.length} burgers!`);
+      } else if (data?.error) {
+        console.error('AI error:', data.error);
+        toast.error(data.error.message || 'AI generation failed');
+        removeLoadingEntry(loadingId);
       } else {
+        console.error('No images found in response:', data);
         toast.error('No images were generated');
         removeLoadingEntry(loadingId);
       }
