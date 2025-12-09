@@ -117,32 +117,64 @@ BURGER PROPORTIONS: Keep burgers realistically proportioned to surroundings and 
     console.log('Using Nano Banana PRO with thinking enabled');
     console.log('Requesting via imageConfig - aspectRatio:', ratio, 'resolution:', apiResolution);
     
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-3-pro-image-preview",
-        messages: [
-          {
-            role: "user",
-            content
-          }
-        ],
-        modalities: ["image", "text"],
-        generationConfig: {
-          thinkingConfig: {
-            thinkingBudget: 2048
+    // Retry logic for transient errors
+    const maxRetries = 3;
+    let lastError: Error | null = null;
+    let response: Response | null = null;
+    
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        console.log(`Attempt ${attempt}/${maxRetries}`);
+        
+        response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${LOVABLE_API_KEY}`,
+            "Content-Type": "application/json",
           },
-          imageConfig: {
-            aspectRatio: ratio,
-            resolution: apiResolution
-          }
+          body: JSON.stringify({
+            model: "google/gemini-3-pro-image-preview",
+            messages: [
+              {
+                role: "user",
+                content
+              }
+            ],
+            modalities: ["image", "text"],
+            generationConfig: {
+              thinkingConfig: {
+                thinkingBudget: 2048
+              },
+              imageConfig: {
+                aspectRatio: ratio,
+                resolution: apiResolution
+              }
+            }
+          }),
+        });
+        
+        // If we get a 5xx error and have retries left, wait and retry
+        if (response.status >= 500 && attempt < maxRetries) {
+          const waitTime = Math.pow(2, attempt) * 1000; // Exponential backoff: 2s, 4s
+          console.log(`Got ${response.status}, retrying in ${waitTime}ms...`);
+          await new Promise(resolve => setTimeout(resolve, waitTime));
+          continue;
         }
-      }),
-    });
+        
+        break; // Success or non-retryable error
+      } catch (fetchError) {
+        lastError = fetchError instanceof Error ? fetchError : new Error(String(fetchError));
+        if (attempt < maxRetries) {
+          const waitTime = Math.pow(2, attempt) * 1000;
+          console.log(`Fetch error, retrying in ${waitTime}ms...`, lastError.message);
+          await new Promise(resolve => setTimeout(resolve, waitTime));
+        }
+      }
+    }
+    
+    if (!response) {
+      throw lastError || new Error('Failed to connect to AI gateway after retries');
+    }
 
     if (!response.ok) {
       const errorText = await response.text();
