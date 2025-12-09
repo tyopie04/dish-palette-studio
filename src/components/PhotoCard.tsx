@@ -2,7 +2,7 @@ import { memo } from "react";
 import { useDraggable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
 import { cn } from "@/lib/utils";
-import { X } from "lucide-react";
+import { X, GripVertical } from "lucide-react";
 
 export interface MenuPhoto {
   id: string;
@@ -17,9 +17,19 @@ interface PhotoCardProps {
   onDelete?: (id: string) => void;
   onClick?: () => void;
   onDoubleClick?: () => void;
+  onReorderDragStart?: (e: React.DragEvent) => void;
+  onReorderDragEnd?: () => void;
 }
 
-export const PhotoCard = memo(function PhotoCard({ photo, isDragging, onDelete, onClick, onDoubleClick }: PhotoCardProps) {
+export const PhotoCard = memo(function PhotoCard({ 
+  photo, 
+  isDragging, 
+  onDelete, 
+  onClick, 
+  onDoubleClick,
+  onReorderDragStart,
+  onReorderDragEnd,
+}: PhotoCardProps) {
   const { attributes, listeners, setNodeRef, transform, isDragging: isCurrentlyDragging } = useDraggable({
     id: photo.id,
     data: photo,
@@ -34,6 +44,7 @@ export const PhotoCard = memo(function PhotoCard({ photo, isDragging, onDelete, 
 
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
+    e.preventDefault();
     onDelete?.(photo.id);
   };
 
@@ -58,6 +69,21 @@ export const PhotoCard = memo(function PhotoCard({ photo, isDragging, onDelete, 
       onDoubleClick={handleDoubleClick}
       title="Click to add to prompt, double-click to enlarge"
     >
+      {/* Reorder drag handle */}
+      {onReorderDragStart && (
+        <div
+          draggable
+          onDragStart={onReorderDragStart}
+          onDragEnd={onReorderDragEnd}
+          className="absolute top-2 left-2 z-20 p-1 rounded bg-background/90 text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing"
+          title="Drag to reorder (hold 1s to swap)"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <GripVertical className="w-4 h-4" />
+        </div>
+      )}
+      
+      {/* Draggable area for prompt builder */}
       <div
         ref={setNodeRef}
         style={style}
@@ -76,14 +102,17 @@ export const PhotoCard = memo(function PhotoCard({ photo, isDragging, onDelete, 
           loading="lazy"
         />
       </div>
+      
+      {/* Delete button */}
       {onDelete && (
         <button
           onClick={handleDelete}
-          className="absolute top-2 right-2 z-10 p-1.5 rounded-full bg-background/90 text-muted-foreground hover:text-destructive hover:bg-background opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-sm"
+          className="absolute top-2 right-2 z-20 p-1.5 rounded-full bg-background/90 text-muted-foreground hover:text-destructive hover:bg-background opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-sm"
         >
           <X className="w-4 h-4" />
         </button>
       )}
+      
       <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
       <div className="absolute bottom-0 left-0 right-0 p-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
         <p className="text-sm font-medium text-foreground truncate">{photo.name}</p>
