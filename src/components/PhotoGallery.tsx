@@ -1,8 +1,9 @@
 import { useRef, useState, useCallback } from "react";
-import { PhotoCard, MenuPhoto } from "./PhotoCard";
+import { PhotoCard } from "./PhotoCard";
 import { Plus, Upload } from "lucide-react";
 import { Button } from "./ui/button";
 import { MenuPhotoLightbox } from "./MenuPhotoLightbox";
+import { MenuPhoto } from "@/hooks/useMenuPhotos";
 
 interface PhotoGalleryProps {
   photos: MenuPhoto[];
@@ -10,6 +11,7 @@ interface PhotoGalleryProps {
   onDeletePhoto: (id: string) => void;
   onPhotoClick?: (photo: MenuPhoto) => void;
   onReorder?: (photos: MenuPhoto[]) => void;
+  loading?: boolean;
 }
 
 export function PhotoGallery({
@@ -18,12 +20,12 @@ export function PhotoGallery({
   onDeletePhoto,
   onPhotoClick,
   onReorder,
+  loading,
 }: PhotoGalleryProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [reorderDragIndex, setReorderDragIndex] = useState<number | null>(null);
-  const holdTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -47,7 +49,7 @@ export function PhotoGallery({
     setLightboxIndex(index);
   };
 
-  // Reorder via drag handle - using native drag events
+  // Instant reorder via drag handle - using native drag events
   const handleReorderDragStart = useCallback((e: React.DragEvent, index: number) => {
     e.dataTransfer.effectAllowed = "move";
     e.dataTransfer.setData("text/plain", index.toString());
@@ -59,39 +61,34 @@ export function PhotoGallery({
     if (reorderDragIndex !== null && reorderDragIndex !== index) {
       setDragOverIndex(index);
       
-      // Clear existing timer
-      if (holdTimerRef.current) {
-        clearTimeout(holdTimerRef.current);
+      // INSTANT reorder - no delay
+      if (onReorder) {
+        const newPhotos = [...photos];
+        const [removed] = newPhotos.splice(reorderDragIndex, 1);
+        newPhotos.splice(index, 0, removed);
+        onReorder(newPhotos);
+        setReorderDragIndex(index);
       }
-      
-      // Set 1 second timer before reordering
-      holdTimerRef.current = setTimeout(() => {
-        if (reorderDragIndex !== null && onReorder) {
-          const newPhotos = [...photos];
-          const [removed] = newPhotos.splice(reorderDragIndex, 1);
-          newPhotos.splice(index, 0, removed);
-          onReorder(newPhotos);
-          setReorderDragIndex(index);
-        }
-        setDragOverIndex(null);
-      }, 1000);
+      setDragOverIndex(null);
     }
   }, [reorderDragIndex, photos, onReorder]);
 
   const handleReorderDragLeave = useCallback(() => {
-    if (holdTimerRef.current) {
-      clearTimeout(holdTimerRef.current);
-    }
     setDragOverIndex(null);
   }, []);
 
   const handleReorderDragEnd = useCallback(() => {
-    if (holdTimerRef.current) {
-      clearTimeout(holdTimerRef.current);
-    }
     setReorderDragIndex(null);
     setDragOverIndex(null);
   }, []);
+
+  // Convert to lightbox-compatible format with full-quality src
+  const lightboxPhotos = photos.map((p) => ({
+    id: p.id,
+    name: p.name,
+    src: p.src, // Full quality original
+    category: p.category,
+  }));
 
   return (
     <>
@@ -120,40 +117,53 @@ export function PhotoGallery({
           </Button>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-          {photos.map((photo, index) => (
-            <div
-              key={photo.id}
-              className={`relative transition-all duration-200 ${
-                dragOverIndex === index ? "ring-2 ring-primary scale-105" : ""
-              } ${reorderDragIndex === index ? "opacity-50" : ""}`}
-              onDragOver={(e) => handleReorderDragOver(e, index)}
-              onDragLeave={handleReorderDragLeave}
-            >
-              <PhotoCard
-                photo={photo}
-                onDelete={onDeletePhoto}
-                onClick={() => handlePhotoCardClick(photo)}
-                onDoubleClick={() => handlePhotoDoubleClick(index)}
-                onReorderDragStart={(e) => handleReorderDragStart(e, index)}
-                onReorderDragEnd={handleReorderDragEnd}
-              />
-            </div>
-          ))}
+        {loading ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <div key={i} className="aspect-square rounded-lg bg-muted animate-pulse" />
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {photos.map((photo, index) => (
+              <div
+                key={photo.id}
+                className={`relative transition-all duration-200 ${
+                  dragOverIndex === index ? "ring-2 ring-primary scale-105" : ""
+                } ${reorderDragIndex === index ? "opacity-50" : ""}`}
+                onDragOver={(e) => handleReorderDragOver(e, index)}
+                onDragLeave={handleReorderDragLeave}
+              >
+                <PhotoCard
+                  photo={{
+                    id: photo.id,
+                    name: photo.name,
+                    src: photo.thumbnailSrc || photo.src, // Use thumbnail for display
+                    category: photo.category,
+                  }}
+                  onDelete={onDeletePhoto}
+                  onClick={() => handlePhotoCardClick(photo)}
+                  onDoubleClick={() => handlePhotoDoubleClick(index)}
+                  onReorderDragStart={(e) => handleReorderDragStart(e, index)}
+                  onReorderDragEnd={handleReorderDragEnd}
+                />
+              </div>
+            ))}
 
-          <button
-            onClick={openFilePicker}
-            className="aspect-square rounded-lg border-2 border-dashed border-border hover:border-foreground/50 transition-colors duration-200 flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-foreground"
-          >
-            <Plus className="w-8 h-8" />
-            <span className="text-xs">Add Photo</span>
-          </button>
-        </div>
+            <button
+              onClick={openFilePicker}
+              className="aspect-square rounded-lg border-2 border-dashed border-border hover:border-foreground/50 transition-colors duration-200 flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-foreground"
+            >
+              <Plus className="w-8 h-8" />
+              <span className="text-xs">Add Photo</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {lightboxIndex !== null && (
         <MenuPhotoLightbox
-          photos={photos}
+          photos={lightboxPhotos}
           currentIndex={lightboxIndex}
           onClose={() => setLightboxIndex(null)}
           onNavigate={setLightboxIndex}

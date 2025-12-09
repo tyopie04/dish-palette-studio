@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import {
   DndContext,
   DragEndEvent,
@@ -15,14 +15,13 @@ import { PromptBuilder } from "@/components/PromptBuilder";
 import { GenerationHistory, GenerationEntry } from "@/components/GenerationHistory";
 import { ImageLightbox } from "@/components/ImageLightbox";
 import { ImageEditDialog } from "@/components/ImageEditDialog";
-import { PhotoCard, MenuPhoto } from "@/components/PhotoCard";
+import { MenuPhoto } from "@/components/PhotoCard";
+import { useMenuPhotos, MenuPhoto as StoredMenuPhoto } from "@/hooks/useMenuPhotos";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
 // ============================================
-// PERMANENT MENU PHOTOS - DO NOT MODIFY OR DELETE
-// These are the user's custom burger images that should
-// always remain as the default stock photos.
+// DEFAULT MENU PHOTOS - shown as examples for new users
 // ============================================
 import menu1 from "@/assets/menu-1.jpg";
 import menu2 from "@/assets/menu-2.jpg";
@@ -31,24 +30,23 @@ import menu4 from "@/assets/menu-4.jpg";
 import menu5 from "@/assets/menu-5.jpg";
 import menu6 from "@/assets/menu-6.jpg";
 
-// PERMANENT DEFAULT PHOTOS - DO NOT MODIFY THIS ARRAY
-const initialPhotos: MenuPhoto[] = [
-  { id: "1", name: "Signature Burger 1", src: menu1, category: "Burgers" },
-  { id: "2", name: "Signature Burger 2", src: menu2, category: "Burgers" },
-  { id: "3", name: "Signature Burger 3", src: menu3, category: "Burgers" },
-  { id: "4", name: "Signature Burger 4", src: menu4, category: "Burgers" },
-  { id: "5", name: "Signature Burger 5", src: menu5, category: "Burgers" },
-  { id: "6", name: "Signature Burger 6", src: menu6, category: "Burgers" },
+const defaultPhotos: StoredMenuPhoto[] = [
+  { id: "default-1", name: "Signature Burger 1", src: menu1, thumbnailSrc: menu1, category: "Burgers" },
+  { id: "default-2", name: "Signature Burger 2", src: menu2, thumbnailSrc: menu2, category: "Burgers" },
+  { id: "default-3", name: "Signature Burger 3", src: menu3, thumbnailSrc: menu3, category: "Burgers" },
+  { id: "default-4", name: "Signature Burger 4", src: menu4, thumbnailSrc: menu4, category: "Burgers" },
+  { id: "default-5", name: "Signature Burger 5", src: menu5, thumbnailSrc: menu5, category: "Burgers" },
+  { id: "default-6", name: "Signature Burger 6", src: menu6, thumbnailSrc: menu6, category: "Burgers" },
 ];
 
-// Higher quality image processing for AI generation (max 2048px, PNG format)
+// Higher quality image processing for AI generation (max 4096px for better quality)
 const compressImageToBase64 = async (url: string): Promise<string> => {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.crossOrigin = "anonymous";
     img.onload = () => {
       const canvas = document.createElement("canvas");
-      const maxSize = 2048;
+      const maxSize = 4096;
       let width = img.width;
       let height = img.height;
       
@@ -77,7 +75,11 @@ const compressImageToBase64 = async (url: string): Promise<string> => {
 };
 
 const Index = () => {
-  const [photos, setPhotos] = useState<MenuPhoto[]>(initialPhotos);
+  const { photos: storedPhotos, loading: photosLoading, uploadPhotos, deletePhoto, reorderPhotos } = useMenuPhotos();
+  
+  // Combine stored photos with defaults if user has no photos
+  const photos = storedPhotos.length > 0 ? storedPhotos : defaultPhotos;
+  
   const [selectedPhotos, setSelectedPhotos] = useState<MenuPhoto[]>([]);
   const [generationHistory, setGenerationHistory] = useState<GenerationEntry[]>([]);
   
@@ -108,28 +110,41 @@ const Index = () => {
   const handleDragStart = useCallback((event: DragStartEvent) => {
     const photo = photos.find((p) => p.id === event.active.id);
     if (photo) {
-      setActivePhoto(photo);
+      setActivePhoto({
+        id: photo.id,
+        name: photo.name,
+        src: photo.src,
+        category: photo.category,
+      });
     }
   }, [photos]);
 
   const handleDragEnd = useCallback((event: DragEndEvent) => {
     setActivePhoto(null);
     
-    // Check if dropped over prompt-builder or any area (more lenient drop detection)
-    if (event.over?.id === "prompt-builder" || event.delta.x !== 0 || event.delta.y !== 0) {
+    if (event.over?.id === "prompt-builder") {
       const photo = photos.find((p) => p.id === event.active.id);
-      // Only add if dropped over prompt-builder area specifically
-      if (event.over?.id === "prompt-builder" && photo && !selectedPhotos.find((p) => p.id === photo.id)) {
-        setSelectedPhotos((prev) => [...prev, photo]);
+      if (photo && !selectedPhotos.find((p) => p.id === photo.id)) {
+        setSelectedPhotos((prev) => [...prev, {
+          id: photo.id,
+          name: photo.name,
+          src: photo.src,
+          category: photo.category,
+        }]);
         toast.success(`Added ${photo.name} to prompt`);
       }
     }
   }, [photos, selectedPhotos]);
 
   // Click-to-add handler for menu photos
-  const handlePhotoClick = useCallback((photo: MenuPhoto) => {
+  const handlePhotoClick = useCallback((photo: StoredMenuPhoto) => {
     if (!selectedPhotos.find((p) => p.id === photo.id)) {
-      setSelectedPhotos((prev) => [...prev, photo]);
+      setSelectedPhotos((prev) => [...prev, {
+        id: photo.id,
+        name: photo.name,
+        src: photo.src,
+        category: photo.category,
+      }]);
       toast.success(`Added ${photo.name} to prompt`);
     } else {
       toast.info(`${photo.name} is already in the prompt`);
@@ -224,7 +239,6 @@ const Index = () => {
       const imageUrls = await Promise.all(imagePromises);
       const photoNames = randomPhotos.map((p) => p.name);
       
-      // Include style guide if available
       let styleGuideBase64: string | undefined;
       if (styleGuideUrl) {
         styleGuideBase64 = await compressImageToBase64(styleGuideUrl);
@@ -275,21 +289,27 @@ const Index = () => {
   }, [photos, selectedRatio, selectedResolution, selectedPhotoAmount, styleGuideUrl, addLoadingEntry, updateEntryWithImages, removeLoadingEntry]);
 
   const handlePhotosAdded = useCallback((files: File[]) => {
-    const newPhotos: MenuPhoto[] = files.map((file, index) => ({
-      id: `uploaded-${Date.now()}-${index}`,
-      name: file.name.replace(/\.[^/.]+$/, ""),
-      src: URL.createObjectURL(file),
-      category: "Uploaded",
-    }));
-    setPhotos((prev) => [...newPhotos, ...prev]);
-    toast.success(`Added ${files.length} photo${files.length > 1 ? "s" : ""}`);
-  }, []);
+    // If using default photos, just upload to storage
+    uploadPhotos(files);
+  }, [uploadPhotos]);
 
   const handleDeletePhoto = useCallback((id: string) => {
-    setPhotos((prev) => prev.filter((p) => p.id !== id));
+    // Don't allow deleting default photos
+    if (id.startsWith("default-")) {
+      toast.error("Cannot delete example photos. Upload your own to replace them.");
+      return;
+    }
+    deletePhoto(id);
     setSelectedPhotos((prev) => prev.filter((p) => p.id !== id));
-    toast.success("Photo deleted");
-  }, []);
+  }, [deletePhoto]);
+
+  const handleReorder = useCallback((newPhotos: StoredMenuPhoto[]) => {
+    // Don't save reorder for default photos
+    if (newPhotos.some(p => p.id.startsWith("default-"))) {
+      return;
+    }
+    reorderPhotos(newPhotos);
+  }, [reorderPhotos]);
 
   const handleDeleteEntry = useCallback((entryId: string) => {
     setGenerationHistory((prev) => prev.filter((e) => e.id !== entryId));
@@ -390,7 +410,8 @@ const Index = () => {
                   onPhotosAdded={handlePhotosAdded} 
                   onDeletePhoto={handleDeletePhoto}
                   onPhotoClick={handlePhotoClick}
-                  onReorder={setPhotos}
+                  onReorder={handleReorder}
+                  loading={photosLoading}
                 />
               </div>
 
