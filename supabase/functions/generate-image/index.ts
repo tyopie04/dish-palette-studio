@@ -139,6 +139,9 @@ FOOD PROPORTIONS: Keep food items realistically proportioned to surroundings and
                 imageConfig: {
                   aspectRatio: ratio,
                   imageSize: resolution
+                },
+                thinkingConfig: {
+                  thinkingBudget: 16384
                 }
               }
             }),
