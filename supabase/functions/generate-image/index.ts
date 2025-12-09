@@ -106,7 +106,16 @@ BURGER PROPORTIONS: Keep burgers realistically proportioned to surroundings and 
       }
     }
 
+    // Map resolution to API format
+    const resolutionApiFormat: Record<string, string> = {
+      "1K": "1024",
+      "2K": "2048",
+      "4K": "4096",
+    };
+    const apiResolution = resolutionApiFormat[resolution] || "1024";
+
     console.log('Using Nano Banana PRO with thinking enabled');
+    console.log('Requesting via imageConfig - aspectRatio:', ratio, 'resolution:', apiResolution);
     
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -126,6 +135,10 @@ BURGER PROPORTIONS: Keep burgers realistically proportioned to surroundings and 
         generationConfig: {
           thinkingConfig: {
             thinkingBudget: 2048
+          },
+          imageConfig: {
+            aspectRatio: ratio,
+            resolution: apiResolution
           }
         }
       }),
