@@ -119,7 +119,7 @@ FOOD PROPORTIONS: Keep food items realistically proportioned to surroundings and
         try {
           console.log(`Attempt ${attempt}/${maxRetries} for image ${imageIndex + 1}`);
           
-          // Use the documented API format - simpler without unsupported config options
+          // Use generationConfig.imageConfig for proper resolution control
           response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
             method: "POST",
             headers: {
@@ -134,7 +134,13 @@ FOOD PROPORTIONS: Keep food items realistically proportioned to surroundings and
                   content
                 }
               ],
-              modalities: ["image", "text"]
+              modalities: ["image", "text"],
+              generationConfig: {
+                imageConfig: {
+                  aspectRatio: ratio,
+                  imageSize: resolution
+                }
+              }
             }),
           });
           
