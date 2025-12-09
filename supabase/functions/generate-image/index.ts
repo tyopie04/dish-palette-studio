@@ -20,11 +20,10 @@ serve(async (req) => {
     }
 
     // Calculate exact pixel dimensions based on ratio and resolution
-    // Note: Image generation models typically max out around 1536px
     const resolutionBasePixels: Record<string, number> = {
       "1K": 1024,
-      "2K": 1536,  // Capped for model compatibility
-      "4K": 1536,  // Capped for model compatibility
+      "2K": 2048,
+      "4K": 4096,
     };
 
     const ratioDimensions: Record<string, { w: number; h: number }> = {
@@ -107,6 +106,8 @@ BURGER PROPORTIONS: Keep burgers realistically proportioned to surroundings and 
       }
     }
 
+    console.log('Using Nano Banana PRO with thinking enabled');
+    
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -114,14 +115,19 @@ BURGER PROPORTIONS: Keep burgers realistically proportioned to surroundings and 
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash-image-preview",
+        model: "google/gemini-3-pro-image-preview",
         messages: [
           {
             role: "user",
             content
           }
         ],
-        modalities: ["image", "text"]
+        modalities: ["image", "text"],
+        generationConfig: {
+          thinkingConfig: {
+            thinkingBudget: 2048
+          }
+        }
       }),
     });
 
