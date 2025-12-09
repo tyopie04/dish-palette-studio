@@ -144,6 +144,7 @@ export function PhotoGallery({
                   onDelete={onDeletePhoto}
                   onClick={() => handlePhotoCardClick(photo)}
                   onDoubleClick={() => handlePhotoDoubleClick(index)}
+                  onEnlarge={() => handlePhotoDoubleClick(index)}
                   onReorderDragStart={(e) => handleReorderDragStart(e, index)}
                   onReorderDragEnd={handleReorderDragEnd}
                 />

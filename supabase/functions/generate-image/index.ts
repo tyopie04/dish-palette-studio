@@ -50,12 +50,6 @@ serve(async (req) => {
     const dimensionString = `${width}x${height} pixels`;
     const ratioDesc = `${ratio} aspect ratio`;
     
-    // Include photo names in prompt if available
-    let dishContext = "";
-    if (photoNames && photoNames.length > 0) {
-      dishContext = ` featuring these menu items: ${photoNames.join(", ")}`;
-    }
-    
     // Style guide instructions
     let styleInstructions = "";
     if (styleGuideUrl) {
@@ -74,11 +68,11 @@ DO NOT copy any food from the style reference - use ONLY the food items from the
     // Build the text prompt with resolution requirements embedded
     const textPrompt = `PRIORITY: Follow the user's prompt exactly. Respect their lighting, mood, and color choices.
 
-${prompt || 'Create a professional food photography advertisement.'}${dishContext}
+${prompt || 'Create a professional food photography advertisement.'}
 
 COMPOSITION: ${ratioDesc} at ${dimensionString}, ${resolutionQuality}.
 IMAGE SIZE: Generate an image at exactly ${width}x${height} pixels resolution.
-BURGER PROPORTIONS: Keep burgers realistically proportioned to surroundings and consistent in size.${styleInstructions}`;
+FOOD PROPORTIONS: Keep food items realistically proportioned to surroundings and consistent in size.${styleInstructions}`;
     
     console.log('Generating image with prompt:', textPrompt.substring(0, 400) + '...');
     console.log('Target resolution:', dimensionString);
@@ -107,127 +101,142 @@ BURGER PROPORTIONS: Keep burgers realistically proportioned to surroundings and 
     }
 
     console.log('Using Gemini image model');
+    console.log('Requested photo amount:', photoAmount);
     
-    // Retry logic for transient errors
-    const maxRetries = 3;
-    let lastError: Error | null = null;
-    let response: Response | null = null;
+    // Generate multiple images if requested
+    const numImages = Math.min(Math.max(parseInt(photoAmount) || 1, 1), 4);
+    const allGeneratedImages: string[] = [];
     
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      try {
-        console.log(`Attempt ${attempt}/${maxRetries}`);
-        
-        // Use the documented API format - simpler without unsupported config options
-        response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${LOVABLE_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: "google/gemini-3-pro-image-preview",
-            messages: [
-              {
-                role: "user",
-                content
-              }
-            ],
-            modalities: ["image", "text"]
-          }),
-        });
-        
-        // If we get a 5xx error and have retries left, wait and retry
-        if (response.status >= 500 && attempt < maxRetries) {
-          const waitTime = Math.pow(2, attempt) * 1000;
-          console.log(`Got ${response.status}, retrying in ${waitTime}ms...`);
-          await new Promise(resolve => setTimeout(resolve, waitTime));
-          continue;
-        }
-        
-        break;
-      } catch (fetchError) {
-        lastError = fetchError instanceof Error ? fetchError : new Error(String(fetchError));
-        if (attempt < maxRetries) {
-          const waitTime = Math.pow(2, attempt) * 1000;
-          console.log(`Fetch error, retrying in ${waitTime}ms...`, lastError.message);
-          await new Promise(resolve => setTimeout(resolve, waitTime));
-        }
-      }
-    }
-    
-    if (!response) {
-      throw lastError || new Error('Failed to connect to AI gateway after retries');
-    }
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('AI gateway error:', response.status, errorText);
+    for (let imageIndex = 0; imageIndex < numImages; imageIndex++) {
+      console.log(`Generating image ${imageIndex + 1}/${numImages}`);
       
-      if (response.status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limits exceeded, please try again later." }), {
-          status: 429,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "Payment required, please add funds to your workspace." }), {
-          status: 402,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      if (response.status === 503 || response.status === 502 || response.status === 504) {
-        return new Response(JSON.stringify({ error: "AI service temporarily unavailable. Please try again in a moment." }), {
-          status: 503,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+      // Retry logic for transient errors
+      const maxRetries = 3;
+      let lastError: Error | null = null;
+      let response: Response | null = null;
+      
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+          console.log(`Attempt ${attempt}/${maxRetries} for image ${imageIndex + 1}`);
+          
+          // Use the documented API format - simpler without unsupported config options
+          response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${LOVABLE_API_KEY}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              model: "google/gemini-3-pro-image-preview",
+              messages: [
+                {
+                  role: "user",
+                  content
+                }
+              ],
+              modalities: ["image", "text"]
+            }),
+          });
+          
+          // If we get a 5xx error and have retries left, wait and retry
+          if (response.status >= 500 && attempt < maxRetries) {
+            const waitTime = Math.pow(2, attempt) * 1000;
+            console.log(`Got ${response.status}, retrying in ${waitTime}ms...`);
+            await new Promise(resolve => setTimeout(resolve, waitTime));
+            continue;
+          }
+          
+          break;
+        } catch (fetchError) {
+          lastError = fetchError instanceof Error ? fetchError : new Error(String(fetchError));
+          if (attempt < maxRetries) {
+            const waitTime = Math.pow(2, attempt) * 1000;
+            console.log(`Fetch error, retrying in ${waitTime}ms...`, lastError.message);
+            await new Promise(resolve => setTimeout(resolve, waitTime));
+          }
+        }
       }
       
-      throw new Error(`AI gateway error: ${response.status}`);
-    }
+      if (!response) {
+        throw lastError || new Error('Failed to connect to AI gateway after retries');
+      }
 
-    // Parse the response to check for errors in body and extract images
-    const data = await response.json();
-    console.log('AI response received');
-    
-    // Check for error in response body (AI gateway can return 200 with error in body)
-    if (data.error) {
-      console.error('AI returned error in body:', data.error);
-      return new Response(JSON.stringify({ 
-        error: data.error.message || 'AI generation failed. Try reducing resolution or using fewer reference images.' 
-      }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-    
-    // Extract the generated image
-    const message = data.choices?.[0]?.message;
-    let generatedImages: string[] = [];
-    
-    // Check for images array (Nano Banana format)
-    if (message?.images && message.images.length > 0) {
-      generatedImages = message.images
-        .map((img: any) => img.image_url?.url || img.url)
-        .filter(Boolean);
-    }
-    
-    // Check for inline image in content
-    if (generatedImages.length === 0 && message?.content) {
-      const base64Match = message.content.match(/data:image\/[^;]+;base64,[^\s"]+/g);
-      if (base64Match) {
-        generatedImages = base64Match;
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('AI gateway error:', response.status, errorText);
+        
+        if (response.status === 429) {
+          return new Response(JSON.stringify({ error: "Rate limits exceeded, please try again later." }), {
+            status: 429,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        if (response.status === 402) {
+          return new Response(JSON.stringify({ error: "Payment required, please add funds to your workspace." }), {
+            status: 402,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        if (response.status === 503 || response.status === 502 || response.status === 504) {
+          return new Response(JSON.stringify({ error: "AI service temporarily unavailable. Please try again in a moment." }), {
+            status: 503,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        
+        throw new Error(`AI gateway error: ${response.status}`);
+      }
+
+      // Parse the response to check for errors in body and extract images
+      const data = await response.json();
+      console.log(`AI response received for image ${imageIndex + 1}`);
+      
+      // Check for error in response body (AI gateway can return 200 with error in body)
+      if (data.error) {
+        console.error('AI returned error in body:', data.error);
+        return new Response(JSON.stringify({ 
+          error: data.error.message || 'AI generation failed. Try reducing resolution or using fewer reference images.' 
+        }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      
+      // Extract the generated image
+      const message = data.choices?.[0]?.message;
+      let generatedImages: string[] = [];
+      
+      // Check for images array (Nano Banana format)
+      if (message?.images && message.images.length > 0) {
+        generatedImages = message.images
+          .map((img: any) => img.image_url?.url || img.url)
+          .filter(Boolean);
+      }
+      
+      // Check for inline image in content
+      if (generatedImages.length === 0 && message?.content) {
+        const base64Match = message.content.match(/data:image\/[^;]+;base64,[^\s"]+/g);
+        if (base64Match) {
+          generatedImages = base64Match;
+        }
+      }
+      
+      if (generatedImages.length > 0) {
+        allGeneratedImages.push(...generatedImages);
+        console.log(`Added ${generatedImages.length} image(s) from generation ${imageIndex + 1}`);
+      } else {
+        console.error(`No images found for generation ${imageIndex + 1}. Full response:`, JSON.stringify(data, null, 2));
       }
     }
     
-    if (generatedImages.length === 0) {
-      console.error('No images found. Full response:', JSON.stringify(data, null, 2));
-      throw new Error('No image generated - try a simpler prompt or fewer reference images');
+    if (allGeneratedImages.length === 0) {
+      throw new Error('No images generated - try a simpler prompt or fewer reference images');
     }
 
-    console.log('Successfully generated', generatedImages.length, 'image(s)');
+    console.log('Successfully generated', allGeneratedImages.length, 'total image(s)');
 
     return new Response(
-      JSON.stringify({ images: generatedImages }),
+      JSON.stringify({ images: allGeneratedImages }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {

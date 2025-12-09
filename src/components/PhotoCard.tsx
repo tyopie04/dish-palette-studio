@@ -2,7 +2,7 @@ import { memo } from "react";
 import { useDraggable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
 import { cn } from "@/lib/utils";
-import { X, GripVertical } from "lucide-react";
+import { X, GripVertical, Maximize2 } from "lucide-react";
 
 export interface MenuPhoto {
   id: string;
@@ -18,6 +18,7 @@ interface PhotoCardProps {
   onDelete?: (id: string) => void;
   onClick?: () => void;
   onDoubleClick?: () => void;
+  onEnlarge?: () => void;
   onReorderDragStart?: (e: React.DragEvent) => void;
   onReorderDragEnd?: () => void;
 }
@@ -28,6 +29,7 @@ export const PhotoCard = memo(function PhotoCard({
   onDelete, 
   onClick, 
   onDoubleClick,
+  onEnlarge,
   onReorderDragStart,
   onReorderDragEnd,
 }: PhotoCardProps) {
@@ -104,15 +106,30 @@ export const PhotoCard = memo(function PhotoCard({
         />
       </div>
       
-      {/* Delete button */}
-      {onDelete && (
-        <button
-          onClick={handleDelete}
-          className="absolute top-2 right-2 z-20 p-1.5 rounded-full bg-background/90 text-muted-foreground hover:text-destructive hover:bg-background opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-sm"
-        >
-          <X className="w-4 h-4" />
-        </button>
-      )}
+      {/* Action buttons */}
+      <div className="absolute top-2 right-2 z-20 flex gap-1 opacity-0 group-hover:opacity-100 transition-all duration-200">
+        {onEnlarge && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onEnlarge();
+            }}
+            className="p-1.5 rounded-full bg-background/90 text-muted-foreground hover:text-foreground hover:bg-background shadow-sm"
+            title="Enlarge"
+          >
+            <Maximize2 className="w-4 h-4" />
+          </button>
+        )}
+        {onDelete && (
+          <button
+            onClick={handleDelete}
+            className="p-1.5 rounded-full bg-background/90 text-muted-foreground hover:text-destructive hover:bg-background shadow-sm"
+            title="Delete"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        )}
+      </div>
       
       <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
       <div className="absolute bottom-0 left-0 right-0 p-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
