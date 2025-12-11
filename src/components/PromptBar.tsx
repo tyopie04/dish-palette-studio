@@ -62,6 +62,9 @@ export const PromptBar: React.FC<PromptBarProps> = ({
 }) => {
   const [prompt, setPrompt] = useState('');
   const [styleGuideLightboxOpen, setStyleGuideLightboxOpen] = useState(false);
+  const [ratioOpen, setRatioOpen] = useState(false);
+  const [resolutionOpen, setResolutionOpen] = useState(false);
+  const [styleGuideOpen, setStyleGuideOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { setNodeRef, isOver } = useDroppable({ id: 'prompt-bar-drop' });
@@ -91,40 +94,42 @@ export const PromptBar: React.FC<PromptBarProps> = ({
     <>
       <div
         ref={setNodeRef}
-        className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-[90%] max-w-4xl bg-card/95 backdrop-blur-xl border border-border/50 rounded-2xl shadow-2xl transition-all duration-200 ${
+        className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-[90%] max-w-3xl bg-card/95 backdrop-blur-xl border border-border/50 rounded-2xl shadow-2xl transition-all duration-200 ${
           isOver ? 'ring-2 ring-primary scale-[1.02]' : ''
         }`}
       >
         <div className="flex items-center gap-3 p-3">
-          {/* Selected Photos */}
-          <div className="flex items-center gap-2 min-w-0 flex-shrink-0">
-            {selectedPhotos.slice(0, 4).map((photo) => (
-              <div key={photo.id} className="relative group">
-                <img
-                  src={photo.thumbnailSrc || photo.src}
-                  alt={photo.name}
-                  className="w-10 h-10 rounded-lg object-cover border border-border/50"
-                />
-                <button
-                  onClick={() => onRemovePhoto(photo.id)}
-                  className="absolute -top-1 -right-1 w-4 h-4 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                >
-                  <X className="w-3 h-3" />
-                </button>
-              </div>
-            ))}
-            {selectedPhotos.length > 4 && (
-              <span className="text-xs text-muted-foreground">+{selectedPhotos.length - 4}</span>
-            )}
-          </div>
+          {/* Selected Photos - Left */}
+          {selectedPhotos.length > 0 && (
+            <div className="flex items-center gap-1.5 flex-shrink-0 pr-3 border-r border-border/30">
+              {selectedPhotos.slice(0, 4).map((photo) => (
+                <div key={photo.id} className="relative group">
+                  <img
+                    src={photo.thumbnailSrc || photo.src}
+                    alt={photo.name}
+                    className="w-12 h-12 rounded-lg object-cover border border-border/50"
+                  />
+                  <button
+                    onClick={() => onRemovePhoto(photo.id)}
+                    className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              ))}
+              {selectedPhotos.length > 4 && (
+                <span className="text-xs text-muted-foreground ml-1">+{selectedPhotos.length - 4}</span>
+              )}
+            </div>
+          )}
 
-          {/* Prompt Input */}
+          {/* Prompt Input - Center */}
           <div className="flex-1 min-w-0">
             <Textarea
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               placeholder="Describe what you want to create..."
-              className="min-h-[40px] max-h-[80px] resize-none bg-background/50 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 text-sm"
+              className="min-h-[44px] max-h-[80px] resize-none bg-transparent border-0 focus-visible:ring-0 text-sm placeholder:text-muted-foreground/60"
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault();
@@ -134,21 +139,24 @@ export const PromptBar: React.FC<PromptBarProps> = ({
             />
           </div>
 
-          {/* Controls */}
-          <div className="flex items-center gap-1 flex-shrink-0">
+          {/* Controls - Right */}
+          <div className="flex items-center gap-0.5 flex-shrink-0 pl-3 border-l border-border/30">
             {/* Aspect Ratio */}
-            <Popover>
+            <Popover open={ratioOpen} onOpenChange={setRatioOpen}>
               <PopoverTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-foreground">
-                  <currentRatio.icon className="w-4 h-4" />
+                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground">
+                  <currentRatio.icon className="w-5 h-5" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-64 p-2" align="end">
+              <PopoverContent className="w-64 p-2 bg-popover" align="end">
                 <div className="grid grid-cols-4 gap-1">
                   {ratioOptions.map((option) => (
                     <button
                       key={option.value}
-                      onClick={() => setRatio(option.value)}
+                      onClick={() => {
+                        setRatio(option.value);
+                        setRatioOpen(false);
+                      }}
                       className={`flex flex-col items-center gap-1 p-2 rounded-lg transition-colors ${
                         ratio === option.value
                           ? 'bg-primary text-primary-foreground'
@@ -164,19 +172,22 @@ export const PromptBar: React.FC<PromptBarProps> = ({
             </Popover>
 
             {/* Resolution */}
-            <Popover>
+            <Popover open={resolutionOpen} onOpenChange={setResolutionOpen}>
               <PopoverTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-9 px-2 text-xs font-medium text-muted-foreground hover:text-foreground">
+                <Button variant="ghost" size="sm" className="h-8 px-2 text-xs font-medium text-muted-foreground hover:text-foreground">
                   {currentResolution.label}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-32 p-2" align="end">
-                <div className="flex flex-col gap-1">
+              <PopoverContent className="w-28 p-1.5 bg-popover" align="end">
+                <div className="flex flex-col gap-0.5">
                   {resolutionOptions.map((option) => (
                     <button
                       key={option.value}
-                      onClick={() => setResolution(option.value)}
-                      className={`px-3 py-1.5 rounded-md text-sm transition-colors ${
+                      onClick={() => {
+                        setResolution(option.value);
+                        setResolutionOpen(false);
+                      }}
+                      className={`px-3 py-1.5 rounded-md text-sm transition-colors text-center ${
                         resolution === option.value
                           ? 'bg-primary text-primary-foreground'
                           : 'hover:bg-muted'
@@ -189,41 +200,41 @@ export const PromptBar: React.FC<PromptBarProps> = ({
               </PopoverContent>
             </Popover>
 
-            {/* Photo Amount */}
-            <div className="flex items-center gap-1 px-1">
+            {/* Photo Amount - Higgsfield style */}
+            <div className="flex items-center h-8 px-1">
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-7 w-7"
+                className="h-6 w-6 text-muted-foreground hover:text-foreground"
                 onClick={() => setPhotoAmount(Math.max(1, photoAmount - 1))}
                 disabled={photoAmount <= 1}
               >
-                <Minus className="w-3 h-3" />
+                <Minus className="w-3.5 h-3.5" />
               </Button>
-              <span className="text-xs font-medium w-4 text-center">{photoAmount}</span>
+              <span className="text-sm font-medium w-5 text-center text-muted-foreground">{photoAmount}</span>
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-7 w-7"
+                className="h-6 w-6 text-muted-foreground hover:text-foreground"
                 onClick={() => setPhotoAmount(Math.min(4, photoAmount + 1))}
                 disabled={photoAmount >= 4}
               >
-                <Plus className="w-3 h-3" />
+                <Plus className="w-3.5 h-3.5" />
               </Button>
             </div>
 
             {/* Style Guide */}
-            <Popover>
+            <Popover open={styleGuideOpen} onOpenChange={setStyleGuideOpen}>
               <PopoverTrigger asChild>
                 <Button
                   variant="ghost"
-                  size="icon"
-                  className={`h-9 w-9 ${styleGuideUrl ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+                  size="sm"
+                  className={`h-8 w-8 p-0 ${styleGuideUrl ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}`}
                 >
-                  <Image className="w-4 h-4" />
+                  <Image className="w-5 h-5" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-48 p-2" align="end">
+              <PopoverContent className="w-48 p-2 bg-popover" align="end">
                 <div className="space-y-2">
                   <p className="text-xs text-muted-foreground">Style Reference</p>
                   {styleGuideUrl ? (
@@ -232,7 +243,10 @@ export const PromptBar: React.FC<PromptBarProps> = ({
                         src={styleGuideUrl}
                         alt="Style guide"
                         className="w-full h-24 object-cover rounded-lg cursor-pointer"
-                        onClick={() => setStyleGuideLightboxOpen(true)}
+                        onClick={() => {
+                          setStyleGuideLightboxOpen(true);
+                          setStyleGuideOpen(false);
+                        }}
                       />
                       <button
                         onClick={() => setStyleGuideUrl(null)}
@@ -266,9 +280,9 @@ export const PromptBar: React.FC<PromptBarProps> = ({
             <Button
               onClick={handleGenerate}
               disabled={isGenerating || (!prompt.trim() && selectedPhotos.length === 0)}
-              className="h-9 px-4 bg-primary hover:bg-primary/90"
+              className="h-9 px-5 ml-2 bg-primary hover:bg-primary/90 font-medium"
             >
-              <Sparkles className="w-4 h-4 mr-1" />
+              <Sparkles className="w-4 h-4 mr-1.5" />
               Generate
             </Button>
           </div>

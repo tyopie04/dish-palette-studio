@@ -324,7 +324,7 @@ const Index = () => {
           
           <div className="flex flex-1 overflow-hidden">
             {/* Left Sidebar - Menu Photos */}
-            <aside className="w-80 border-r border-border/50 flex-shrink-0 bg-card/30">
+            <aside className="w-72 border-r border-border/50 flex-shrink-0 bg-card/30">
               <ScrollArea className="h-[calc(100vh-64px)]">
                 <div className="p-4">
                   <PhotoGallery 
