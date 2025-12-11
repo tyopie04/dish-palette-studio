@@ -20,24 +20,6 @@ import { useMenuPhotos, MenuPhoto as StoredMenuPhoto } from "@/hooks/useMenuPhot
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
-// ============================================
-// DEFAULT MENU PHOTOS - shown as examples for new users
-// ============================================
-import menu1 from "@/assets/menu-1.jpg";
-import menu2 from "@/assets/menu-2.jpg";
-import menu3 from "@/assets/menu-3.jpg";
-import menu4 from "@/assets/menu-4.jpg";
-import menu5 from "@/assets/menu-5.jpg";
-import menu6 from "@/assets/menu-6.jpg";
-
-const defaultPhotos: StoredMenuPhoto[] = [
-  { id: "default-1", name: "Signature Burger 1", src: menu1, thumbnailSrc: menu1, category: "Burgers" },
-  { id: "default-2", name: "Signature Burger 2", src: menu2, thumbnailSrc: menu2, category: "Burgers" },
-  { id: "default-3", name: "Signature Burger 3", src: menu3, thumbnailSrc: menu3, category: "Burgers" },
-  { id: "default-4", name: "Signature Burger 4", src: menu4, thumbnailSrc: menu4, category: "Burgers" },
-  { id: "default-5", name: "Signature Burger 5", src: menu5, thumbnailSrc: menu5, category: "Burgers" },
-  { id: "default-6", name: "Signature Burger 6", src: menu6, thumbnailSrc: menu6, category: "Burgers" },
-];
 
 // Higher quality image processing for AI generation (max 4096px for better quality)
 const compressImageToBase64 = async (url: string): Promise<string> => {
@@ -83,8 +65,8 @@ const compressImageToBase64 = async (url: string): Promise<string> => {
 const Index = () => {
   const { photos: storedPhotos, loading: photosLoading, uploadPhotos, deletePhoto, reorderPhotos } = useMenuPhotos();
   
-  // Combine stored photos with defaults if user has no photos
-  const photos = storedPhotos.length > 0 ? storedPhotos : defaultPhotos;
+  // Use stored photos directly - no defaults needed
+  const photos = storedPhotos;
   
   const [selectedPhotos, setSelectedPhotos] = useState<MenuPhoto[]>([]);
   const [generationHistory, setGenerationHistory] = useState<GenerationEntry[]>([]);
