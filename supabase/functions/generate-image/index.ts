@@ -18,44 +18,83 @@ async function createImageBlueprint(
   styleGuideUrl?: string     // Style guide image URL
 ): Promise<{ blueprint: string; reasoning: string }> {
   
-  const systemPrompt = `You are an expert food photography art director. Your job is to VISUALLY ANALYZE the provided reference photos and create a precise, detailed blueprint for an AI image generator to follow.
+  const systemPrompt = `You are an expert food photography art director with 20+ years experience in commercial food advertising. Your job is to VISUALLY ANALYZE the provided reference photos and create a precise, detailed blueprint for an AI image generator.
 
-CRITICAL: You MUST describe the ACTUAL FOOD you see in the reference images. DO NOT rely on text names or labels - they may be inaccurate. Look at the images and describe what you actually see (burger, steak, salad, etc.).
+CRITICAL: You MUST describe the ACTUAL FOOD you see in the reference images. DO NOT rely on text names or labels - they may be inaccurate. Look at the images and describe what you actually see.
 
-TASK: Create an extremely detailed image generation prompt that will produce exactly what the user wants, featuring the ACTUAL food items shown in the reference photos.
+=== CHAIN-OF-THOUGHT ANALYSIS STEPS ===
 
-INPUT CONTEXT:
+STEP 1 - VISUAL IDENTIFICATION:
+For each reference photo, identify:
+- What type of food is this ACTUALLY? (burger, sandwich, steak, salad, etc.)
+- Key distinguishing features (number of patties, type of bun, visible toppings)
+- Any unique characteristics that make this item special
+
+STEP 2 - TEXTURE & COLOR ANALYSIS:
+Describe in detail:
+- Surface textures (crispy, glossy, matte, charred, melted)
+- Color palette (golden brown, vibrant green, deep red, etc.)
+- Ingredient layers and their visual order
+
+STEP 3 - STYLE GUIDE ANALYSIS (if provided):
+Extract from style guide:
+- Lighting setup (direction, softness, color temperature)
+- Background treatment (color, texture, gradient)
+- Overall mood and atmosphere
+- Any branding elements or text treatments
+
+STEP 4 - COMPOSITION PLANNING:
+Using professional food photography principles:
+- Rule of thirds placement for hero items
+- Visual hierarchy (what draws the eye first)
+- Negative space usage
+- Depth and layering
+
+STEP 5 - FOOD PHOTOGRAPHY BEST PRACTICES:
+Consider adding:
+- Steam rising from hot items (indicates freshness)
+- Sauce drips and cheese pulls (creates appetite appeal)
+- Condensation on cold items
+- Crumb trails and ingredient "hero" positioning
+- Garnish placement for color contrast
+
+=== INPUT CONTEXT ===
 - Aspect ratio: ${ratio}
 - Resolution: ${dimensionString}
 - Number of reference food photos: ${imageUrls?.length || 0}
 - Style guide provided: ${hasStyleGuide ? 'Yes - use it for lighting, mood, and composition style' : 'No'}
 
-YOUR OUTPUT MUST BE A JSON OBJECT with these fields:
+=== OUTPUT FORMAT ===
+Your response MUST be a JSON object with this structure:
 {
-  "reasoning": "Your analysis of what food items you ACTUALLY SEE in the photos and why you're making certain creative decisions (2-3 sentences)",
-  "imagePrompt": "The complete, detailed prompt for the image generator. Be EXTREMELY specific about:
-    - DESCRIBE THE ACTUAL FOOD FROM THE PHOTOS (e.g., 'a juicy gourmet burger with melted cheese, lettuce, and sesame seed bun' NOT 'dressed beef')
-    - Exact positioning and arrangement of food items
-    - Lighting direction, quality, and color temperature
-    - Background details (color, texture, gradient direction if any)
-    - Camera angle and perspective
-    - Mood and atmosphere
-    - Any text, graphics, or design elements
-    - Color palette specifics
-    - Depth of field and focus
-    - Any motion/action elements (splashing, floating, steam, etc.)
-  "
+  "visualAnalysis": {
+    "foodItems": ["Detailed description of each food item you ACTUALLY SEE"],
+    "textures": ["List of key textures: crispy, melted, glossy, etc."],
+    "colors": ["Dominant colors: golden brown, vibrant red, etc."]
+  },
+  "styleGuideAnalysis": "What lighting/mood/composition cues to take from the style guide (or 'N/A' if none provided)",
+  "compositionPlan": "How you will arrange the items using rule of thirds, visual hierarchy, and professional food photography techniques",
+  "reasoning": "Brief explanation of your creative decisions (2-3 sentences)",
+  "imagePrompt": "The complete, ultra-detailed prompt for the image generator. Include:
+    - EXACT food descriptions based on YOUR visual analysis (NOT text labels)
+    - Precise positioning (center-left, lower third, etc.)
+    - Lighting: direction, quality, color temperature, shadows
+    - Background: exact color, texture, any gradients
+    - Camera: angle, lens type, depth of field
+    - Hero details: steam, sauce drips, cheese pulls, glistening highlights
+    - Text/graphics if requested
+    - Mood and atmosphere"
 }
 
-RULES:
-1. ALWAYS describe the actual food you SEE in the reference images - ignore misleading text labels
-2. ALWAYS prioritize the user's explicit requests over assumptions
-3. If user mentions colors, lighting, or mood - use EXACTLY what they specify
-4. Be specific about spatial relationships (left/right, foreground/background, etc.)
-5. Include realistic proportions and food styling details
-6. The imagePrompt should be self-contained - the image generator won't see the original user request`;
+=== RULES ===
+1. ALWAYS describe actual food you SEE - ignore misleading text labels
+2. ALWAYS prioritize user's explicit requests over assumptions
+3. If user specifies colors/lighting/mood - use EXACTLY what they specify
+4. Be precise about spatial relationships
+5. The imagePrompt must be self-contained (image generator won't see original request)
+6. Include appetizing details: steam, drips, glistening, texture contrast`;
 
-  console.log('[BRAIN] Calling Gemini 2.5 Pro for MULTIMODAL reasoning...');
+  console.log('[BRAIN] Calling Gemini 2.5 Pro for MULTIMODAL reasoning with enhanced thinking...');
   console.log('[BRAIN] Reference images to analyze:', imageUrls?.length || 0);
   console.log('[BRAIN] Style guide provided:', !!styleGuideUrl);
   
@@ -93,7 +132,12 @@ RULES:
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: brainContent }
-      ]
+      ],
+      generationConfig: {
+        thinkingConfig: {
+          thinkingBudget: 24576  // High thinking budget for detailed analysis
+        }
+      }
     }),
   });
 
@@ -122,7 +166,20 @@ RULES:
     }
     
     const parsed = JSON.parse(jsonStr);
-    console.log('[BRAIN] Complete. Reasoning:', parsed.reasoning);
+    
+    // Log the enhanced analysis details
+    if (parsed.visualAnalysis) {
+      console.log('[BRAIN] Visual Analysis - Food Items:', parsed.visualAnalysis.foodItems?.join(', ') || 'N/A');
+      console.log('[BRAIN] Visual Analysis - Textures:', parsed.visualAnalysis.textures?.join(', ') || 'N/A');
+      console.log('[BRAIN] Visual Analysis - Colors:', parsed.visualAnalysis.colors?.join(', ') || 'N/A');
+    }
+    if (parsed.styleGuideAnalysis) {
+      console.log('[BRAIN] Style Guide Analysis:', parsed.styleGuideAnalysis.substring(0, 200) + '...');
+    }
+    if (parsed.compositionPlan) {
+      console.log('[BRAIN] Composition Plan:', parsed.compositionPlan.substring(0, 200) + '...');
+    }
+    console.log('[BRAIN] Reasoning:', parsed.reasoning);
     console.log('[BRAIN] Blueprint prompt length:', parsed.imagePrompt?.length || 0);
     
     return {
