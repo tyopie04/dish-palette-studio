@@ -256,13 +256,12 @@ export const MasonryGallery: React.FC<MasonryGalleryProps> = ({
     const totalGapWidth = (rowItems.length - 1) * gap;
     const availableWidth = containerWidth - totalGapWidth;
     
-    // Calculate height that makes images fit the row width
+    // Calculate height that makes images fit the row width exactly
     let rowHeight = availableWidth / totalAspectRatio;
     
-    // Clamp height to reasonable bounds
+    // Only set a minimum height, no maximum - let rows be as tall as needed
     const minHeight = 150;
-    const maxHeight = 400;
-    rowHeight = Math.max(minHeight, Math.min(maxHeight, rowHeight));
+    rowHeight = Math.max(minHeight, rowHeight);
     
     rows.push({ items: rowItems, height: rowHeight });
   }
