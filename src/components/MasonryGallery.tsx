@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Download, Trash2, Edit3, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -19,15 +19,47 @@ interface MasonryGalleryProps {
   onEdit: (imageUrl: string) => void;
 }
 
-const LoadingCard: React.FC = () => {
+const LoadingCard: React.FC<{ ratio?: string }> = ({ ratio }) => {
+  const [progress, setProgress] = useState(0);
+
+  // Simulate progress animation
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setProgress((prev) => {
+        if (prev >= 90) return prev;
+        return prev + Math.random() * 15;
+      });
+    }, 500);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Calculate flex-grow based on aspect ratio
+  const getFlexGrow = () => {
+    if (!ratio) return 1;
+    const [w, h] = ratio.split(':').map(Number);
+    return w / h;
+  };
+
   return (
-    <div className="relative bg-card/50 rounded-md overflow-hidden border border-border/30 aspect-square flex items-center justify-center min-w-[200px]">
-      <div className="flex flex-col items-center justify-center gap-3">
-        <div className="relative">
-          <div className="w-10 h-10 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
-          <Loader2 className="w-5 h-5 text-primary absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 animate-pulse" />
+    <div 
+      className="relative bg-muted/30 rounded-md overflow-hidden"
+      style={{ flexGrow: getFlexGrow(), flexBasis: 0 }}
+    >
+      {/* Generating badge in top left */}
+      <div className="absolute top-3 left-3 z-10">
+        <div className="flex items-center gap-2 bg-muted/80 backdrop-blur-sm rounded-full px-3 py-1.5">
+          <Loader2 className="w-3.5 h-3.5 text-foreground/70 animate-spin" />
+          <span className="text-xs font-medium text-foreground/70">Generating...</span>
         </div>
-        <p className="text-xs font-medium text-foreground/70">Generating...</p>
+      </div>
+
+      {/* Progress bar at bottom */}
+      <div className="absolute bottom-0 left-0 right-0 h-1 bg-muted/50">
+        <div 
+          className="h-full bg-primary/70 transition-all duration-300 ease-out"
+          style={{ width: `${progress}%` }}
+        />
       </div>
     </div>
   );
@@ -135,7 +167,7 @@ export const MasonryGallery: React.FC<MasonryGalleryProps> = ({
     }
   };
 
-  type LoadingItem = { type: 'loading'; id: string };
+  type LoadingItem = { type: 'loading'; id: string; ratio?: string };
   type ImageItem = { type: 'image'; id: string; entryId: string; imageUrl: string; index: number; prompt?: string; ratio?: string; resolution?: string; timestamp: Date };
   type GalleryItem = LoadingItem | ImageItem;
 
@@ -143,7 +175,7 @@ export const MasonryGallery: React.FC<MasonryGalleryProps> = ({
   const allItems: GalleryItem[] = [];
   for (const entry of history) {
     if (entry.isLoading) {
-      allItems.push({ type: 'loading', id: entry.id });
+      allItems.push({ type: 'loading', id: entry.id, ratio: entry.ratio });
     } else {
       for (let idx = 0; idx < entry.images.length; idx++) {
         allItems.push({
@@ -193,7 +225,7 @@ export const MasonryGallery: React.FC<MasonryGalleryProps> = ({
           >
             {row.map((item) =>
               item.type === 'loading' ? (
-                <LoadingCard key={item.id} />
+                <LoadingCard key={item.id} ratio={item.ratio} />
               ) : (
                 <ImageCard
                   key={item.id}
