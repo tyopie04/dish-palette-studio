@@ -63,7 +63,7 @@ const compressImageToBase64 = async (url: string): Promise<string> => {
 };
 
 const Index = () => {
-  const { photos: storedPhotos, loading: photosLoading, uploadPhotos, deletePhoto, reorderPhotos } = useMenuPhotos();
+  const { photos: storedPhotos, loading: photosLoading, uploadPhotos, deletePhoto, reorderPhotos, renamePhoto } = useMenuPhotos();
   
   // Use stored photos directly - no defaults needed
   const photos = storedPhotos;
@@ -325,6 +325,14 @@ const Index = () => {
     reorderPhotos(newPhotos);
   }, [reorderPhotos]);
 
+  const handleRenamePhoto = useCallback((id: string, newName: string) => {
+    renamePhoto(id, newName);
+    // Also update in selected photos if present
+    setSelectedPhotos((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, name: newName } : p))
+    );
+  }, [renamePhoto]);
+
   const handleDeleteEntry = useCallback((entryId: string) => {
     setGenerationHistory((prev) => prev.filter((e) => e.id !== entryId));
     toast.success("Generation deleted");
@@ -425,6 +433,7 @@ const Index = () => {
                   onDeletePhoto={handleDeletePhoto}
                   onPhotoClick={handlePhotoClick}
                   onReorder={handleReorder}
+                  onRenamePhoto={handleRenamePhoto}
                   loading={photosLoading}
                 />
               </div>

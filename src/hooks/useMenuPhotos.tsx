@@ -240,12 +240,36 @@ export function useMenuPhotos() {
     }
   }, [user, fetchPhotos]);
 
+  // Rename photo
+  const renamePhoto = useCallback(async (id: string, newName: string) => {
+    if (!user) return;
+
+    try {
+      const { error } = await supabase
+        .from("menu_photos")
+        .update({ name: newName })
+        .eq("id", id)
+        .eq("user_id", user.id);
+
+      if (error) throw error;
+
+      setPhotos((prev) =>
+        prev.map((p) => (p.id === id ? { ...p, name: newName } : p))
+      );
+      toast.success("Photo renamed");
+    } catch (error) {
+      console.error("Error renaming photo:", error);
+      toast.error("Failed to rename photo");
+    }
+  }, [user]);
+
   return {
     photos,
     loading,
     uploadPhotos,
     deletePhoto,
     reorderPhotos,
+    renamePhoto,
     refetch: fetchPhotos,
   };
 }
