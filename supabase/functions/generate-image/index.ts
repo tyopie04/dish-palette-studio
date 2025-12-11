@@ -202,10 +202,15 @@ Use the ${hasStyleGuide ? "style guide image" : selectedStyle ? `"${selectedStyl
     });
   }
   
-  // Add ALL menu photo references for the Brain to SEE
+  // Add menu photo references for the Brain to SEE (limit to 6 to prevent memory issues)
+  const MAX_BRAIN_IMAGES = 6;
   if (imageUrls && imageUrls.length > 0) {
-    console.log('[BRAIN] Adding', imageUrls.length, 'reference images for visual analysis');
-    for (const url of imageUrls) {
+    const imagesToProcess = imageUrls.slice(0, MAX_BRAIN_IMAGES);
+    console.log('[BRAIN] Adding', imagesToProcess.length, 'of', imageUrls.length, 'reference images for visual analysis');
+    if (imageUrls.length > MAX_BRAIN_IMAGES) {
+      console.log('[BRAIN] Note: Limited to', MAX_BRAIN_IMAGES, 'images to prevent memory overflow');
+    }
+    for (const url of imagesToProcess) {
       brainContent.push({
         type: "image_url",
         image_url: { url }
