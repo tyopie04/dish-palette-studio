@@ -65,8 +65,14 @@ const compressImageToBase64 = async (url: string): Promise<string> => {
         reject(new Error("Could not get canvas context"));
         return;
       }
+      // Fill with white background to flatten any transparency (important for screenshots)
+      ctx.fillStyle = "#FFFFFF";
+      ctx.fillRect(0, 0, width, height);
+      
       ctx.drawImage(img, 0, 0, width, height);
-      const base64 = canvas.toDataURL("image/png");
+      
+      // Output as JPEG - no alpha channel, works reliably with AI models
+      const base64 = canvas.toDataURL("image/jpeg", 0.92);
       resolve(base64);
     };
     img.onerror = () => reject(new Error("Failed to load image"));
