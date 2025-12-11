@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Download, Trash2, Edit3, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -19,32 +19,39 @@ interface MasonryGalleryProps {
   onEdit: (imageUrl: string) => void;
 }
 
-const LoadingCard: React.FC<{ ratio?: string }> = ({ ratio }) => {
+// Parse ratio string to get aspect ratio number
+const parseRatio = (ratio?: string): number => {
+  if (!ratio) return 1;
+  const [w, h] = ratio.split(':').map(Number);
+  if (!w || !h) return 1;
+  return w / h;
+};
+
+const LoadingCard: React.FC<{ ratio?: string; aspectRatio: number; height: number }> = ({ ratio, aspectRatio, height }) => {
   const [progress, setProgress] = useState(0);
+  const startTime = useRef(Date.now());
 
-  // Simulate progress animation
+  // More realistic progress simulation that slows down over time
   useEffect(() => {
-    const interval = setInterval(() => {
-      setProgress((prev) => {
-        if (prev >= 90) return prev;
-        return prev + Math.random() * 15;
-      });
-    }, 500);
+    const updateProgress = () => {
+      const elapsed = (Date.now() - startTime.current) / 1000; // seconds
+      // Logarithmic curve that starts fast and slows down
+      // Reaches ~60% at 10s, ~80% at 30s, ~90% at 60s
+      const newProgress = Math.min(95, 100 * (1 - Math.exp(-elapsed / 20)));
+      setProgress(newProgress);
+    };
 
+    const interval = setInterval(updateProgress, 100);
     return () => clearInterval(interval);
   }, []);
 
-  // Calculate flex-grow based on aspect ratio
-  const getFlexGrow = () => {
-    if (!ratio) return 1;
-    const [w, h] = ratio.split(':').map(Number);
-    return w / h;
-  };
-
   return (
     <div 
-      className="relative bg-muted/30 rounded-md overflow-hidden"
-      style={{ flexGrow: getFlexGrow(), flexBasis: 0 }}
+      className="relative bg-muted/30 rounded-md overflow-hidden flex-shrink-0"
+      style={{ 
+        width: height * aspectRatio,
+        height: height,
+      }}
     >
       {/* Generating badge in top left */}
       <div className="absolute top-3 left-3 z-10">
@@ -57,7 +64,7 @@ const LoadingCard: React.FC<{ ratio?: string }> = ({ ratio }) => {
       {/* Progress bar at bottom */}
       <div className="absolute bottom-0 left-0 right-0 h-1 bg-muted/50">
         <div 
-          className="h-full bg-primary/70 transition-all duration-300 ease-out"
+          className="h-full bg-primary/70 transition-all duration-200 ease-out"
           style={{ width: `${progress}%` }}
         />
       </div>
@@ -67,23 +74,20 @@ const LoadingCard: React.FC<{ ratio?: string }> = ({ ratio }) => {
 
 const ImageCard: React.FC<{
   imageUrl: string;
-  ratio?: string;
+  aspectRatio: number;
+  height: number;
   onClick: () => void;
   onDelete: () => void;
   onEdit: () => void;
   onDownload: () => void;
-}> = ({ imageUrl, ratio, onClick, onDelete, onEdit, onDownload }) => {
-  // Calculate flex-grow based on aspect ratio
-  const getFlexGrow = () => {
-    if (!ratio) return 1;
-    const [w, h] = ratio.split(':').map(Number);
-    return w / h;
-  };
-
+}> = ({ imageUrl, aspectRatio, height, onClick, onDelete, onEdit, onDownload }) => {
   return (
     <div 
-      className="relative group overflow-hidden rounded-md cursor-pointer"
-      style={{ flexGrow: getFlexGrow(), flexBasis: 0 }}
+      className="relative group overflow-hidden rounded-md cursor-pointer flex-shrink-0"
+      style={{ 
+        width: height * aspectRatio,
+        height: height,
+      }}
       onClick={onClick}
     >
       <img
@@ -141,6 +145,26 @@ export const MasonryGallery: React.FC<MasonryGalleryProps> = ({
   onDelete,
   onEdit,
 }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState(0);
+
+  // Track container width for responsive layout
+  useEffect(() => {
+    const updateWidth = () => {
+      if (containerRef.current) {
+        setContainerWidth(containerRef.current.offsetWidth - 16); // Account for padding
+      }
+    };
+    
+    updateWidth();
+    const resizeObserver = new ResizeObserver(updateWidth);
+    if (containerRef.current) {
+      resizeObserver.observe(containerRef.current);
+    }
+    
+    return () => resizeObserver.disconnect();
+  }, []);
+
   const handleDownload = async (imageUrl: string, index: number) => {
     try {
       if (imageUrl.startsWith('data:')) {
@@ -167,15 +191,20 @@ export const MasonryGallery: React.FC<MasonryGalleryProps> = ({
     }
   };
 
-  type LoadingItem = { type: 'loading'; id: string; ratio?: string };
-  type ImageItem = { type: 'image'; id: string; entryId: string; imageUrl: string; index: number; prompt?: string; ratio?: string; resolution?: string; timestamp: Date };
+  type LoadingItem = { type: 'loading'; id: string; ratio?: string; aspectRatio: number };
+  type ImageItem = { type: 'image'; id: string; entryId: string; imageUrl: string; index: number; prompt?: string; ratio?: string; resolution?: string; timestamp: Date; aspectRatio: number };
   type GalleryItem = LoadingItem | ImageItem;
 
   // Flatten all images from history entries
   const allItems: GalleryItem[] = [];
   for (const entry of history) {
     if (entry.isLoading) {
-      allItems.push({ type: 'loading', id: entry.id, ratio: entry.ratio });
+      allItems.push({ 
+        type: 'loading', 
+        id: entry.id, 
+        ratio: entry.ratio,
+        aspectRatio: parseRatio(entry.ratio),
+      });
     } else {
       for (let idx = 0; idx < entry.images.length; idx++) {
         allItems.push({
@@ -188,6 +217,7 @@ export const MasonryGallery: React.FC<MasonryGalleryProps> = ({
           ratio: entry.ratio,
           resolution: entry.resolution,
           timestamp: entry.timestamp,
+          aspectRatio: parseRatio(entry.ratio),
         });
       }
     }
@@ -207,30 +237,58 @@ export const MasonryGallery: React.FC<MasonryGalleryProps> = ({
     );
   }
 
-  // Group items into rows (4 items per row for optimal display)
+  // Build rows with justified layout - each row has its own calculated height
+  const gap = 4;
   const itemsPerRow = 4;
-  const rows: GalleryItem[][] = [];
+  const targetRowHeight = 280; // Base target height
+  
+  type JustifiedRow = { items: GalleryItem[]; height: number };
+  const rows: JustifiedRow[] = [];
+  
   for (let i = 0; i < allItems.length; i += itemsPerRow) {
-    rows.push(allItems.slice(i, i + itemsPerRow));
+    const rowItems = allItems.slice(i, i + itemsPerRow);
+    
+    // Calculate total aspect ratio for this row
+    const totalAspectRatio = rowItems.reduce((sum, item) => sum + item.aspectRatio, 0);
+    
+    // Calculate row height to fit all images in available width
+    // Formula: containerWidth = height * (sum of aspect ratios) + gaps
+    const totalGapWidth = (rowItems.length - 1) * gap;
+    const availableWidth = containerWidth - totalGapWidth;
+    
+    // Calculate height that makes images fit the row width
+    let rowHeight = availableWidth / totalAspectRatio;
+    
+    // Clamp height to reasonable bounds
+    const minHeight = 150;
+    const maxHeight = 400;
+    rowHeight = Math.max(minHeight, Math.min(maxHeight, rowHeight));
+    
+    rows.push({ items: rowItems, height: rowHeight });
   }
 
   return (
-    <div className="flex-1 overflow-y-auto p-1 pb-32">
+    <div ref={containerRef} className="flex-1 overflow-y-auto p-2 pb-32">
       <div className="flex flex-col gap-1">
         {rows.map((row, rowIndex) => (
           <div 
             key={rowIndex} 
             className="flex gap-1"
-            style={{ height: '280px' }}
           >
-            {row.map((item) =>
+            {row.items.map((item) =>
               item.type === 'loading' ? (
-                <LoadingCard key={item.id} ratio={item.ratio} />
+                <LoadingCard 
+                  key={item.id} 
+                  ratio={item.ratio} 
+                  aspectRatio={item.aspectRatio}
+                  height={row.height}
+                />
               ) : (
                 <ImageCard
                   key={item.id}
                   imageUrl={item.imageUrl}
-                  ratio={item.ratio}
+                  aspectRatio={item.aspectRatio}
+                  height={row.height}
                   onClick={() => onImageClick(item.imageUrl, {
                     prompt: item.prompt,
                     ratio: item.ratio,
