@@ -312,7 +312,8 @@ const Index = () => {
     );
   }, [activePhoto]);
 
-  const isGenerating = generationHistory.some(entry => entry.isLoading);
+  const activeGenerations = generationHistory.filter(entry => entry.isLoading).length;
+  const isGenerating = activeGenerations >= 8;
 
   return (
     <>
