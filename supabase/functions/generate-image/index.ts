@@ -1,9 +1,93 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.86.2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Menu category keywords mapping for smart photo selection
+const categoryKeywords: Record<string, string[]> = {
+  "Chicken": ["chicken", "chicken burger", "chicken burgers", "poultry"],
+  "Beef": ["beef", "beef burger", "beef burgers"],
+  "Off Menu": ["off menu", "off-menu", "special", "specials", "secret menu"],
+  "Sides": ["sides", "fries", "chips", "tenders", "wings", "side"],
+  "Drinks - Arizona": ["arizona", "arizona tea", "arizona drink"],
+  "Drinks - Calypso": ["calypso", "calypso drink", "lemonade"],
+  "Drinks - Sodas": ["soda", "sodas", "coke", "dr pepper", "fanta", "jarritos", "soft drink", "soft drinks"],
+  "Shakes": ["shake", "shakes", "milkshake", "milkshakes"],
+};
+
+// General category groups for broader matching
+const categoryGroups: Record<string, string[]> = {
+  "burgers": ["Chicken", "Beef", "Off Menu"],
+  "all burgers": ["Chicken", "Beef", "Off Menu"],
+  "drinks": ["Drinks - Arizona", "Drinks - Calypso", "Drinks - Sodas"],
+  "all drinks": ["Drinks - Arizona", "Drinks - Calypso", "Drinks - Sodas"],
+  "beverages": ["Drinks - Arizona", "Drinks - Calypso", "Drinks - Sodas", "Shakes"],
+};
+
+// Parse prompt to extract category references
+function parsePromptForCategories(prompt: string): string[] {
+  const lowerPrompt = prompt.toLowerCase();
+  const matchedCategories: Set<string> = new Set();
+  
+  // Check for group keywords first (more specific)
+  for (const [groupKeyword, categories] of Object.entries(categoryGroups)) {
+    if (lowerPrompt.includes(groupKeyword)) {
+      categories.forEach(cat => matchedCategories.add(cat));
+    }
+  }
+  
+  // Check for specific category keywords
+  for (const [category, keywords] of Object.entries(categoryKeywords)) {
+    for (const keyword of keywords) {
+      if (lowerPrompt.includes(keyword)) {
+        matchedCategories.add(category);
+        break;
+      }
+    }
+  }
+  
+  return Array.from(matchedCategories);
+}
+
+// Fetch photos from database by categories
+async function fetchPhotosByCategories(categories: string[], userId: string): Promise<{ urls: string[], names: string[] }> {
+  const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
+  const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+    console.log('[AUTO-SELECT] Supabase credentials not available');
+    return { urls: [], names: [] };
+  }
+  
+  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+  
+  const { data, error } = await supabase
+    .from('menu_photos')
+    .select('name, original_url, category')
+    .eq('user_id', userId)
+    .in('category', categories)
+    .order('display_order');
+    
+  if (error) {
+    console.error('[AUTO-SELECT] Database error:', error);
+    return { urls: [], names: [] };
+  }
+  
+  if (!data || data.length === 0) {
+    console.log('[AUTO-SELECT] No photos found for categories:', categories);
+    return { urls: [], names: [] };
+  }
+  
+  console.log('[AUTO-SELECT] Found', data.length, 'photos for categories:', categories);
+  
+  return {
+    urls: data.map(p => p.original_url),
+    names: data.map(p => p.name)
+  };
+}
 
 // Diverse style presets for randomization when no style guide is provided
 const stylePresets = [
@@ -350,11 +434,40 @@ serve(async (req) => {
   }
 
   try {
-    const { prompt, ratio, resolution, photoAmount = 1, imageUrls, photoNames, styleGuideUrl } = await req.json();
+    const { prompt, ratio, resolution, photoAmount = 1, imageUrls: providedImageUrls, photoNames: providedPhotoNames, styleGuideUrl, autoSelectPhotos = false, userId } = await req.json();
     
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
       throw new Error('LOVABLE_API_KEY is not configured');
+    }
+    
+    // Smart photo selection: if autoSelectPhotos is enabled OR no photos provided but prompt has category keywords
+    let imageUrls = providedImageUrls || [];
+    let photoNames = providedPhotoNames || [];
+    
+    const hasProvidedPhotos = imageUrls.length > 0;
+    const promptCategories = parsePromptForCategories(prompt || '');
+    
+    console.log('[AUTO-SELECT] Prompt categories detected:', promptCategories);
+    console.log('[AUTO-SELECT] Has provided photos:', hasProvidedPhotos);
+    console.log('[AUTO-SELECT] Auto-select enabled:', autoSelectPhotos);
+    
+    // Auto-select photos if: explicitly enabled OR (no photos provided AND prompt has category keywords)
+    if ((autoSelectPhotos || !hasProvidedPhotos) && promptCategories.length > 0 && userId) {
+      console.log('[AUTO-SELECT] Fetching photos for categories:', promptCategories);
+      const autoPhotos = await fetchPhotosByCategories(promptCategories, userId);
+      
+      if (autoPhotos.urls.length > 0) {
+        // If photos were already provided, merge them
+        if (hasProvidedPhotos) {
+          imageUrls = [...imageUrls, ...autoPhotos.urls];
+          photoNames = [...photoNames, ...autoPhotos.names];
+        } else {
+          imageUrls = autoPhotos.urls;
+          photoNames = autoPhotos.names;
+        }
+        console.log('[AUTO-SELECT] Using', imageUrls.length, 'photos:', photoNames.join(', '));
+      }
     }
 
     // Calculate exact pixel dimensions based on ratio and resolution

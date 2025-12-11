@@ -17,6 +17,7 @@ import { ImageLightbox } from "@/components/ImageLightbox";
 import { ImageEditDialog } from "@/components/ImageEditDialog";
 import { MenuPhoto } from "@/components/PhotoCard";
 import { useMenuPhotos, MenuPhoto as StoredMenuPhoto } from "@/hooks/useMenuPhotos";
+import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -63,6 +64,7 @@ const compressImageToBase64 = async (url: string): Promise<string> => {
 };
 
 const Index = () => {
+  const { user } = useAuth();
   const { photos: storedPhotos, loading: photosLoading, uploadPhotos, deletePhoto, reorderPhotos, renamePhoto } = useMenuPhotos();
   
   // Use stored photos directly - no defaults needed
@@ -197,7 +199,16 @@ const Index = () => {
       console.log('Sending', imageUrls.length, 'menu photos + style guide:', !!styleGuideBase64);
       
       const { data, error } = await supabase.functions.invoke('generate-image', {
-        body: { prompt, ratio, resolution, photoAmount: parseInt(photoAmount), imageUrls, photoNames, styleGuideUrl: styleGuideBase64 }
+        body: { 
+          prompt, 
+          ratio, 
+          resolution, 
+          photoAmount: parseInt(photoAmount), 
+          imageUrls, 
+          photoNames, 
+          styleGuideUrl: styleGuideBase64,
+          userId: user?.id  // Pass userId for smart auto-selection
+        }
       });
 
       if (error) {
@@ -269,7 +280,8 @@ const Index = () => {
           photoAmount: parseInt(selectedPhotoAmount),
           imageUrls, 
           photoNames,
-          styleGuideUrl: styleGuideBase64
+          styleGuideUrl: styleGuideBase64,
+          userId: user?.id  // Pass userId for smart auto-selection
         }
       });
 
