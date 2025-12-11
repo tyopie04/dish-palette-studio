@@ -81,7 +81,13 @@ const Index = () => {
   
   const [activePhoto, setActivePhoto] = useState<MenuPhoto | null>(null);
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
-  const [lightboxMeta, setLightboxMeta] = useState<{ ratio?: string; resolution?: string }>({});
+  const [lightboxMeta, setLightboxMeta] = useState<{ 
+    prompt?: string; 
+    ratio?: string; 
+    resolution?: string;
+    timestamp?: Date;
+    entryId?: string;
+  }>({});
   const [editingImage, setEditingImage] = useState<string | null>(null);
   
   const [selectedRatio, setSelectedRatio] = useState("1:1");
@@ -262,8 +268,9 @@ const Index = () => {
     toast.success("Generation deleted");
   }, []);
 
-  const handleImageClick = useCallback((image: string) => {
+  const handleImageClick = useCallback((image: string, entryData?: { prompt?: string; ratio?: string; resolution?: string; timestamp?: Date; entryId?: string }) => {
     setLightboxImage(image);
+    setLightboxMeta(entryData || {});
   }, []);
 
   const handleEditImage = useCallback((image: string) => {
@@ -387,8 +394,12 @@ const Index = () => {
           image={lightboxImage}
           onClose={() => setLightboxImage(null)}
           onEdit={() => handleEditImage(lightboxImage)}
+          onDelete={lightboxMeta.entryId ? () => handleDeleteEntry(lightboxMeta.entryId!) : undefined}
+          onRecreate={lightboxMeta.prompt ? () => handleGenerate(lightboxMeta.prompt!) : undefined}
+          prompt={lightboxMeta.prompt}
           ratio={lightboxMeta.ratio}
           resolution={lightboxMeta.resolution}
+          timestamp={lightboxMeta.timestamp}
         />
       )}
 

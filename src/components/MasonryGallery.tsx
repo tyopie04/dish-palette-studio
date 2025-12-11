@@ -9,11 +9,12 @@ interface GenerationEntry {
   isLoading?: boolean;
   prompt?: string;
   ratio?: string;
+  resolution?: string;
 }
 
 interface MasonryGalleryProps {
   history: GenerationEntry[];
-  onImageClick: (imageUrl: string) => void;
+  onImageClick: (imageUrl: string, entryData?: { prompt?: string; ratio?: string; resolution?: string; timestamp?: Date; entryId?: string }) => void;
   onDelete: (id: string) => void;
   onEdit: (imageUrl: string) => void;
 }
@@ -136,7 +137,7 @@ export const MasonryGallery: React.FC<MasonryGalleryProps> = ({
   };
 
   type LoadingItem = { type: 'loading'; id: string; prompt?: string };
-  type ImageItem = { type: 'image'; id: string; entryId: string; imageUrl: string; index: number };
+  type ImageItem = { type: 'image'; id: string; entryId: string; imageUrl: string; index: number; prompt?: string; ratio?: string; resolution?: string; timestamp: Date };
   type GalleryItem = LoadingItem | ImageItem;
 
   // Flatten all images from history entries
@@ -152,6 +153,10 @@ export const MasonryGallery: React.FC<MasonryGalleryProps> = ({
           entryId: entry.id,
           imageUrl: entry.images[idx],
           index: idx,
+          prompt: entry.prompt,
+          ratio: entry.ratio,
+          resolution: entry.resolution,
+          timestamp: entry.timestamp,
         });
       }
     }
@@ -181,7 +186,13 @@ export const MasonryGallery: React.FC<MasonryGalleryProps> = ({
             <ImageCard
               key={item.id}
               imageUrl={item.imageUrl}
-              onClick={() => onImageClick(item.imageUrl)}
+              onClick={() => onImageClick(item.imageUrl, {
+                prompt: item.prompt,
+                ratio: item.ratio,
+                resolution: item.resolution,
+                timestamp: item.timestamp,
+                entryId: item.entryId,
+              })}
               onDelete={() => onDelete(item.entryId)}
               onEdit={() => onEdit(item.imageUrl)}
               onDownload={() => handleDownload(item.imageUrl, item.index)}
