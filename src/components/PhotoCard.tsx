@@ -100,7 +100,7 @@ export const PhotoCard = memo(function PhotoCard({
         <img
           src={photo.thumbnailSrc || photo.src}
           alt={photo.name}
-          className="w-full h-full object-cover"
+          className="w-full h-full object-contain"
           draggable={false}
           loading="lazy"
         />
