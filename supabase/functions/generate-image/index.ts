@@ -168,8 +168,11 @@ Use the ${hasStyleGuide ? "style guide image" : selectedStyle ? `"${selectedStyl
 - Aspect ratio: ${ratio}
 - Resolution: ${dimensionString}
 - Reference food photos: ${imageUrls?.length || 0}
+- ALL MENU ITEMS: ${photoNames?.join(', ') || 'None specified'}
 - Style: ${hasStyleGuide ? 'From style guide image' : selectedStyle?.name || 'Default'}
 - Variation seed: ${randomSeed}
+
+⚠️ IMPORTANT: Include ALL menu items listed above in your composition and prompt.
 
 === OUTPUT FORMAT ===
 {
@@ -211,8 +214,8 @@ Use the ${hasStyleGuide ? "style guide image" : selectedStyle ? `"${selectedStyl
     });
   }
   
-  // Add menu photo references for the Brain to SEE (limit to 6 to prevent memory issues)
-  const MAX_BRAIN_IMAGES = 6;
+  // Add menu photo references for the Brain to SEE (limit to 10 to prevent memory issues)
+  const MAX_BRAIN_IMAGES = 10;
   if (imageUrls && imageUrls.length > 0) {
     const imagesToProcess = imageUrls.slice(0, MAX_BRAIN_IMAGES);
     console.log('[BRAIN] Adding', imagesToProcess.length, 'of', imageUrls.length, 'reference images for visual analysis');
