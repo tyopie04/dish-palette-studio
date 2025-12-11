@@ -388,8 +388,9 @@ serve(async (req) => {
     const dimensionString = `${width}x${height} pixels`;
     const ratioDesc = `${ratio} aspect ratio`;
     
-    // Select a random style preset if no style guide is provided
-    const selectedStyle = !styleGuideUrl ? getRandomStylePreset() : null;
+    // Select a random style preset ONLY if no style guide AND no custom prompt
+    const hasCustomPrompt = prompt && prompt.trim().length > 0;
+    const selectedStyle = (!styleGuideUrl && !hasCustomPrompt) ? getRandomStylePreset() : null;
     
     console.log('=== BRAIN + HAND ARCHITECTURE ===');
     console.log('Target resolution:', dimensionString);
