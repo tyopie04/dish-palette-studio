@@ -2,7 +2,7 @@ import { memo } from "react";
 import { useDraggable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
 import { cn } from "@/lib/utils";
-import { X, GripVertical, Maximize2 } from "lucide-react";
+import { X, GripVertical, Maximize2, Pencil } from "lucide-react";
 
 export interface MenuPhoto {
   id: string;
@@ -19,6 +19,7 @@ interface PhotoCardProps {
   onClick?: () => void;
   onDoubleClick?: () => void;
   onEnlarge?: () => void;
+  onRename?: () => void;
   onReorderDragStart?: (e: React.DragEvent) => void;
   onReorderDragEnd?: () => void;
 }
@@ -30,6 +31,7 @@ export const PhotoCard = memo(function PhotoCard({
   onClick, 
   onDoubleClick,
   onEnlarge,
+  onRename,
   onReorderDragStart,
   onReorderDragEnd,
 }: PhotoCardProps) {
@@ -108,6 +110,18 @@ export const PhotoCard = memo(function PhotoCard({
       
       {/* Action buttons */}
       <div className="absolute top-2 right-2 z-20 flex gap-1 opacity-0 group-hover:opacity-100 transition-all duration-200">
+        {onRename && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onRename();
+            }}
+            className="p-1.5 rounded-full bg-background/90 text-muted-foreground hover:text-foreground hover:bg-background shadow-sm"
+            title="Rename"
+          >
+            <Pencil className="w-4 h-4" />
+          </button>
+        )}
         {onEnlarge && (
           <button
             onClick={(e) => {

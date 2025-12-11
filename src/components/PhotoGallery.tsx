@@ -3,6 +3,7 @@ import { PhotoCard } from "./PhotoCard";
 import { Plus, Upload } from "lucide-react";
 import { Button } from "./ui/button";
 import { MenuPhotoLightbox } from "./MenuPhotoLightbox";
+import { RenamePhotoDialog } from "./RenamePhotoDialog";
 import { MenuPhoto } from "@/hooks/useMenuPhotos";
 
 interface PhotoGalleryProps {
@@ -11,6 +12,7 @@ interface PhotoGalleryProps {
   onDeletePhoto: (id: string) => void;
   onPhotoClick?: (photo: MenuPhoto) => void;
   onReorder?: (photos: MenuPhoto[]) => void;
+  onRenamePhoto?: (id: string, newName: string) => void;
   loading?: boolean;
 }
 
@@ -20,12 +22,14 @@ export function PhotoGallery({
   onDeletePhoto,
   onPhotoClick,
   onReorder,
+  onRenamePhoto,
   loading,
 }: PhotoGalleryProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [reorderDragIndex, setReorderDragIndex] = useState<number | null>(null);
+  const [renamePhoto, setRenamePhoto] = useState<MenuPhoto | null>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -145,6 +149,7 @@ export function PhotoGallery({
                   onClick={() => handlePhotoCardClick(photo)}
                   onDoubleClick={() => handlePhotoDoubleClick(index)}
                   onEnlarge={() => handlePhotoDoubleClick(index)}
+                  onRename={() => setRenamePhoto(photo)}
                   onReorderDragStart={(e) => handleReorderDragStart(e, index)}
                   onReorderDragEnd={handleReorderDragEnd}
                 />
@@ -168,6 +173,15 @@ export function PhotoGallery({
           currentIndex={lightboxIndex}
           onClose={() => setLightboxIndex(null)}
           onNavigate={setLightboxIndex}
+        />
+      )}
+
+      {renamePhoto && onRenamePhoto && (
+        <RenamePhotoDialog
+          open={!!renamePhoto}
+          onOpenChange={(open) => !open && setRenamePhoto(null)}
+          currentName={renamePhoto.name}
+          onRename={(newName) => onRenamePhoto(renamePhoto.id, newName)}
         />
       )}
     </>
