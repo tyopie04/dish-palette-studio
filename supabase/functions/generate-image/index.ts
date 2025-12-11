@@ -273,10 +273,27 @@ Use the ${hasStyleGuide ? "style guide image" : selectedStyle ? `"${selectedStyl
   }
 
   const data = await response.json();
+  console.log('[BRAIN] Full response structure:', JSON.stringify(data, null, 2).substring(0, 1000));
+  
   const content = data.choices?.[0]?.message?.content;
   
   if (!content) {
-    throw new Error('Brain returned empty response');
+    // Log more details to debug empty response
+    console.error('[BRAIN] Empty response. Full data:', JSON.stringify(data));
+    console.error('[BRAIN] Choices:', JSON.stringify(data.choices));
+    
+    // Check if there's an error in the response
+    if (data.error) {
+      throw new Error(`Brain error: ${data.error.message || JSON.stringify(data.error)}`);
+    }
+    
+    // Check for finish_reason that might indicate an issue
+    const finishReason = data.choices?.[0]?.finish_reason;
+    if (finishReason && finishReason !== 'stop') {
+      throw new Error(`Brain stopped unexpectedly: ${finishReason}`);
+    }
+    
+    throw new Error('Brain returned empty response - check logs for details');
   }
 
   console.log('[BRAIN] Raw response:', content.substring(0, 500) + '...');
