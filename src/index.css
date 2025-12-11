@@ -147,6 +147,7 @@
 
   .photo-card {
     @apply relative overflow-hidden rounded-md cursor-grab active:cursor-grabbing transition-all duration-200;
+    background-color: black;
     box-shadow: var(--shadow-soft);
   }
 
