@@ -99,10 +99,12 @@ async function createImageBlueprint(
   let styleSection = "";
   if (hasStyleGuide) {
     styleSection = `
-STYLE GUIDE PROVIDED - Extract style elements from the style guide image:
+STYLE GUIDE PROVIDED - Extract style AND composition elements from the style guide image:
 - Analyze the lighting setup, color grading, background treatment, and overall mood
-- Apply ONLY these style elements to the food photography
-- Do NOT copy any food from the style guide`;
+- ALSO extract the CAMERA ANGLE and COMPOSITION (e.g., if food is being eaten, held, viewed from above)
+- Apply these style AND angle elements to the food photography
+- The INGREDIENTS come from the menu photos, but the ANGLE/POSE comes from the style guide
+- Do NOT copy any food from the style guide - only the visual style and composition`;
   } else if (selectedStyle) {
     styleSection = `
 MANDATORY STYLE PRESET - YOU MUST USE THIS EXACT STYLE:
@@ -116,24 +118,31 @@ Style Name: ${selectedStyle.name}
 ⚠️ CRITICAL: You MUST apply this "${selectedStyle.name}" style. Do NOT default to dark/moody aesthetics unless that is the selected style. Do NOT derive any style from logos or brand assets.`;
   }
   
-  const systemPrompt = `You are an expert food photography art director. Your job is to create STAGING INSTRUCTIONS for an AI that will PHOTOGRAPH the EXACT food items from the reference images.
+  const systemPrompt = `You are an expert food photography art director. Your job is to create STAGING INSTRUCTIONS for an AI that will PHOTOGRAPH the EXACT food INGREDIENTS from the reference images.
 
 ⚠️ CRITICAL - FALSE ADVERTISING PREVENTION ⚠️
-The reference food photos show REAL MENU ITEMS that will be sold to customers. The generated image MUST show the EXACT SAME FOOD - same bun type, same patties, same ingredients, same appearance. 
+The reference food photos show REAL MENU ITEMS that will be sold to customers. The generated image MUST show the EXACT SAME FOOD INGREDIENTS - same bun type, same patties, same ingredients, same toppings, same cheese. 
 
 YOU ARE NOT CREATING NEW FOOD - you are directing a PHOTO SHOOT of the EXISTING food items.
 
 Think of it like this: The food is already cooked and plated. You are the photographer choosing:
-- Camera angle
+- Camera angle and perspective
 - Lighting setup  
 - Background
 - Arrangement/composition
 - Props and styling
+- How the food is held or positioned
 
-YOU CANNOT CHANGE:
-- The food itself (ingredients, bun type, patty count, toppings)
-- The look of the food items
-- Any identifying characteristics of the menu items
+YOU CANNOT CHANGE (the INGREDIENTS):
+- The food ingredients (bun type, patty count, toppings, cheese type)
+- The sauce type and placement
+- Any identifying food characteristics
+
+YOU CAN (AND SHOULD) CHANGE TO MATCH STYLE GUIDE:
+- Camera angle and perspective (front, side, top-down, eating angle, etc.)
+- How the food is positioned or held in the scene
+- Lighting direction and quality
+- Background and environment
 
 ${styleSection}
 
@@ -422,9 +431,11 @@ serve(async (req) => {
       styleInstructions = `
 
 STYLE REFERENCE IMAGE PROVIDED:
-- Use the style guide ONLY for: lighting setup, color grading, background style, mood
-- ⚠️ IGNORE any food in the style guide - use ONLY the menu item reference photos for the actual food
-- The style guide shows the AESTHETIC, not the food to reproduce`;
+- Use the style guide for: lighting setup, color grading, background style, mood, CAMERA ANGLE, COMPOSITION, and POSE
+- Match the perspective/angle shown in the style guide (e.g., if someone is eating, show the food at that eating angle)
+- ⚠️ The INGREDIENTS from the menu photo must be preserved - but the VIEWING ANGLE should match the style guide
+- If the style guide shows food being held/eaten, position the menu item food the same way
+- The style guide shows the AESTHETIC and COMPOSITION to recreate with the menu item food`;
     } else if (selectedStyle) {
       styleInstructions = `
 
@@ -458,21 +469,31 @@ MANDATORY STYLE: "${selectedStyle.name}"
       // Build the final prompt for THIS image with unique seed
       const handPrompt = `⚠️ CRITICAL INSTRUCTION - READ CAREFULLY ⚠️
 
-You MUST REPRODUCE the EXACT food items from the reference photos. This is for commercial advertising - creating different food is FALSE ADVERTISING and illegal.
+You MUST REPRODUCE the EXACT food INGREDIENTS from the reference photos. This is for commercial advertising.
 
-WHAT YOU MUST DO:
-✅ Look at the reference food photos
-✅ Reproduce those EXACT items - same bun, same patties, same toppings, same cheese
-✅ Apply ONLY the styling from the blueprint (lighting, angle, background)
-✅ The food must be VISUALLY IDENTICAL to the references
+WHAT "VISUALLY IDENTICAL" MEANS (the INGREDIENTS):
+✅ Same bun type (sesame, brioche, potato, etc.)
+✅ Same number of patties and their appearance
+✅ Same toppings, cheese type, and sauce
+✅ Same overall food construction and ingredients
+
+WHAT CAN (AND SHOULD) CHANGE TO MATCH THE STYLE GUIDE:
+✅ Camera angle and perspective (front, side, top-down, eating angle)
+✅ How the food is held or positioned in the scene
+✅ Lighting direction and quality
+✅ Background and environment
+
+If a style guide shows someone EATING the food, show it at that eating angle.
+If a style guide shows a top-down view, use that angle.
+If a style guide shows food being held in hands, show the menu item held that way.
+The INGREDIENTS stay the same, but the ANGLE and COMPOSITION match the style guide.
 
 WHAT YOU MUST NOT DO:
-❌ Do NOT create new or different food items
-❌ Do NOT change the bun type, patty count, or toppings
-❌ Do NOT use the reference as "inspiration" - use it as the EXACT subject
-❌ Do NOT generate generic burgers/food
+❌ Do NOT change the bun type, patty count, toppings, or cheese
+❌ Do NOT create different food items than shown in the reference
+❌ Do NOT generate generic food - use the EXACT ingredients from the reference
 
-BLUEPRINT FOR STYLING (apply to the EXACT food from references):
+BLUEPRINT FOR STYLING (apply to the EXACT food INGREDIENTS from references):
 ${blueprint}
 
 TECHNICAL REQUIREMENTS:
@@ -481,7 +502,7 @@ TECHNICAL REQUIREMENTS:
 - Variation seed for unique output: ${variationSeed}
 - Image variation number: ${imageIndex + 1} of ${numImages}${styleInstructions}
 
-REMEMBER: The reference photos show the REAL MENU ITEMS. Your job is to photograph them beautifully, NOT create new food.`;
+REMEMBER: The reference photos show the REAL MENU ITEMS. Photograph them from the angle/composition shown in the style guide.`;
       
       if (imageIndex === 0) {
         console.log('[HAND] Prompt preview:', handPrompt.substring(0, 400) + '...');
