@@ -45,18 +45,20 @@ const ImageCard: React.FC<{
 }> = ({ imageUrl, onClick, onDelete, onEdit, onDownload }) => {
   return (
     <div className="break-inside-avoid mb-4 group">
-      <div className="relative bg-card rounded-xl overflow-hidden border border-border/50 transition-all duration-300 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5">
+      <div 
+        className="relative bg-card rounded-xl overflow-hidden border border-border/50 transition-all duration-300 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5 cursor-pointer"
+        onClick={onClick}
+      >
         <img
           src={imageUrl}
           alt="Generated content"
-          className="w-full h-auto cursor-pointer"
-          onClick={onClick}
+          className="w-full h-auto"
           loading="lazy"
         />
         
         {/* Hover Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-          <div className="absolute bottom-3 left-3 right-3 flex items-center justify-end gap-2">
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+          <div className="absolute bottom-3 left-3 right-3 flex items-center justify-end gap-2 pointer-events-auto">
             <Button
               variant="ghost"
               size="icon"
