@@ -118,13 +118,13 @@ export function PhotoGallery({
         </div>
 
         {loading ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-1">
             {[1, 2, 3, 4, 5, 6].map((i) => (
               <div key={i} className="aspect-square rounded-lg bg-muted animate-pulse" />
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-1">
             {photos.map((photo, index) => (
               <div
                 key={photo.id}

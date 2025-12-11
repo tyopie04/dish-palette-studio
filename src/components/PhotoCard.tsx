@@ -67,7 +67,7 @@ export const PhotoCard = memo(function PhotoCard({
 
   return (
     <div 
-      className="photo-card group aspect-square relative cursor-pointer" 
+      className="photo-card group aspect-square relative cursor-pointer bg-black"
       onClick={handleClick}
       onDoubleClick={handleDoubleClick}
       title="Click to add to prompt, double-click to enlarge"
