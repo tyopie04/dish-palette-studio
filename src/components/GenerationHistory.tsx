@@ -37,7 +37,7 @@ function LoadingTimer({ startTime }: { startTime: Date }) {
   const remaining = Math.max(estimatedTime - elapsed, 0);
 
   return (
-    <div className="space-y-2 w-full px-4">
+    <div className="space-y-2 w-48">
       <div className="h-2 bg-secondary rounded-full overflow-hidden">
         <div 
           className="h-full bg-primary transition-all duration-1000 ease-out rounded-full"
@@ -153,7 +153,7 @@ export function GenerationHistory({
                       <div className="absolute inset-0 bg-gradient-to-r from-transparent via-secondary/50 to-transparent animate-shimmer" />
                       
                       {/* Centered content using absolute positioning */}
-                      <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 px-4">
+                      <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
                         {/* Spinning loader */}
                         <div className="w-12 h-12 border-3 border-border border-t-primary rounded-full animate-spin" />
                         
