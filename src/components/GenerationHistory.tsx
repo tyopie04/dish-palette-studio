@@ -149,7 +149,7 @@ export function GenerationHistory({
                 <div className="grid gap-3">
                   {entry.isLoading ? (
                     <div className="relative rounded-lg overflow-hidden border border-border bg-secondary/30 aspect-square flex items-center justify-center">
-                      <div className="flex flex-col items-center justify-center gap-4 w-full">
+                      <div className="flex flex-col items-center justify-center gap-4 w-full h-full">
                         {/* Animated shimmer overlay */}
                         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-secondary/50 to-transparent animate-shimmer" />
                         
