@@ -153,7 +153,7 @@ export function GenerationHistory({
                       <div className="absolute inset-0 bg-gradient-to-r from-transparent via-secondary/50 to-transparent animate-shimmer" />
                       
                       {/* Centered content using absolute positioning */}
-                      <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
+                      <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 -mt-8">
                         {/* Spinning loader */}
                         <div className="w-12 h-12 border-3 border-border border-t-primary rounded-full animate-spin" />
                         
