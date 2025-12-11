@@ -148,16 +148,17 @@ export function GenerationHistory({
 
                 <div className="grid gap-3">
                   {entry.isLoading ? (
-                    <div className="relative rounded-lg overflow-hidden border border-border bg-secondary/30 aspect-square flex items-center justify-center">
-                      <div className="flex flex-col items-center justify-center gap-4 w-full h-full">
-                        {/* Animated shimmer overlay */}
-                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-secondary/50 to-transparent animate-shimmer" />
-                        
+                    <div className="relative rounded-lg overflow-hidden border border-border bg-secondary/30 aspect-square">
+                      {/* Animated shimmer overlay */}
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-secondary/50 to-transparent animate-shimmer" />
+                      
+                      {/* Centered content using absolute positioning */}
+                      <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 px-4">
                         {/* Spinning loader */}
-                        <div className="relative z-10 w-12 h-12 border-3 border-border border-t-primary rounded-full animate-spin" />
+                        <div className="w-12 h-12 border-3 border-border border-t-primary rounded-full animate-spin" />
                         
                         {/* Pulsing text */}
-                        <p className="relative z-10 text-sm text-muted-foreground animate-pulse text-center w-full">
+                        <p className="text-sm text-muted-foreground animate-pulse text-center">
                           Creating your masterpiece...
                         </p>
                         
