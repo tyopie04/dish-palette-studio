@@ -21,6 +21,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 
 interface GenerationEntry {
   id: string;
@@ -87,6 +88,7 @@ const Index = () => {
   const [selectedResolution, setSelectedResolution] = useState("2048");
   const [selectedPhotoAmount, setSelectedPhotoAmount] = useState(1);
   const [styleGuideUrl, setStyleGuideUrl] = useState<string | null>(null);
+  const [photoSize, setPhotoSize] = useState<"small" | "medium" | "large">("medium");
 
   const mouseSensor = useSensor(MouseSensor, {
     activationConstraint: { distance: 8 },
@@ -322,34 +324,42 @@ const Index = () => {
         <div className="min-h-screen bg-background flex flex-col">
           <Header />
           
-          <div className="flex flex-1 overflow-hidden">
+          <ResizablePanelGroup direction="horizontal" className="flex-1">
             {/* Left Sidebar - Menu Photos */}
-            <aside className="w-72 border-r border-border/50 flex-shrink-0 bg-card/30">
-              <ScrollArea className="h-[calc(100vh-64px)]">
-                <div className="p-4">
-                  <PhotoGallery 
-                    photos={photos} 
-                    onPhotosAdded={handlePhotosAdded} 
-                    onDeletePhoto={handleDeletePhoto}
-                    onPhotoClick={handlePhotoClick}
-                    onReorder={handleReorder}
-                    onRenamePhoto={handleRenamePhoto}
-                    loading={photosLoading}
-                  />
-                </div>
-              </ScrollArea>
-            </aside>
+            <ResizablePanel defaultSize={20} minSize={15} maxSize={40}>
+              <aside className="h-full border-r border-border/50 bg-card/30">
+                <ScrollArea className="h-[calc(100vh-64px)]">
+                  <div className="p-4">
+                    <PhotoGallery 
+                      photos={photos} 
+                      onPhotosAdded={handlePhotosAdded} 
+                      onDeletePhoto={handleDeletePhoto}
+                      onPhotoClick={handlePhotoClick}
+                      onReorder={handleReorder}
+                      onRenamePhoto={handleRenamePhoto}
+                      loading={photosLoading}
+                      photoSize={photoSize}
+                      onPhotoSizeChange={setPhotoSize}
+                    />
+                  </div>
+                </ScrollArea>
+              </aside>
+            </ResizablePanel>
+
+            <ResizableHandle withHandle />
 
             {/* Main Content - Generated Images */}
-            <main className="flex-1 flex flex-col overflow-hidden">
-              <MasonryGallery
-                history={generationHistory}
-                onImageClick={handleImageClick}
-                onDelete={handleDeleteEntry}
-                onEdit={handleEditImage}
-              />
-            </main>
-          </div>
+            <ResizablePanel defaultSize={80}>
+              <main className="h-full flex flex-col overflow-hidden">
+                <MasonryGallery
+                  history={generationHistory}
+                  onImageClick={handleImageClick}
+                  onDelete={handleDeleteEntry}
+                  onEdit={handleEditImage}
+                />
+              </main>
+            </ResizablePanel>
+          </ResizablePanelGroup>
 
           {/* Floating Prompt Bar */}
           <PromptBar
