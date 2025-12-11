@@ -40,14 +40,6 @@ const stylePresets = [
     colorGrade: "slightly desaturated, pastel tones, muted elegance"
   },
   {
-    name: "Dark & Dramatic",
-    lighting: "dramatic side lighting with deep shadows, single key light",
-    background: "dark slate, black marble, or charcoal surface",
-    mood: "luxurious, moody, premium, sophisticated",
-    props: "dark plates, slate boards, dramatic steam",
-    colorGrade: "low key, rich shadows, selective highlights on food"
-  },
-  {
     name: "Fresh & Natural",
     lighting: "bright natural window light, airy and fresh",
     background: "white marble surface or light linen cloth",
