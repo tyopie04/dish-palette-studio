@@ -18,81 +18,84 @@ async function createImageBlueprint(
   styleGuideUrl?: string     // Style guide image URL
 ): Promise<{ blueprint: string; reasoning: string }> {
   
-  const systemPrompt = `You are an expert food photography art director with 20+ years experience in commercial food advertising. Your job is to VISUALLY ANALYZE the provided reference photos and create a precise, detailed blueprint for an AI image generator.
+  // Generate a random seed for variation
+  const randomSeed = Math.random().toString(36).substring(2, 15);
+  
+  const systemPrompt = `You are an expert food photography art director. Your job is to create STAGING INSTRUCTIONS for an AI that will PHOTOGRAPH the EXACT food items from the reference images.
 
-CRITICAL: You MUST describe the ACTUAL FOOD you see in the reference images. DO NOT rely on text names or labels - they may be inaccurate. Look at the images and describe what you actually see.
+⚠️ CRITICAL - FALSE ADVERTISING PREVENTION ⚠️
+The reference food photos show REAL MENU ITEMS that will be sold to customers. The generated image MUST show the EXACT SAME FOOD - same bun type, same patties, same ingredients, same appearance. 
 
-=== CHAIN-OF-THOUGHT ANALYSIS STEPS ===
+YOU ARE NOT CREATING NEW FOOD - you are directing a PHOTO SHOOT of the EXISTING food items.
 
-STEP 1 - VISUAL IDENTIFICATION:
-For each reference photo, identify:
-- What type of food is this ACTUALLY? (burger, sandwich, steak, salad, etc.)
-- Key distinguishing features (number of patties, type of bun, visible toppings)
-- Any unique characteristics that make this item special
+Think of it like this: The food is already cooked and plated. You are the photographer choosing:
+- Camera angle
+- Lighting setup  
+- Background
+- Arrangement/composition
+- Props and styling
 
-STEP 2 - TEXTURE & COLOR ANALYSIS:
-Describe in detail:
-- Surface textures (crispy, glossy, matte, charred, melted)
-- Color palette (golden brown, vibrant green, deep red, etc.)
-- Ingredient layers and their visual order
+YOU CANNOT CHANGE:
+- The food itself (ingredients, bun type, patty count, toppings)
+- The look of the food items
+- Any identifying characteristics of the menu items
+
+=== CHAIN-OF-THOUGHT ANALYSIS ===
+
+STEP 1 - IDENTIFY EXACT FOOD ITEMS:
+For each reference photo, catalog the EXACT details:
+- Bun type and color (sesame, brioche, pretzel, plain - note exact shade)
+- Number of patties and their appearance (thickness, char marks, color)
+- Exact toppings in order from top to bottom
+- Cheese type and melt pattern
+- Sauce visibility and placement
+- Any unique identifying features
+
+STEP 2 - STYLE DECISIONS (what CAN change):
+- Lighting: direction, warmth, shadows, highlights
+- Camera angle: hero angle, 45-degree, flat lay, close-up
+- Background: solid color, textured surface, gradient
+- Composition: centered, rule of thirds, dynamic angle
+- Enhancement: steam, sauce drips, cheese pulls (natural appetizing details)
 
 STEP 3 - STYLE GUIDE ANALYSIS (if provided):
-Extract from style guide:
-- Lighting setup (direction, softness, color temperature)
-- Background treatment (color, texture, gradient)
-- Overall mood and atmosphere
-- Any branding elements or text treatments
-
-STEP 4 - COMPOSITION PLANNING:
-Using professional food photography principles:
-- Rule of thirds placement for hero items
-- Visual hierarchy (what draws the eye first)
-- Negative space usage
-- Depth and layering
-
-STEP 5 - FOOD PHOTOGRAPHY BEST PRACTICES:
-Consider adding:
-- Steam rising from hot items (indicates freshness)
-- Sauce drips and cheese pulls (creates appetite appeal)
-- Condensation on cold items
-- Crumb trails and ingredient "hero" positioning
-- Garnish placement for color contrast
+Extract ONLY style elements (NOT food):
+- Lighting setup
+- Color grading/mood
+- Background treatment
+- Overall aesthetic
 
 === INPUT CONTEXT ===
 - Aspect ratio: ${ratio}
 - Resolution: ${dimensionString}
-- Number of reference food photos: ${imageUrls?.length || 0}
-- Style guide provided: ${hasStyleGuide ? 'Yes - use it for lighting, mood, and composition style' : 'No'}
+- Reference food photos: ${imageUrls?.length || 0}
+- Style guide: ${hasStyleGuide ? 'Yes' : 'No'}
+- Variation seed: ${randomSeed}
 
 === OUTPUT FORMAT ===
-Your response MUST be a JSON object with this structure:
 {
   "visualAnalysis": {
-    "foodItems": ["Detailed description of each food item you ACTUALLY SEE"],
-    "textures": ["List of key textures: crispy, melted, glossy, etc."],
-    "colors": ["Dominant colors: golden brown, vibrant red, etc."]
+    "foodItems": ["EXACT description of each item - be specific about bun type, patty count, exact toppings, cheese type"],
+    "identifyingFeatures": ["Unique characteristics that MUST be preserved"],
+    "textures": ["Surface textures to preserve"],
+    "colors": ["Exact colors to match"]
   },
-  "styleGuideAnalysis": "What lighting/mood/composition cues to take from the style guide (or 'N/A' if none provided)",
-  "compositionPlan": "How you will arrange the items using rule of thirds, visual hierarchy, and professional food photography techniques",
-  "reasoning": "Brief explanation of your creative decisions (2-3 sentences)",
-  "imagePrompt": "The complete, ultra-detailed prompt for the image generator. Include:
-    - EXACT food descriptions based on YOUR visual analysis (NOT text labels)
-    - Precise positioning (center-left, lower third, etc.)
-    - Lighting: direction, quality, color temperature, shadows
-    - Background: exact color, texture, any gradients
-    - Camera: angle, lens type, depth of field
-    - Hero details: steam, sauce drips, cheese pulls, glistening highlights
-    - Text/graphics if requested
-    - Mood and atmosphere"
+  "styleGuideAnalysis": "Style elements to use (lighting/mood only, NOT food)",
+  "compositionPlan": "Camera angle, arrangement, background",
+  "reasoning": "Your creative decisions for styling (NOT food changes)",
+  "imagePrompt": "CRITICAL: This prompt must instruct the image generator to REPRODUCE the EXACT food from the reference images. Include:
+    1. EXPLICIT INSTRUCTION: 'Reproduce the EXACT food items from the reference photos - same bun, same ingredients, same appearance'
+    2. Detailed list of each food item's EXACT characteristics that must be preserved
+    3. Photography styling: lighting, angle, background, composition
+    4. Appetizing enhancements: steam, highlights, sauce details
+    5. DO NOT describe generic food - describe THE SPECIFIC items from the references"
 }
 
 === RULES ===
-1. ALWAYS describe actual food you SEE - ignore misleading text labels
-2. ALWAYS prioritize user's explicit requests over assumptions
-3. If user specifies colors/lighting/mood - use EXACTLY what they specify
-4. Be precise about spatial relationships
-5. The imagePrompt must be self-contained (image generator won't see original request)
-6. Include appetizing details: steam, drips, glistening, texture contrast`;
+1. The food in the output MUST be visually identical to the reference photos
+2. ONLY lighting, angle, background, and composition can change
+3. This is for commercial advertising - false representation is illegal
+4. Include the variation seed ${randomSeed} in your reasoning for unique outputs`;
 
   console.log('[BRAIN] Calling Gemini 2.5 Pro for MULTIMODAL reasoning with enhanced thinking...');
   console.log('[BRAIN] Reference images to analyze:', imageUrls?.length || 0);
@@ -270,25 +273,44 @@ serve(async (req) => {
     if (styleGuideUrl) {
       styleInstructions = `
 
-STYLE REFERENCE: A style guide image is provided. Use this reference for general visual style (lighting setup, composition style, mood, background treatment). 
-
-IMPORTANT - THE BLUEPRINT ABOVE OVERRIDES STYLE GUIDE: If the blueprint specifies different colors, saturation, brightness, contrast, or any other visual adjustments, PRIORITIZE THE BLUEPRINT over the style guide.
-
-DO NOT copy any food from the style reference - use ONLY the food items from the menu photo references.`;
+STYLE REFERENCE IMAGE PROVIDED:
+- Use the style guide ONLY for: lighting setup, color grading, background style, mood
+- ⚠️ IGNORE any food in the style guide - use ONLY the menu item reference photos for the actual food
+- The style guide shows the AESTHETIC, not the food to reproduce`;
     }
     
     // Resolution quality hint for the model
     const resolutionQuality = resolution === "4K" ? "ultra high definition 4K quality" : (resolution === "2K" ? "high definition 2K quality" : "standard 1K quality");
     
+    // Generate unique variation seed for each image
+    const variationSeed = Math.random().toString(36).substring(2, 10);
+    
     // Build the final prompt using the Brain's blueprint
-    const handPrompt = `EXECUTE THIS PRECISE IMAGE BLUEPRINT:
+    const handPrompt = `⚠️ CRITICAL INSTRUCTION - READ CAREFULLY ⚠️
 
+You MUST REPRODUCE the EXACT food items from the reference photos. This is for commercial advertising - creating different food is FALSE ADVERTISING and illegal.
+
+WHAT YOU MUST DO:
+✅ Look at the reference food photos
+✅ Reproduce those EXACT items - same bun, same patties, same toppings, same cheese
+✅ Apply ONLY the styling from the blueprint (lighting, angle, background)
+✅ The food must be VISUALLY IDENTICAL to the references
+
+WHAT YOU MUST NOT DO:
+❌ Do NOT create new or different food items
+❌ Do NOT change the bun type, patty count, or toppings
+❌ Do NOT use the reference as "inspiration" - use it as the EXACT subject
+❌ Do NOT generate generic burgers/food
+
+BLUEPRINT FOR STYLING (apply to the EXACT food from references):
 ${blueprint}
 
 TECHNICAL REQUIREMENTS:
 - Composition: ${ratioDesc} at ${dimensionString}, ${resolutionQuality}
-- Generate at exactly ${width}x${height} pixels resolution
-- Keep food items realistically proportioned${styleInstructions}`;
+- Resolution: ${width}x${height} pixels
+- Variation seed for unique output: ${variationSeed}${styleInstructions}
+
+REMEMBER: The reference photos show the REAL MENU ITEMS. Your job is to photograph them beautifully, NOT create new food.`;
     
     console.log('[HAND] Prompt preview:', handPrompt.substring(0, 400) + '...');
 
