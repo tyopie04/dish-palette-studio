@@ -441,11 +441,22 @@ MANDATORY STYLE: "${selectedStyle.name}"
     // Resolution quality hint for the model
     const resolutionQuality = resolution === "4K" ? "ultra high definition 4K quality" : (resolution === "2K" ? "high definition 2K quality" : "standard 1K quality");
     
-    // Generate unique variation seed for each image
-    const variationSeed = Math.random().toString(36).substring(2, 10);
+    console.log('[HAND] Using Gemini image model with thinkingBudget: 16384');
+    console.log('[HAND] Requested photo amount:', photoAmount);
     
-    // Build the final prompt using the Brain's blueprint
-    const handPrompt = `⚠️ CRITICAL INSTRUCTION - READ CAREFULLY ⚠️
+    // Generate multiple images if requested
+    const numImages = Math.min(Math.max(parseInt(photoAmount) || 1, 1), 4);
+    const allGeneratedImages: string[] = [];
+    
+    for (let imageIndex = 0; imageIndex < numImages; imageIndex++) {
+      console.log(`[HAND] Generating image ${imageIndex + 1}/${numImages}`);
+      
+      // Generate unique variation seed for THIS image
+      const variationSeed = Math.random().toString(36).substring(2, 10);
+      console.log(`[HAND] Variation seed for image ${imageIndex + 1}: ${variationSeed}`);
+      
+      // Build the final prompt for THIS image with unique seed
+      const handPrompt = `⚠️ CRITICAL INSTRUCTION - READ CAREFULLY ⚠️
 
 You MUST REPRODUCE the EXACT food items from the reference photos. This is for commercial advertising - creating different food is FALSE ADVERTISING and illegal.
 
@@ -467,42 +478,35 @@ ${blueprint}
 TECHNICAL REQUIREMENTS:
 - Composition: ${ratioDesc} at ${dimensionString}, ${resolutionQuality}
 - Resolution: ${width}x${height} pixels
-- Variation seed for unique output: ${variationSeed}${styleInstructions}
+- Variation seed for unique output: ${variationSeed}
+- Image variation number: ${imageIndex + 1} of ${numImages}${styleInstructions}
 
 REMEMBER: The reference photos show the REAL MENU ITEMS. Your job is to photograph them beautifully, NOT create new food.`;
-    
-    console.log('[HAND] Prompt preview:', handPrompt.substring(0, 400) + '...');
+      
+      if (imageIndex === 0) {
+        console.log('[HAND] Prompt preview:', handPrompt.substring(0, 400) + '...');
+      }
 
-    // Build content array with text and images
-    const content: any[] = [{ type: "text", text: handPrompt }];
-    
-    // Add style guide first if provided
-    if (styleGuideUrl) {
-      content.push({
-        type: "image_url",
-        image_url: { url: styleGuideUrl }
-      });
-    }
-    
-    // Add ALL menu photo references
-    if (imageUrls && imageUrls.length > 0) {
-      for (const url of imageUrls) {
+      // Build content array for THIS image
+      const content: any[] = [{ type: "text", text: handPrompt }];
+      
+      // Add style guide first if provided
+      if (styleGuideUrl) {
         content.push({
           type: "image_url",
-          image_url: { url }
+          image_url: { url: styleGuideUrl }
         });
       }
-    }
-
-    console.log('[HAND] Using Gemini image model with thinkingBudget: 16384');
-    console.log('[HAND] Requested photo amount:', photoAmount);
-    
-    // Generate multiple images if requested
-    const numImages = Math.min(Math.max(parseInt(photoAmount) || 1, 1), 4);
-    const allGeneratedImages: string[] = [];
-    
-    for (let imageIndex = 0; imageIndex < numImages; imageIndex++) {
-      console.log(`[HAND] Generating image ${imageIndex + 1}/${numImages}`);
+      
+      // Add ALL menu photo references
+      if (imageUrls && imageUrls.length > 0) {
+        for (const url of imageUrls) {
+          content.push({
+            type: "image_url",
+            image_url: { url }
+          });
+        }
+      }
       
       // Retry logic for transient errors
       const maxRetries = 3;
