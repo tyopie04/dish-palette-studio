@@ -19,7 +19,7 @@ interface MasonryGalleryProps {
   onEdit: (imageUrl: string) => void;
 }
 
-const LoadingCard: React.FC<{ prompt?: string }> = ({ prompt }) => {
+const LoadingCard: React.FC = () => {
   return (
     <div className="break-inside-avoid mb-4">
       <div className="relative bg-card/50 rounded-xl overflow-hidden border border-border/50 animate-pulse">
@@ -28,14 +28,7 @@ const LoadingCard: React.FC<{ prompt?: string }> = ({ prompt }) => {
             <div className="w-12 h-12 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
             <Loader2 className="w-6 h-6 text-primary absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 animate-pulse" />
           </div>
-          <div className="text-center">
-            <p className="text-sm font-medium text-foreground/80">Generating...</p>
-            {prompt && (
-              <p className="text-xs text-muted-foreground mt-1 line-clamp-2 max-w-[200px]">
-                {prompt}
-              </p>
-            )}
-          </div>
+          <p className="text-sm font-medium text-foreground/80">Generating...</p>
         </div>
         <div className="absolute inset-0 bg-gradient-to-t from-primary/5 to-transparent" />
       </div>
@@ -136,7 +129,7 @@ export const MasonryGallery: React.FC<MasonryGalleryProps> = ({
     }
   };
 
-  type LoadingItem = { type: 'loading'; id: string; prompt?: string };
+  type LoadingItem = { type: 'loading'; id: string };
   type ImageItem = { type: 'image'; id: string; entryId: string; imageUrl: string; index: number; prompt?: string; ratio?: string; resolution?: string; timestamp: Date };
   type GalleryItem = LoadingItem | ImageItem;
 
@@ -144,7 +137,7 @@ export const MasonryGallery: React.FC<MasonryGalleryProps> = ({
   const allItems: GalleryItem[] = [];
   for (const entry of history) {
     if (entry.isLoading) {
-      allItems.push({ type: 'loading', id: entry.id, prompt: entry.prompt });
+      allItems.push({ type: 'loading', id: entry.id });
     } else {
       for (let idx = 0; idx < entry.images.length; idx++) {
         allItems.push({
@@ -181,7 +174,7 @@ export const MasonryGallery: React.FC<MasonryGalleryProps> = ({
       <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-4">
         {allItems.map((item) =>
           item.type === 'loading' ? (
-            <LoadingCard key={item.id} prompt={item.prompt} />
+            <LoadingCard key={item.id} />
           ) : (
             <ImageCard
               key={item.id}
