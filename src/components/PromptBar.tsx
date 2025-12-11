@@ -216,8 +216,8 @@ export const PromptBar: React.FC<PromptBarProps> = ({
                 variant="ghost"
                 size="icon"
                 className="h-6 w-6 text-muted-foreground hover:text-foreground"
-                onClick={() => setPhotoAmount(Math.min(4, photoAmount + 1))}
-                disabled={photoAmount >= 4}
+                onClick={() => setPhotoAmount(Math.min(8, photoAmount + 1))}
+                disabled={photoAmount >= 8}
               >
                 <Plus className="w-3.5 h-3.5" />
               </Button>
