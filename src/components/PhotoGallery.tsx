@@ -1,10 +1,14 @@
 import { useRef, useState, useCallback } from "react";
 import { PhotoCard } from "./PhotoCard";
-import { Plus, Upload } from "lucide-react";
+import { Plus, Upload, Grid2X2, Grid3X3, LayoutGrid } from "lucide-react";
 import { Button } from "./ui/button";
 import { MenuPhotoLightbox } from "./MenuPhotoLightbox";
 import { RenamePhotoDialog } from "./RenamePhotoDialog";
 import { MenuPhoto } from "@/hooks/useMenuPhotos";
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+import { cn } from "@/lib/utils";
+
+type PhotoSize = "small" | "medium" | "large";
 
 interface PhotoGalleryProps {
   photos: MenuPhoto[];
@@ -14,7 +18,15 @@ interface PhotoGalleryProps {
   onReorder?: (photos: MenuPhoto[]) => void;
   onRenamePhoto?: (id: string, newName: string) => void;
   loading?: boolean;
+  photoSize?: PhotoSize;
+  onPhotoSizeChange?: (size: PhotoSize) => void;
 }
+
+const sizeConfig = {
+  small: { cols: "grid-cols-4", icon: LayoutGrid },
+  medium: { cols: "grid-cols-3", icon: Grid3X3 },
+  large: { cols: "grid-cols-2", icon: Grid2X2 },
+};
 
 export function PhotoGallery({
   photos,
@@ -24,12 +36,17 @@ export function PhotoGallery({
   onReorder,
   onRenamePhoto,
   loading,
+  photoSize = "medium",
+  onPhotoSizeChange,
 }: PhotoGalleryProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [reorderDragIndex, setReorderDragIndex] = useState<number | null>(null);
   const [renamePhoto, setRenamePhoto] = useState<MenuPhoto | null>(null);
+  const [sizeOpen, setSizeOpen] = useState(false);
+
+  const gridCols = sizeConfig[photoSize].cols;
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -106,29 +123,60 @@ export function PhotoGallery({
           className="hidden"
         />
 
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-xl font-display font-semibold text-foreground">
+        <div className="flex items-center justify-between gap-2">
+          <div className="min-w-0 flex-1">
+            <h2 className="text-lg font-display font-semibold text-foreground">
               Menu Photos
             </h2>
-            <p className="text-sm text-muted-foreground">
-              Click to add, double-click to enlarge, drag handle to reorder
+            <p className="text-xs text-muted-foreground truncate">
+              Click to add, double-click to enlarge
             </p>
           </div>
-          <Button variant="outline" size="sm" onClick={openFilePicker}>
-            <Upload className="w-4 h-4" />
-            Upload
-          </Button>
+          <div className="flex items-center gap-1">
+            {onPhotoSizeChange && (
+              <Popover open={sizeOpen} onOpenChange={setSizeOpen}>
+                <PopoverTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                    {photoSize === "small" && <LayoutGrid className="w-4 h-4" />}
+                    {photoSize === "medium" && <Grid3X3 className="w-4 h-4" />}
+                    {photoSize === "large" && <Grid2X2 className="w-4 h-4" />}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-32 p-1" align="end">
+                  <div className="space-y-1">
+                    {(["small", "medium", "large"] as PhotoSize[]).map((size) => (
+                      <button
+                        key={size}
+                        onClick={() => { onPhotoSizeChange(size); setSizeOpen(false); }}
+                        className={cn(
+                          "w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded hover:bg-accent transition-colors capitalize",
+                          photoSize === size && "bg-accent text-accent-foreground"
+                        )}
+                      >
+                        {size === "small" && <LayoutGrid className="w-4 h-4" />}
+                        {size === "medium" && <Grid3X3 className="w-4 h-4" />}
+                        {size === "large" && <Grid2X2 className="w-4 h-4" />}
+                        {size}
+                      </button>
+                    ))}
+                  </div>
+                </PopoverContent>
+              </Popover>
+            )}
+            <Button variant="outline" size="icon" className="h-8 w-8" onClick={openFilePicker}>
+              <Upload className="w-4 h-4" />
+            </Button>
+          </div>
         </div>
 
         {loading ? (
-          <div className="grid grid-cols-3 gap-2">
+          <div className={cn("grid gap-2", gridCols)}>
             {[1, 2, 3, 4, 5, 6].map((i) => (
               <div key={i} className="aspect-square rounded-lg bg-muted animate-pulse" />
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-3 gap-2">
+          <div className={cn("grid gap-2", gridCols)}>
             {photos.map((photo, index) => (
               <div
                 key={photo.id}
