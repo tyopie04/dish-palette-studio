@@ -157,7 +157,7 @@ export function GenerationHistory({
                         <div className="relative z-10 w-12 h-12 border-3 border-border border-t-primary rounded-full animate-spin" />
                         
                         {/* Pulsing text */}
-                        <p className="relative z-10 text-sm text-muted-foreground animate-pulse">
+                        <p className="relative z-10 text-sm text-muted-foreground animate-pulse text-center w-full">
                           Creating your masterpiece...
                         </p>
                         
