@@ -213,30 +213,58 @@ Use the ${hasStyleGuide ? "style guide image" : selectedStyle ? `"${selectedStyl
     }
   }
   
-  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${LOVABLE_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "google/gemini-2.5-pro",
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: brainContent }
-      ],
-      generationConfig: {
-        thinkingConfig: {
-          thinkingBudget: 24576  // High thinking budget for detailed analysis
-        }
-      }
-    }),
-  });
+  // Retry logic for transient errors (502, 503, 504)
+  let response: Response | null = null;
+  const maxRetries = 3;
+  const retryableStatuses = [502, 503, 504];
+  
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-pro",
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: brainContent }
+          ],
+          generationConfig: {
+            thinkingConfig: {
+              thinkingBudget: 24576  // High thinking budget for detailed analysis
+            }
+          }
+        }),
+      });
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error('[BRAIN] Error:', response.status, errorText);
-    throw new Error(`Brain reasoning failed: ${response.status}`);
+      if (response.ok) {
+        break; // Success, exit retry loop
+      }
+
+      if (retryableStatuses.includes(response.status) && attempt < maxRetries) {
+        const delay = Math.pow(2, attempt) * 1000; // Exponential backoff: 2s, 4s, 8s
+        console.log(`[BRAIN] Attempt ${attempt} failed with ${response.status}, retrying in ${delay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        continue;
+      }
+
+      // Non-retryable error or final attempt
+      const errorText = await response.text();
+      console.error('[BRAIN] Error:', response.status, errorText);
+      throw new Error(`Brain reasoning failed: ${response.status}`);
+    } catch (error) {
+      if (attempt === maxRetries) throw error;
+      const delay = Math.pow(2, attempt) * 1000;
+      console.log(`[BRAIN] Attempt ${attempt} failed with network error, retrying in ${delay}ms...`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+
+  if (!response || !response.ok) {
+    throw new Error('Brain reasoning failed after all retries');
   }
 
   const data = await response.json();
