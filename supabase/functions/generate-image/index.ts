@@ -5,6 +5,80 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Diverse style presets for randomization when no style guide is provided
+const stylePresets = [
+  {
+    name: "Bright & Clean",
+    lighting: "soft diffused natural daylight from front-left, minimal harsh shadows",
+    background: "clean white or light grey seamless backdrop",
+    mood: "fresh, appetizing, bright, modern",
+    props: "minimal - perhaps a subtle napkin corner or clean surface",
+    colorGrade: "neutral to slightly warm, high key, vibrant food colors"
+  },
+  {
+    name: "Rustic Warmth",
+    lighting: "warm golden hour sunlight from side, gentle soft shadows",
+    background: "natural weathered wood table or rustic cutting board",
+    mood: "cozy, homemade, inviting, artisanal",
+    props: "scattered herbs, wooden utensils, burlap texture",
+    colorGrade: "warm tones, earthy browns, golden highlights"
+  },
+  {
+    name: "Bold & Vibrant",
+    lighting: "bright even studio lighting with slight rim light for pop",
+    background: "bold solid color backdrop (red, yellow, or teal)",
+    mood: "energetic, fun, eye-catching, punchy",
+    props: "colorful ingredients, dynamic sauce splashes",
+    colorGrade: "high saturation, vivid colors, strong contrast"
+  },
+  {
+    name: "Minimalist Modern",
+    lighting: "soft even studio lighting, clean shadows",
+    background: "solid matte color (soft grey, pale pink, or sage green)",
+    mood: "elegant, sophisticated, clean, contemporary",
+    props: "none or single geometric element",
+    colorGrade: "slightly desaturated, pastel tones, muted elegance"
+  },
+  {
+    name: "Dark & Dramatic",
+    lighting: "dramatic side lighting with deep shadows, single key light",
+    background: "dark slate, black marble, or charcoal surface",
+    mood: "luxurious, moody, premium, sophisticated",
+    props: "dark plates, slate boards, dramatic steam",
+    colorGrade: "low key, rich shadows, selective highlights on food"
+  },
+  {
+    name: "Fresh & Natural",
+    lighting: "bright natural window light, airy and fresh",
+    background: "white marble surface or light linen cloth",
+    mood: "healthy, fresh, organic, light",
+    props: "fresh herbs, citrus slices, scattered seeds",
+    colorGrade: "bright, clean whites, natural greens, fresh appearance"
+  },
+  {
+    name: "Retro Diner",
+    lighting: "warm tungsten-style lighting, nostalgic glow",
+    background: "checkered pattern, red booth leather, or retro tile",
+    mood: "nostalgic, fun, classic American, cheerful",
+    props: "vintage plates, ketchup bottles, napkin dispensers",
+    colorGrade: "warm vintage tones, slightly faded reds and yellows"
+  },
+  {
+    name: "Industrial Chic",
+    lighting: "cool directional light with hard shadows",
+    background: "concrete surface, metal tray, or brushed steel",
+    mood: "urban, edgy, contemporary, trendy",
+    props: "geometric elements, metal utensils",
+    colorGrade: "cool tones, desaturated background, food colors pop"
+  }
+];
+
+// Get a random style preset
+function getRandomStylePreset(): typeof stylePresets[0] {
+  const index = Math.floor(Math.random() * stylePresets.length);
+  return stylePresets[index];
+}
+
 // Brain: Gemini 2.5 Pro for reasoning and blueprint creation (MULTIMODAL)
 async function createImageBlueprint(
   LOVABLE_API_KEY: string,
@@ -14,12 +88,33 @@ async function createImageBlueprint(
   dimensionString: string,
   photoNames: string[],
   hasStyleGuide: boolean,
-  imageUrls?: string[],      // Actual menu photo URLs for visual analysis
-  styleGuideUrl?: string     // Style guide image URL
-): Promise<{ blueprint: string; reasoning: string }> {
+  selectedStyle: typeof stylePresets[0] | null,
+  imageUrls?: string[],
+  styleGuideUrl?: string
+): Promise<{ blueprint: string; reasoning: string; styleName: string }> {
   
-  // Generate a random seed for variation
   const randomSeed = Math.random().toString(36).substring(2, 15);
+  
+  // Build style instructions based on whether we have a style guide or a preset
+  let styleSection = "";
+  if (hasStyleGuide) {
+    styleSection = `
+STYLE GUIDE PROVIDED - Extract style elements from the style guide image:
+- Analyze the lighting setup, color grading, background treatment, and overall mood
+- Apply ONLY these style elements to the food photography
+- Do NOT copy any food from the style guide`;
+  } else if (selectedStyle) {
+    styleSection = `
+MANDATORY STYLE PRESET - YOU MUST USE THIS EXACT STYLE:
+Style Name: ${selectedStyle.name}
+- Lighting: ${selectedStyle.lighting}
+- Background: ${selectedStyle.background}
+- Mood: ${selectedStyle.mood}
+- Props: ${selectedStyle.props}
+- Color Grade: ${selectedStyle.colorGrade}
+
+⚠️ CRITICAL: You MUST apply this "${selectedStyle.name}" style. Do NOT default to dark/moody aesthetics unless that is the selected style. Do NOT derive any style from logos or brand assets.`;
+  }
   
   const systemPrompt = `You are an expert food photography art director. Your job is to create STAGING INSTRUCTIONS for an AI that will PHOTOGRAPH the EXACT food items from the reference images.
 
@@ -40,6 +135,8 @@ YOU CANNOT CHANGE:
 - The look of the food items
 - Any identifying characteristics of the menu items
 
+${styleSection}
+
 === CHAIN-OF-THOUGHT ANALYSIS ===
 
 STEP 1 - IDENTIFY EXACT FOOD ITEMS:
@@ -51,25 +148,18 @@ For each reference photo, catalog the EXACT details:
 - Sauce visibility and placement
 - Any unique identifying features
 
-STEP 2 - STYLE DECISIONS (what CAN change):
-- Lighting: direction, warmth, shadows, highlights
-- Camera angle: hero angle, 45-degree, flat lay, close-up
-- Background: solid color, textured surface, gradient
-- Composition: centered, rule of thirds, dynamic angle
-- Enhancement: steam, sauce drips, cheese pulls (natural appetizing details)
-
-STEP 3 - STYLE GUIDE ANALYSIS (if provided):
-Extract ONLY style elements (NOT food):
-- Lighting setup
-- Color grading/mood
-- Background treatment
-- Overall aesthetic
+STEP 2 - APPLY THE SPECIFIED STYLE:
+Use the ${hasStyleGuide ? "style guide image" : selectedStyle ? `"${selectedStyle.name}" preset` : "default"} to determine:
+- Lighting direction, warmth, and shadow quality
+- Background surface/color
+- Overall color grading and mood
+- Composition approach
 
 === INPUT CONTEXT ===
 - Aspect ratio: ${ratio}
 - Resolution: ${dimensionString}
 - Reference food photos: ${imageUrls?.length || 0}
-- Style guide: ${hasStyleGuide ? 'Yes' : 'No'}
+- Style: ${hasStyleGuide ? 'From style guide image' : selectedStyle?.name || 'Default'}
 - Variation seed: ${randomSeed}
 
 === OUTPUT FORMAT ===
@@ -80,22 +170,21 @@ Extract ONLY style elements (NOT food):
     "textures": ["Surface textures to preserve"],
     "colors": ["Exact colors to match"]
   },
-  "styleGuideAnalysis": "Style elements to use (lighting/mood only, NOT food)",
-  "compositionPlan": "Camera angle, arrangement, background",
-  "reasoning": "Your creative decisions for styling (NOT food changes)",
-  "imagePrompt": "CRITICAL: This prompt must instruct the image generator to REPRODUCE the EXACT food from the reference images. Include:
-    1. EXPLICIT INSTRUCTION: 'Reproduce the EXACT food items from the reference photos - same bun, same ingredients, same appearance'
-    2. Detailed list of each food item's EXACT characteristics that must be preserved
-    3. Photography styling: lighting, angle, background, composition
-    4. Appetizing enhancements: steam, highlights, sauce details
-    5. DO NOT describe generic food - describe THE SPECIFIC items from the references"
+  "styleApplication": "How you are applying the ${hasStyleGuide ? 'style guide' : selectedStyle?.name || 'default'} style",
+  "compositionPlan": "Camera angle, arrangement, background based on style",
+  "reasoning": "Your creative decisions for styling within the specified style",
+  "imagePrompt": "CRITICAL: This prompt must:
+    1. REPRODUCE the EXACT food items from the reference photos
+    2. Apply the ${hasStyleGuide ? 'style guide' : selectedStyle?.name || 'default'} style for lighting/background/mood
+    3. Include detailed food characteristics that must be preserved
+    4. NOT describe generic food - describe THE SPECIFIC items from the references"
 }
 
 === RULES ===
 1. The food in the output MUST be visually identical to the reference photos
 2. ONLY lighting, angle, background, and composition can change
-3. This is for commercial advertising - false representation is illegal
-4. Include the variation seed ${randomSeed} in your reasoning for unique outputs`;
+3. You MUST use the specified style - do not default to dark/moody if another style is specified
+4. Include the variation seed ${randomSeed} for unique outputs`;
 
   console.log('[BRAIN] Calling Gemini 2.5 Pro for MULTIMODAL reasoning with enhanced thinking...');
   console.log('[BRAIN] Reference images to analyze:', imageUrls?.length || 0);
@@ -187,13 +276,15 @@ Extract ONLY style elements (NOT food):
     
     return {
       blueprint: parsed.imagePrompt || content,
-      reasoning: parsed.reasoning || 'No reasoning provided'
+      reasoning: parsed.reasoning || 'No reasoning provided',
+      styleName: selectedStyle?.name || (hasStyleGuide ? 'Style Guide' : 'Default')
     };
   } catch (parseError) {
     console.log('[BRAIN] Could not parse as JSON, using raw content as blueprint');
     return {
       blueprint: content,
-      reasoning: 'Direct prompt interpretation'
+      reasoning: 'Direct prompt interpretation',
+      styleName: selectedStyle?.name || (hasStyleGuide ? 'Style Guide' : 'Default')
     };
   }
 }
@@ -243,15 +334,19 @@ serve(async (req) => {
     const dimensionString = `${width}x${height} pixels`;
     const ratioDesc = `${ratio} aspect ratio`;
     
+    // Select a random style preset if no style guide is provided
+    const selectedStyle = !styleGuideUrl ? getRandomStylePreset() : null;
+    
     console.log('=== BRAIN + HAND ARCHITECTURE ===');
     console.log('Target resolution:', dimensionString);
     console.log('Number of menu photos:', imageUrls?.length || 0);
     console.log('Photo names:', photoNames?.join(', ') || 'None');
     console.log('Style guide provided:', !!styleGuideUrl);
+    console.log('Selected style preset:', selectedStyle?.name || 'Using style guide');
 
     // ========== PHASE 1: BRAIN (Gemini 2.5 Pro - MULTIMODAL) ==========
     // The Brain SEES the actual images and creates a detailed blueprint
-    const { blueprint, reasoning } = await createImageBlueprint(
+    const { blueprint, reasoning, styleName } = await createImageBlueprint(
       LOVABLE_API_KEY,
       prompt || 'Create a professional food photography advertisement.',
       ratio,
@@ -259,16 +354,19 @@ serve(async (req) => {
       dimensionString,
       photoNames || [],
       !!styleGuideUrl,
-      imageUrls,      // Pass actual images to Brain
-      styleGuideUrl   // Pass style guide to Brain
+      selectedStyle,
+      imageUrls,
+      styleGuideUrl
     );
+    
+    console.log('[BRAIN] Applied style:', styleName);
     
     console.log('[BRAIN] Complete. Reasoning:', reasoning);
     
     // ========== PHASE 2: HAND (Image Generation) ==========
     // The Hand executes the blueprint with precise instructions
     
-    // Style guide instructions
+    // Style instructions for the Hand
     let styleInstructions = "";
     if (styleGuideUrl) {
       styleInstructions = `
@@ -277,6 +375,17 @@ STYLE REFERENCE IMAGE PROVIDED:
 - Use the style guide ONLY for: lighting setup, color grading, background style, mood
 - ⚠️ IGNORE any food in the style guide - use ONLY the menu item reference photos for the actual food
 - The style guide shows the AESTHETIC, not the food to reproduce`;
+    } else if (selectedStyle) {
+      styleInstructions = `
+
+MANDATORY STYLE: "${selectedStyle.name}"
+- Lighting: ${selectedStyle.lighting}
+- Background: ${selectedStyle.background}
+- Mood: ${selectedStyle.mood}
+- Props: ${selectedStyle.props}
+- Color Grade: ${selectedStyle.colorGrade}
+
+⚠️ You MUST use this "${selectedStyle.name}" style exactly as specified. Do NOT default to dark/moody aesthetics unless that is the specified style.`;
     }
     
     // Resolution quality hint for the model
