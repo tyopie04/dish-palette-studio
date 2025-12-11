@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useEffect } from "react";
+import { useState, useCallback, useMemo } from "react";
 import {
   DndContext,
   DragEndEvent,
@@ -11,8 +11,8 @@ import {
 } from "@dnd-kit/core";
 import { Header } from "@/components/Header";
 import { PhotoGallery } from "@/components/PhotoGallery";
-import { PromptBuilder } from "@/components/PromptBuilder";
-import { GenerationHistory, GenerationEntry } from "@/components/GenerationHistory";
+import { PromptBar } from "@/components/PromptBar";
+import { MasonryGallery } from "@/components/MasonryGallery";
 import { ImageLightbox } from "@/components/ImageLightbox";
 import { ImageEditDialog } from "@/components/ImageEditDialog";
 import { MenuPhoto } from "@/components/PhotoCard";
@@ -20,7 +20,17 @@ import { useMenuPhotos, MenuPhoto as StoredMenuPhoto } from "@/hooks/useMenuPhot
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
+interface GenerationEntry {
+  id: string;
+  images: string[];
+  timestamp: Date;
+  isLoading?: boolean;
+  prompt?: string;
+  ratio?: string;
+  resolution?: string;
+}
 
 // Higher quality image processing for AI generation (max 4096px for better quality)
 const compressImageToBase64 = async (url: string): Promise<string> => {
@@ -48,13 +58,9 @@ const compressImageToBase64 = async (url: string): Promise<string> => {
         reject(new Error("Could not get canvas context"));
         return;
       }
-      // Fill with white background to flatten any transparency (important for screenshots)
       ctx.fillStyle = "#FFFFFF";
       ctx.fillRect(0, 0, width, height);
-      
       ctx.drawImage(img, 0, 0, width, height);
-      
-      // Output as JPEG - no alpha channel, works reliably with AI models
       const base64 = canvas.toDataURL("image/jpeg", 0.92);
       resolve(base64);
     };
@@ -67,7 +73,6 @@ const Index = () => {
   const { user } = useAuth();
   const { photos: storedPhotos, loading: photosLoading, uploadPhotos, deletePhoto, reorderPhotos, renamePhoto } = useMenuPhotos();
   
-  // Use stored photos directly - no defaults needed
   const photos = storedPhotos;
   
   const [selectedPhotos, setSelectedPhotos] = useState<MenuPhoto[]>([]);
@@ -78,22 +83,16 @@ const Index = () => {
   const [lightboxMeta, setLightboxMeta] = useState<{ ratio?: string; resolution?: string }>({});
   const [editingImage, setEditingImage] = useState<string | null>(null);
   
-  // Lifted state for ratio/resolution/photo amount/style guide so random generation can use them
   const [selectedRatio, setSelectedRatio] = useState("1:1");
-  const [selectedResolution, setSelectedResolution] = useState("2K");
-  const [selectedPhotoAmount, setSelectedPhotoAmount] = useState("1");
+  const [selectedResolution, setSelectedResolution] = useState("2048");
+  const [selectedPhotoAmount, setSelectedPhotoAmount] = useState(1);
   const [styleGuideUrl, setStyleGuideUrl] = useState<string | null>(null);
 
   const mouseSensor = useSensor(MouseSensor, {
-    activationConstraint: {
-      distance: 8,
-    },
+    activationConstraint: { distance: 8 },
   });
   const touchSensor = useSensor(TouchSensor, {
-    activationConstraint: {
-      delay: 200,
-      tolerance: 5,
-    },
+    activationConstraint: { delay: 200, tolerance: 5 },
   });
   const sensors = useSensors(mouseSensor, touchSensor);
 
@@ -112,7 +111,7 @@ const Index = () => {
   const handleDragEnd = useCallback((event: DragEndEvent) => {
     setActivePhoto(null);
     
-    if (event.over?.id === "prompt-builder") {
+    if (event.over?.id === "prompt-bar-drop") {
       const photo = photos.find((p) => p.id === event.active.id);
       if (photo && !selectedPhotos.find((p) => p.id === photo.id)) {
         setSelectedPhotos((prev) => [...prev, {
@@ -126,7 +125,6 @@ const Index = () => {
     }
   }, [photos, selectedPhotos]);
 
-  // Click-to-add handler for menu photos
   const handlePhotoClick = useCallback((photo: StoredMenuPhoto) => {
     if (!selectedPhotos.find((p) => p.id === photo.id)) {
       setSelectedPhotos((prev) => [...prev, {
@@ -145,13 +143,14 @@ const Index = () => {
     setSelectedPhotos((prev) => prev.filter((p) => p.id !== id));
   }, []);
 
-  const addLoadingEntry = useCallback((ratio?: string, resolution?: string) => {
+  const addLoadingEntry = useCallback((prompt?: string, ratio?: string, resolution?: string) => {
     const id = `gen-${Date.now()}`;
     const newEntry: GenerationEntry = {
       id,
       images: [],
       timestamp: new Date(),
       isLoading: true,
+      prompt,
       ratio,
       resolution,
     };
@@ -162,9 +161,7 @@ const Index = () => {
   const updateEntryWithImages = useCallback((id: string, images: string[]) => {
     setGenerationHistory((prev) =>
       prev.map((entry) =>
-        entry.id === id
-          ? { ...entry, images, isLoading: false }
-          : entry
+        entry.id === id ? { ...entry, images, isLoading: false } : entry
       )
     );
   }, []);
@@ -173,18 +170,15 @@ const Index = () => {
     setGenerationHistory((prev) => prev.filter((entry) => entry.id !== id));
   }, []);
 
-  // Helper to extract images from edge function response
   const extractImagesFromResponse = (data: any): string[] => {
-    // Edge function returns { images: [...] } directly
     if (data?.images && Array.isArray(data.images)) {
       return data.images.filter((img: string) => typeof img === 'string' && img.startsWith('data:image'));
     }
-    
     return [];
   };
 
-  const handleGenerate = useCallback(async (prompt: string, ratio: string, resolution: string, photoAmount: string, styleGuideUrlParam?: string) => {
-    const loadingId = addLoadingEntry(ratio, resolution);
+  const handleGenerate = useCallback(async (prompt: string) => {
+    const loadingId = addLoadingEntry(prompt, selectedRatio, selectedResolution);
     
     try {
       const imagePromises = selectedPhotos.map((p) => compressImageToBase64(p.src));
@@ -192,44 +186,38 @@ const Index = () => {
       const photoNames = selectedPhotos.map((p) => p.name);
       
       let styleGuideBase64: string | undefined;
-      if (styleGuideUrlParam) {
-        styleGuideBase64 = await compressImageToBase64(styleGuideUrlParam);
+      if (styleGuideUrl) {
+        styleGuideBase64 = await compressImageToBase64(styleGuideUrl);
       }
-      
-      console.log('Sending', imageUrls.length, 'menu photos + style guide:', !!styleGuideBase64);
       
       const { data, error } = await supabase.functions.invoke('generate-image', {
         body: { 
           prompt, 
-          ratio, 
-          resolution, 
-          photoAmount: parseInt(photoAmount), 
+          ratio: selectedRatio, 
+          resolution: selectedResolution, 
+          photoAmount: selectedPhotoAmount, 
           imageUrls, 
           photoNames, 
           styleGuideUrl: styleGuideBase64,
-          userId: user?.id  // Pass userId for smart auto-selection
+          userId: user?.id
         }
       });
 
       if (error) {
-        console.error('Generation error:', error);
         toast.error(error.message || 'Failed to generate content');
         removeLoadingEntry(loadingId);
         return;
       }
 
-      // Handle streamed response - now contains raw AI gateway format
       const images = extractImagesFromResponse(data);
       
       if (images.length > 0) {
         updateEntryWithImages(loadingId, images);
         toast.success("Content generated successfully!");
       } else if (data?.error) {
-        console.error('AI error:', data.error);
         toast.error(data.error.message || 'AI generation failed');
         removeLoadingEntry(loadingId);
       } else {
-        console.error('No images found in response:', data);
         toast.error('No images were generated');
         removeLoadingEntry(loadingId);
       }
@@ -238,89 +226,13 @@ const Index = () => {
       toast.error('Failed to generate content');
       removeLoadingEntry(loadingId);
     }
-  }, [selectedPhotos, addLoadingEntry, updateEntryWithImages, removeLoadingEntry]);
-
-  const handleRegenerate = useCallback(() => {
-    handleGenerate("", selectedRatio, selectedResolution, selectedPhotoAmount, styleGuideUrl || undefined);
-  }, [handleGenerate, selectedRatio, selectedResolution, selectedPhotoAmount, styleGuideUrl]);
-
-  const handleGenerateRandom = useCallback(async () => {
-    const count = Math.floor(Math.random() * 3) + 3;
-    const shuffled = [...photos].sort(() => Math.random() - 0.5);
-    const randomPhotos = shuffled.slice(0, count);
-    
-    const loadingId = addLoadingEntry(selectedRatio, selectedResolution);
-    
-    try {
-      const imagePromises = randomPhotos.map((p) => compressImageToBase64(p.src));
-      const imageUrls = await Promise.all(imagePromises);
-      const photoNames = randomPhotos.map((p) => p.name);
-      
-      let styleGuideBase64: string | undefined;
-      if (styleGuideUrl) {
-        styleGuideBase64 = await compressImageToBase64(styleGuideUrl);
-      }
-      
-      console.log('Random generation with', randomPhotos.length, 'photos:', photoNames, 'ratio:', selectedRatio, 'resolution:', selectedResolution, 'photoAmount:', selectedPhotoAmount, 'styleGuide:', !!styleGuideBase64);
-      
-      const randomPrompts = [
-        "Create a mouthwatering promotional shot with dramatic lighting",
-        "Design an appetizing hero image for social media",
-        "Generate a premium restaurant advertisement",
-        "Create an eye-catching menu showcase",
-        "Design a delicious burger collage"
-      ];
-      const randomPrompt = randomPrompts[Math.floor(Math.random() * randomPrompts.length)];
-      
-      const { data, error } = await supabase.functions.invoke('generate-image', {
-        body: { 
-          prompt: randomPrompt, 
-          ratio: selectedRatio, 
-          resolution: selectedResolution, 
-          photoAmount: parseInt(selectedPhotoAmount),
-          imageUrls, 
-          photoNames,
-          styleGuideUrl: styleGuideBase64,
-          userId: user?.id  // Pass userId for smart auto-selection
-        }
-      });
-
-      if (error) {
-        console.error('Generation error:', error);
-        toast.error(error.message || 'Failed to generate content');
-        removeLoadingEntry(loadingId);
-        return;
-      }
-
-      // Handle streamed response - now contains raw AI gateway format
-      const images = extractImagesFromResponse(data);
-
-      if (images.length > 0) {
-        updateEntryWithImages(loadingId, images);
-        toast.success(`Random creation with ${randomPhotos.length} burgers!`);
-      } else if (data?.error) {
-        console.error('AI error:', data.error);
-        toast.error(data.error.message || 'AI generation failed');
-        removeLoadingEntry(loadingId);
-      } else {
-        console.error('No images found in response:', data);
-        toast.error('No images were generated');
-        removeLoadingEntry(loadingId);
-      }
-    } catch (err) {
-      console.error('Generation error:', err);
-      toast.error('Failed to generate content');
-      removeLoadingEntry(loadingId);
-    }
-  }, [photos, selectedRatio, selectedResolution, selectedPhotoAmount, styleGuideUrl, addLoadingEntry, updateEntryWithImages, removeLoadingEntry]);
+  }, [selectedPhotos, selectedRatio, selectedResolution, selectedPhotoAmount, styleGuideUrl, user?.id, addLoadingEntry, updateEntryWithImages, removeLoadingEntry]);
 
   const handlePhotosAdded = useCallback((files: File[]) => {
-    // If using default photos, just upload to storage
     uploadPhotos(files);
   }, [uploadPhotos]);
 
   const handleDeletePhoto = useCallback((id: string) => {
-    // Don't allow deleting default photos
     if (id.startsWith("default-")) {
       toast.error("Cannot delete example photos. Upload your own to replace them.");
       return;
@@ -330,7 +242,6 @@ const Index = () => {
   }, [deletePhoto]);
 
   const handleReorder = useCallback((newPhotos: StoredMenuPhoto[]) => {
-    // Don't save reorder for default photos
     if (newPhotos.some(p => p.id.startsWith("default-"))) {
       return;
     }
@@ -339,7 +250,6 @@ const Index = () => {
 
   const handleRenamePhoto = useCallback((id: string, newName: string) => {
     renamePhoto(id, newName);
-    // Also update in selected photos if present
     setSelectedPhotos((prev) =>
       prev.map((p) => (p.id === id ? { ...p, name: newName } : p))
     );
@@ -350,22 +260,8 @@ const Index = () => {
     toast.success("Generation deleted");
   }, []);
 
-  const handleDeleteImage = useCallback((entryId: string, imageIndex: number) => {
-    setGenerationHistory((prev) =>
-      prev.map((entry) => {
-        if (entry.id === entryId) {
-          const newImages = entry.images.filter((_, i) => i !== imageIndex);
-          return { ...entry, images: newImages };
-        }
-        return entry;
-      }).filter((entry) => entry.images.length > 0)
-    );
-    toast.success("Image deleted");
-  }, []);
-
-  const handleImageClick = useCallback((image: string, ratio?: string, resolution?: string) => {
+  const handleImageClick = useCallback((image: string) => {
     setLightboxImage(image);
-    setLightboxMeta({ ratio, resolution });
   }, []);
 
   const handleEditImage = useCallback((image: string) => {
@@ -374,7 +270,7 @@ const Index = () => {
   }, []);
 
   const handleApplyEdit = useCallback(async (image: string, editPrompt: string) => {
-    const loadingId = addLoadingEntry("Edit", "Original");
+    const loadingId = addLoadingEntry("Editing...", "Edit", "Original");
     
     try {
       const { data, error } = await supabase.functions.invoke('edit-image', {
@@ -382,7 +278,6 @@ const Index = () => {
       });
 
       if (error) {
-        console.error('Edit error:', error);
         toast.error(error.message || 'Failed to edit image');
         removeLoadingEntry(loadingId);
         return;
@@ -402,7 +297,6 @@ const Index = () => {
     }
   }, [addLoadingEntry, updateEntryWithImages, removeLoadingEntry]);
 
-  // Memoize drag overlay content to prevent re-renders
   const dragOverlayContent = useMemo(() => {
     if (!activePhoto) return null;
     return (
@@ -416,6 +310,8 @@ const Index = () => {
     );
   }, [activePhoto]);
 
+  const isGenerating = generationHistory.some(entry => entry.isLoading);
+
   return (
     <>
       <DndContext
@@ -423,72 +319,63 @@ const Index = () => {
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
-        <div className="min-h-screen bg-background">
+        <div className="min-h-screen bg-background flex flex-col">
           <Header />
           
-          <main className="container mx-auto px-4 py-8">
-            <div className="mb-8 animate-fade-in">
-              <h1 className="text-3xl sm:text-4xl font-display font-bold text-foreground mb-2">
-                Create <span className="gradient-text">Stunning</span> Content
-              </h1>
-              <p className="text-muted-foreground max-w-xl">
-                Transform your menu photos into captivating marketing content. 
-                Simply drag photos, describe your vision, and let AI do the magic.
-              </p>
-            </div>
+          <div className="flex flex-1 overflow-hidden">
+            {/* Left Sidebar - Menu Photos */}
+            <aside className="w-80 border-r border-border/50 flex-shrink-0 bg-card/30">
+              <ScrollArea className="h-[calc(100vh-64px)]">
+                <div className="p-4">
+                  <PhotoGallery 
+                    photos={photos} 
+                    onPhotosAdded={handlePhotosAdded} 
+                    onDeletePhoto={handleDeletePhoto}
+                    onPhotoClick={handlePhotoClick}
+                    onReorder={handleReorder}
+                    onRenamePhoto={handleRenamePhoto}
+                    loading={photosLoading}
+                  />
+                </div>
+              </ScrollArea>
+            </aside>
 
-            <div className="grid lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-1 animate-slide-up" style={{ animationDelay: "0.1s" }}>
-                <PhotoGallery 
-                  photos={photos} 
-                  onPhotosAdded={handlePhotosAdded} 
-                  onDeletePhoto={handleDeletePhoto}
-                  onPhotoClick={handlePhotoClick}
-                  onReorder={handleReorder}
-                  onRenamePhoto={handleRenamePhoto}
-                  loading={photosLoading}
-                />
-              </div>
+            {/* Main Content - Generated Images */}
+            <main className="flex-1 flex flex-col overflow-hidden">
+              <MasonryGallery
+                history={generationHistory}
+                onImageClick={handleImageClick}
+                onDelete={handleDeleteEntry}
+                onEdit={handleEditImage}
+              />
+            </main>
+          </div>
 
-              <div className="lg:col-span-1 animate-slide-up" style={{ animationDelay: "0.2s" }}>
-                <PromptBuilder
-                  selectedPhotos={selectedPhotos}
-                  onRemovePhoto={handleRemovePhoto}
-                  onGenerate={handleGenerate}
-                  selectedRatio={selectedRatio}
-                  setSelectedRatio={setSelectedRatio}
-                  selectedResolution={selectedResolution}
-                  setSelectedResolution={setSelectedResolution}
-                  selectedPhotoAmount={selectedPhotoAmount}
-                  setSelectedPhotoAmount={setSelectedPhotoAmount}
-                  styleGuideUrl={styleGuideUrl}
-                  setStyleGuideUrl={setStyleGuideUrl}
-                />
-              </div>
-
-              <div className="lg:col-span-1 animate-slide-up" style={{ animationDelay: "0.3s" }}>
-                <GenerationHistory
-                  history={generationHistory}
-                  onImageClick={handleImageClick}
-                  onDeleteEntry={handleDeleteEntry}
-                  onDeleteImage={handleDeleteImage}
-                  onGenerateNew={handleGenerateRandom}
-                />
-              </div>
-            </div>
-          </main>
+          {/* Floating Prompt Bar */}
+          <PromptBar
+            selectedPhotos={selectedPhotos}
+            onRemovePhoto={handleRemovePhoto}
+            onGenerate={handleGenerate}
+            isGenerating={isGenerating}
+            ratio={selectedRatio}
+            setRatio={setSelectedRatio}
+            resolution={selectedResolution}
+            setResolution={setSelectedResolution}
+            photoAmount={selectedPhotoAmount}
+            setPhotoAmount={setSelectedPhotoAmount}
+            styleGuideUrl={styleGuideUrl}
+            setStyleGuideUrl={setStyleGuideUrl}
+          />
         </div>
 
-        <DragOverlay dropAnimation={null}>
-          {dragOverlayContent}
-        </DragOverlay>
+        <DragOverlay>{dragOverlayContent}</DragOverlay>
       </DndContext>
 
       {lightboxImage && (
-        <ImageLightbox 
-          image={lightboxImage} 
+        <ImageLightbox
+          image={lightboxImage}
           onClose={() => setLightboxImage(null)}
-          onEdit={handleEditImage}
+          onEdit={() => handleEditImage(lightboxImage)}
           ratio={lightboxMeta.ratio}
           resolution={lightboxMeta.resolution}
         />
