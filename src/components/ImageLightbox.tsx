@@ -111,7 +111,7 @@ export function ImageLightbox({
 
   return (
     <div 
-      className="fixed inset-0 z-50 bg-black/95 backdrop-blur-md flex"
+      className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex"
       onClick={onClose}
     >
       {/* Close button - top right of image area */}
@@ -124,15 +124,15 @@ export function ImageLightbox({
         <X className="w-5 h-5" />
       </Button>
 
-      {/* Main Image Area */}
+      {/* Main Image Area - clicking here closes lightbox */}
       <div 
         className="flex-1 flex items-center justify-center p-8"
-        onClick={(e) => e.stopPropagation()}
       >
         <img
           src={image}
           alt="Generated content fullscreen"
           className="max-w-full max-h-full object-contain rounded-lg"
+          onClick={(e) => e.stopPropagation()}
         />
       </div>
 
