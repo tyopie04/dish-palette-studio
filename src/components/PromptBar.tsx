@@ -105,11 +105,11 @@ export const PromptBar: React.FC<PromptBarProps> = ({
 
   return (
     <>
-      <div className="fixed bottom-6 z-50" style={{ left: 'calc(50% + 120px)', transform: 'translateX(-50%)' }}>
+      <div className="w-full flex justify-center">
         {/* Main Prompt Container */}
         <div
           ref={setNodeRef}
-          className={`w-[calc(100vw-380px)] max-w-5xl bg-card/95 backdrop-blur-xl border border-border/50 rounded-3xl shadow-2xl transition-all duration-200 flex ${
+          className={`max-w-4xl w-full bg-card/95 backdrop-blur-xl border border-border/50 rounded-3xl shadow-2xl transition-all duration-200 flex ${
             isOver ? 'ring-2 ring-primary scale-[1.02]' : ''
           }`}
         >

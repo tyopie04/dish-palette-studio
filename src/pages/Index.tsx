@@ -458,7 +458,7 @@ const Index = () => {
 
             {/* Main Content - Generated Images - Independent scroll */}
             <ResizablePanel defaultSize={80}>
-              <main className="h-[calc(100vh-64px)] flex flex-col overflow-y-auto overflow-x-hidden">
+              <main className="h-[calc(100vh-64px)] flex flex-col overflow-y-auto overflow-x-hidden relative">
                 <MasonryGallery
                   history={generationHistory}
                   onImageClick={handleImageClick}
@@ -470,26 +470,30 @@ const Index = () => {
                   onDeleteSelected={handleDeleteSelected}
                   onDownloadSelected={handleDownloadSelected}
                 />
+                
+                {/* Floating Prompt Bar - centered in main content area */}
+                <div className="sticky bottom-6 left-0 right-0 flex justify-center pointer-events-none z-50">
+                  <div className="pointer-events-auto">
+                    <PromptBar
+                      selectedPhotos={selectedPhotos}
+                      onRemovePhoto={handleRemovePhoto}
+                      onGenerate={handleGenerate}
+                      isGenerating={isGenerating}
+                      ratio={selectedRatio}
+                      setRatio={setSelectedRatio}
+                      resolution={selectedResolution}
+                      setResolution={setSelectedResolution}
+                      photoAmount={selectedPhotoAmount}
+                      setPhotoAmount={setSelectedPhotoAmount}
+                      styleGuideUrl={styleGuideUrl}
+                      setStyleGuideUrl={setStyleGuideUrl}
+                      loadingCount={activeGenerations}
+                    />
+                  </div>
+                </div>
               </main>
             </ResizablePanel>
           </ResizablePanelGroup>
-
-          {/* Floating Prompt Bar */}
-          <PromptBar
-            selectedPhotos={selectedPhotos}
-            onRemovePhoto={handleRemovePhoto}
-            onGenerate={handleGenerate}
-            isGenerating={isGenerating}
-            ratio={selectedRatio}
-            setRatio={setSelectedRatio}
-            resolution={selectedResolution}
-            setResolution={setSelectedResolution}
-            photoAmount={selectedPhotoAmount}
-            setPhotoAmount={setSelectedPhotoAmount}
-            styleGuideUrl={styleGuideUrl}
-            setStyleGuideUrl={setStyleGuideUrl}
-            loadingCount={activeGenerations}
-          />
         </div>
 
         <DragOverlay>{dragOverlayContent}</DragOverlay>
