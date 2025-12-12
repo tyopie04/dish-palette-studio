@@ -147,19 +147,32 @@ export const PromptBar: React.FC<PromptBarProps> = ({
             )}
 
             {/* Row 2: Text Prompt */}
-            <div className="px-5 py-4 flex-1 flex items-center">
-              <Textarea
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                placeholder="Describe what you want to create..."
-                className="min-h-[24px] max-h-[60px] resize-none bg-transparent border-0 focus-visible:ring-0 text-base placeholder:text-muted-foreground/60 p-0"
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    handleGenerate();
-                  }
-                }}
-              />
+            <div className="px-5 py-4 flex-1 flex items-center gap-3">
+              {/* Upload button */}
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="w-8 h-8 rounded-full border border-border/50 flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-primary/50 transition-colors flex-shrink-0"
+              >
+                <Plus className="w-4 h-4" />
+              </button>
+              <div className="flex-1 relative">
+                <Textarea
+                  value={prompt}
+                  onChange={(e) => setPrompt(e.target.value)}
+                  placeholder="Describe what you want to create..."
+                  className="min-h-[24px] max-h-[60px] resize-none bg-transparent border-0 focus-visible:ring-0 text-base placeholder:text-muted-foreground/60 p-0 caret-primary"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleGenerate();
+                    }
+                  }}
+                />
+                {/* Typing cursor animation when empty */}
+                {!prompt && (
+                  <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-muted-foreground/60 animate-pulse pointer-events-none" />
+                )}
+              </div>
             </div>
 
             {/* Row 3: Controls */}
@@ -259,50 +272,23 @@ export const PromptBar: React.FC<PromptBarProps> = ({
                 </Button>
               </div>
 
-              {/* Style Guide */}
-              <Popover open={styleGuideOpen} onOpenChange={setStyleGuideOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className={`h-9 w-9 p-0 rounded-full border-border/50 bg-muted/30 hover:bg-muted/50 ${styleGuideUrl ? 'text-primary border-primary' : ''}`}
+              {/* Style Guide (hidden button - upload via + button now) */}
+              {styleGuideUrl && (
+                <div className="relative">
+                  <img
+                    src={styleGuideUrl}
+                    alt="Style guide"
+                    className="w-9 h-9 object-cover rounded-full cursor-pointer border border-border/50"
+                    onClick={() => setStyleGuideLightboxOpen(true)}
+                  />
+                  <button
+                    onClick={() => setStyleGuideUrl(null)}
+                    className="absolute -top-1 -right-1 w-4 h-4 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center"
                   >
-                    <Image className="w-4 h-4" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-48 p-2 bg-popover" align="start">
-                  <div className="space-y-2">
-                    <p className="text-xs text-muted-foreground">Style Reference</p>
-                    {styleGuideUrl ? (
-                      <div className="relative">
-                        <img
-                          src={styleGuideUrl}
-                          alt="Style guide"
-                          className="w-full h-24 object-cover rounded-lg cursor-pointer"
-                          onClick={() => {
-                            setStyleGuideLightboxOpen(true);
-                            setStyleGuideOpen(false);
-                          }}
-                        />
-                        <button
-                          onClick={() => setStyleGuideUrl(null)}
-                          className="absolute top-1 right-1 w-5 h-5 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center"
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
-                      </div>
-                    ) : (
-                      <button
-                        onClick={() => fileInputRef.current?.click()}
-                        className="w-full h-20 border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center gap-1 hover:border-primary/50 transition-colors"
-                      >
-                        <Upload className="w-4 h-4 text-muted-foreground" />
-                        <span className="text-xs text-muted-foreground">Upload</span>
-                      </button>
-                    )}
-                  </div>
-                </PopoverContent>
-              </Popover>
+                    <X className="w-2.5 h-2.5" />
+                  </button>
+                </div>
+              )}
 
               <input
                 ref={fileInputRef}
@@ -314,15 +300,15 @@ export const PromptBar: React.FC<PromptBarProps> = ({
             </div>
           </div>
 
-          {/* Right side: Generate Button - fills full height with even padding */}
-          <div className="p-3">
+          {/* Right side: Generate Button - fills full height with thicker padding (80% size) */}
+          <div className="p-5">
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
                     onClick={handleGenerate}
                     disabled={isGenerating || loadingCount >= 8 || (!prompt.trim() && selectedPhotos.length === 0)}
-                    className="h-full px-10 rounded-2xl bg-primary hover:bg-primary/90 font-semibold text-sm shadow-lg"
+                    className="h-full px-8 rounded-2xl bg-primary hover:bg-primary/90 font-semibold text-sm shadow-lg"
                   >
                     <Sparkles className="w-4 h-4 mr-2" />
                     Generate
