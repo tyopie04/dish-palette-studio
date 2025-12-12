@@ -41,9 +41,9 @@ const ratioOptions = [
 ];
 
 const resolutionOptions = [
-  { value: '1024', label: '1K' },
-  { value: '2048', label: '2K' },
-  { value: '4096', label: '4K' },
+  { value: '1K', label: '1K' },
+  { value: '2K', label: '2K' },
+  { value: '4K', label: '4K' },
 ];
 
 export const PromptBar: React.FC<PromptBarProps> = ({

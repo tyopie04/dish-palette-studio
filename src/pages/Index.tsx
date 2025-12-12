@@ -91,7 +91,7 @@ const Index = () => {
   const [editingImage, setEditingImage] = useState<string | null>(null);
   
   const [selectedRatio, setSelectedRatio] = useState("1:1");
-  const [selectedResolution, setSelectedResolution] = useState("2048");
+  const [selectedResolution, setSelectedResolution] = useState("2K");
   const [selectedPhotoAmount, setSelectedPhotoAmount] = useState(1);
   const [styleGuideUrl, setStyleGuideUrl] = useState<string | null>(null);
   const [photoSize, setPhotoSize] = useState<"small" | "medium" | "large">("medium");
