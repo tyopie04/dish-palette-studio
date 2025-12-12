@@ -19,8 +19,12 @@ serve(async (req) => {
       throw new Error('GEMINI_API_KEY is not configured');
     }
 
+    // Valid Gemini aspect ratios - fallback validation
+    const VALID_RATIOS = ['1:1', '2:3', '3:2', '3:4', '4:3', '4:5', '5:4', '9:16', '16:9', '21:9'];
+    const validatedRatio = VALID_RATIOS.includes(aspectRatio) ? aspectRatio : '1:1';
+
     console.log(`[EDIT] Editing image with prompt: "${editPrompt}"`);
-    console.log(`[EDIT] Target resolution: ${resolution}, aspectRatio: ${aspectRatio}`);
+    console.log(`[EDIT] Target resolution: ${resolution}, aspectRatio: ${aspectRatio} -> validated: ${validatedRatio}`);
 
     // Process the source image
     let imageData: { mimeType: string; data: string };
@@ -50,7 +54,7 @@ serve(async (req) => {
     // Build the prompt for editing
     const fullPrompt = `Edit this food photography image: ${editPrompt}. Keep the food items visible and maintain professional food photography quality.`;
 
-    console.log(`[EDIT] Using Gemini 3 Pro with imageSize: ${resolution}, aspectRatio: ${aspectRatio}`);
+    console.log(`[EDIT] Using Gemini 3 Pro with imageSize: ${resolution}, aspectRatio: ${validatedRatio}`);
 
     // Build request with the same structure as generate-image (imageConfig inside generationConfig)
     const requestBody = {
@@ -68,15 +72,15 @@ serve(async (req) => {
       generationConfig: {
         responseModalities: ["TEXT", "IMAGE"],
         imageConfig: {
-          imageSize: resolution,    // "1K", "2K", or "4K"
-          aspectRatio: aspectRatio  // "16:9", "9:16", "1:1", etc.
+          imageSize: resolution,        // "1K", "2K", or "4K"
+          aspectRatio: validatedRatio   // Only valid ratios: "16:9", "9:16", "1:1", etc.
         }
       }
     };
 
     console.log('[EDIT] Request config:', JSON.stringify({
       imageSize: resolution,
-      aspectRatio: aspectRatio,
+      aspectRatio: validatedRatio,
       model: 'gemini-3-pro-image-preview'
     }));
 
