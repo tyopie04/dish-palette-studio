@@ -244,33 +244,49 @@ export const MasonryGallery: React.FC<MasonryGalleryProps> = ({
     );
   }
 
-  // Build rows with justified layout - each row has its own calculated height
+  // Build rows with justified layout - dynamically pack items to fill width
   const gap = 4;
-  const itemsPerRow = 4;
-  const targetRowHeight = 280; // Base target height
+  const targetRowHeight = 240; // Target height for rows
+  const minRowHeight = 180;
+  const maxRowHeight = 400;
   
   type JustifiedRow = { items: GalleryItem[]; height: number };
   const rows: JustifiedRow[] = [];
   
-  for (let i = 0; i < allItems.length; i += itemsPerRow) {
-    const rowItems = allItems.slice(i, i + itemsPerRow);
+  if (containerWidth > 0) {
+    let currentRow: GalleryItem[] = [];
+    let currentRowAspectRatio = 0;
     
-    // Calculate total aspect ratio for this row
-    const totalAspectRatio = rowItems.reduce((sum, item) => sum + item.aspectRatio, 0);
+    for (const item of allItems) {
+      // Temporarily add item to see if it fits
+      const testAspectRatio = currentRowAspectRatio + item.aspectRatio;
+      const testGapWidth = currentRow.length * gap;
+      const testHeight = (containerWidth - testGapWidth) / testAspectRatio;
+      
+      // If adding this item keeps height within acceptable range, add it
+      if (testHeight >= minRowHeight || currentRow.length === 0) {
+        currentRow.push(item);
+        currentRowAspectRatio = testAspectRatio;
+      } else {
+        // Finalize current row and start new one
+        const gapWidth = (currentRow.length - 1) * gap;
+        const rowHeight = Math.min(maxRowHeight, Math.max(minRowHeight, (containerWidth - gapWidth) / currentRowAspectRatio));
+        rows.push({ items: currentRow, height: rowHeight });
+        
+        // Start new row with current item
+        currentRow = [item];
+        currentRowAspectRatio = item.aspectRatio;
+      }
+    }
     
-    // Calculate row height to fit all images in available width
-    // Formula: containerWidth = height * (sum of aspect ratios) + gaps
-    const totalGapWidth = (rowItems.length - 1) * gap;
-    const availableWidth = containerWidth - totalGapWidth;
-    
-    // Calculate height that makes images fit the row width exactly
-    let rowHeight = availableWidth / totalAspectRatio;
-    
-    // Only set a minimum height, no maximum - let rows be as tall as needed
-    const minHeight = 150;
-    rowHeight = Math.max(minHeight, rowHeight);
-    
-    rows.push({ items: rowItems, height: rowHeight });
+    // Add remaining items as final row
+    if (currentRow.length > 0) {
+      const gapWidth = (currentRow.length - 1) * gap;
+      let rowHeight = (containerWidth - gapWidth) / currentRowAspectRatio;
+      // For the last row, use target height if it would be too tall
+      rowHeight = Math.min(maxRowHeight, Math.max(minRowHeight, rowHeight));
+      rows.push({ items: currentRow, height: rowHeight });
+    }
   }
 
   return (
