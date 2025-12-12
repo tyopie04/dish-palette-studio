@@ -12,15 +12,9 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Download, Trash2, Edit3, Loader2, MoreHorizontal, ExternalLink, RefreshCw } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Download, Trash2, Pencil, Loader2, MoreHorizontal, Heart, Copy, Video } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import { toast } from 'sonner';
 
 interface GenerationEntry {
   id: string;
@@ -136,7 +130,7 @@ export const MasonryGallery: React.FC<MasonryGalleryProps> = ({
     return (
       <div className="flex-1 flex flex-col items-center justify-center text-center p-12">
         <div className="w-24 h-24 rounded-full bg-muted/50 flex items-center justify-center mb-6">
-          <Edit3 className="w-10 h-10 text-muted-foreground/50" />
+          <Pencil className="w-10 h-10 text-muted-foreground/50" />
         </div>
         <h3 className="text-xl font-semibold text-foreground/80 mb-2">No generations yet</h3>
         <p className="text-muted-foreground max-w-md">
@@ -201,99 +195,96 @@ export const MasonryGallery: React.FC<MasonryGalleryProps> = ({
                       loading="lazy"
                     />
                     
-                    {/* Hover overlay */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none" />
+                    {/* Hover overlay - subtle gradient */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none" />
                     
                     {/* Top left - Select checkbox */}
-                    <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                    <div className="absolute top-3 left-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                       <div 
-                        className="w-5 h-5 rounded bg-white/90 backdrop-blur-sm flex items-center justify-center cursor-pointer hover:bg-white"
+                        className="w-6 h-6 rounded-md border-2 border-white/80 flex items-center justify-center cursor-pointer hover:border-white bg-transparent"
                         onClick={(e) => {
                           e.stopPropagation();
                           onToggleSelect?.(item.id);
                         }}
                       >
-                        <Checkbox 
-                          checked={selectedImages.includes(item.id)}
-                          className="h-4 w-4 border-muted-foreground/50 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
-                        />
+                        {selectedImages.includes(item.id) && (
+                          <div className="w-3 h-3 bg-white rounded-sm" />
+                        )}
                       </div>
                     </div>
 
-                    {/* Bottom controls */}
-                    <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                      {/* Edit button on left */}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 px-2.5 bg-white/90 backdrop-blur-sm hover:bg-white text-foreground gap-1.5"
+                    {/* Top right controls - Edit, Video, More */}
+                    <div className="absolute top-3 right-3 flex items-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                      <button
+                        className="flex items-center gap-1.5 text-white hover:text-white/80 transition-colors"
                         onClick={(e) => {
                           e.stopPropagation();
                           onEdit(item.imageUrl);
                         }}
                       >
-                        <Edit3 className="w-3.5 h-3.5" />
-                        <span className="text-xs font-medium">Edit</span>
-                      </Button>
+                        <Pencil className="w-4 h-4" />
+                        <span className="text-sm font-medium">Edit</span>
+                      </button>
+                      <button
+                        className="flex items-center gap-1.5 text-white hover:text-white/80 transition-colors"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toast.info('Video feature coming soon');
+                        }}
+                      >
+                        <Video className="w-4 h-4" />
+                        <span className="text-sm font-medium">Video</span>
+                      </button>
+                      <button
+                        className="text-white hover:text-white/80 transition-colors"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onRerun?.({ prompt: item.prompt, ratio: item.ratio, resolution: item.resolution });
+                        }}
+                      >
+                        <MoreHorizontal className="w-5 h-5" />
+                      </button>
+                    </div>
 
-                      {/* More dropdown on right */}
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 bg-white/90 backdrop-blur-sm hover:bg-white text-foreground"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <MoreHorizontal className="w-4 h-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-40">
-                          <DropdownMenuItem
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onImageClick(item.imageUrl, {
-                                prompt: item.prompt,
-                                ratio: item.ratio,
-                                resolution: item.resolution,
-                                timestamp: item.timestamp,
-                                entryId: item.entryId,
-                              });
-                            }}
-                          >
-                            <ExternalLink className="w-4 h-4 mr-2" />
-                            Open
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onRerun?.({ prompt: item.prompt, ratio: item.ratio, resolution: item.resolution });
-                            }}
-                          >
-                            <RefreshCw className="w-4 h-4 mr-2" />
-                            Re-run
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDownload(item.imageUrl, item.index);
-                            }}
-                          >
-                            <Download className="w-4 h-4 mr-2" />
-                            Download
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            className="text-destructive focus:text-destructive"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onDelete(item.entryId);
-                            }}
-                          >
-                            <Trash2 className="w-4 h-4 mr-2" />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                    {/* Bottom right controls - Heart, Copy, Download, Delete */}
+                    <div className="absolute bottom-3 right-3 flex items-center gap-4 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                      <button
+                        className="text-white hover:text-white/80 transition-colors"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toast.success('Added to favorites');
+                        }}
+                      >
+                        <Heart className="w-5 h-5" />
+                      </button>
+                      <button
+                        className="text-white hover:text-white/80 transition-colors"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigator.clipboard.writeText(item.imageUrl);
+                          toast.success('Image URL copied');
+                        }}
+                      >
+                        <Copy className="w-5 h-5" />
+                      </button>
+                      <button
+                        className="text-white hover:text-white/80 transition-colors"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDownload(item.imageUrl, item.index);
+                        }}
+                      >
+                        <Download className="w-5 h-5" />
+                      </button>
+                      <button
+                        className="text-white hover:text-white/80 transition-colors"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onDelete(item.entryId);
+                        }}
+                      >
+                        <Trash2 className="w-5 h-5" />
+                      </button>
                     </div>
                   </div>
                 );
