@@ -106,17 +106,17 @@ export const PromptBar: React.FC<PromptBarProps> = ({
 
   return (
     <>
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-end gap-4 ml-[150px]">
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 ml-[150px]">
         {/* Main Prompt Container */}
         <div
           ref={setNodeRef}
-          className={`w-[calc(100vw-400px)] max-w-4xl bg-card/95 backdrop-blur-xl border border-border/50 rounded-3xl shadow-2xl transition-all duration-200 ${
+          className={`w-[calc(100vw-380px)] max-w-5xl bg-card/95 backdrop-blur-xl border border-border/50 rounded-3xl shadow-2xl transition-all duration-200 ${
             isOver ? 'ring-2 ring-primary scale-[1.02]' : ''
           }`}
         >
           {/* Row 1: Selected Photos */}
           {selectedPhotos.length > 0 && (
-            <div className="flex items-center gap-2 px-5 pt-4 pb-3">
+            <div className="flex items-center gap-2 px-5 pt-4 pb-2">
               {selectedPhotos.slice(0, 6).map((photo) => (
                 <div key={photo.id} className="relative group">
                   <img
@@ -150,7 +150,7 @@ export const PromptBar: React.FC<PromptBarProps> = ({
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               placeholder="Describe what you want to create..."
-              className="min-h-[40px] max-h-[80px] resize-none bg-transparent border-0 focus-visible:ring-0 text-base placeholder:text-muted-foreground/60 p-0"
+              className="min-h-[36px] max-h-[60px] resize-none bg-transparent border-0 focus-visible:ring-0 text-base placeholder:text-muted-foreground/60 p-0"
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault();
@@ -160,178 +160,180 @@ export const PromptBar: React.FC<PromptBarProps> = ({
             />
           </div>
 
-          {/* Row 3: Controls */}
-          <div className="flex items-center gap-1 px-4 pb-4 pt-2">
-            {/* Aspect Ratio */}
-            <Popover open={ratioOpen} onOpenChange={setRatioOpen}>
-              <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" className="h-9 px-3 gap-2 rounded-full border-border/50 bg-muted/30 hover:bg-muted/50">
-                  <div 
-                    className="border-2 border-current rounded-sm"
-                    style={{ 
-                      width: ratioShapes[ratio]?.w || 14, 
-                      height: ratioShapes[ratio]?.h || 14 
-                    }}
-                  />
-                  <span className="text-sm font-medium">{ratio}</span>
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-64 p-2 bg-popover" align="start">
-                <div className="grid grid-cols-4 gap-1">
-                  {ratioOptions.map((option) => {
-                    const shape = ratioShapes[option.value];
-                    return (
+          {/* Row 3: Controls + Generate Button */}
+          <div className="flex items-center justify-between px-4 pb-3 pt-1">
+            <div className="flex items-center gap-1">
+              {/* Aspect Ratio */}
+              <Popover open={ratioOpen} onOpenChange={setRatioOpen}>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-9 px-3 gap-2 rounded-full border-border/50 bg-muted/30 hover:bg-muted/50">
+                    <div 
+                      className="border-2 border-current rounded-sm"
+                      style={{ 
+                        width: ratioShapes[ratio]?.w || 14, 
+                        height: ratioShapes[ratio]?.h || 14 
+                      }}
+                    />
+                    <span className="text-sm font-medium">{ratio}</span>
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-64 p-2 bg-popover" align="start">
+                  <div className="grid grid-cols-4 gap-1">
+                    {ratioOptions.map((option) => {
+                      const shape = ratioShapes[option.value];
+                      return (
+                        <button
+                          key={option.value}
+                          onClick={() => {
+                            setRatio(option.value);
+                            setRatioOpen(false);
+                          }}
+                          className={`flex flex-col items-center gap-1 p-2 rounded-lg transition-colors ${
+                            ratio === option.value
+                              ? 'bg-primary text-primary-foreground'
+                              : 'hover:bg-muted'
+                          }`}
+                        >
+                          <div 
+                            className="border-2 border-current rounded-sm"
+                            style={{ width: shape.w, height: shape.h }}
+                          />
+                          <span className="text-[10px] font-medium">{option.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </PopoverContent>
+              </Popover>
+
+              {/* Resolution */}
+              <Popover open={resolutionOpen} onOpenChange={setResolutionOpen}>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-9 px-3 gap-1.5 rounded-full border-border/50 bg-muted/30 hover:bg-muted/50">
+                    <span className="text-sm font-medium">{currentResolution.label}</span>
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-28 p-1.5 bg-popover" align="start">
+                  <div className="flex flex-col gap-0.5">
+                    {resolutionOptions.map((option) => (
                       <button
                         key={option.value}
                         onClick={() => {
-                          setRatio(option.value);
-                          setRatioOpen(false);
+                          setResolution(option.value);
+                          setResolutionOpen(false);
                         }}
-                        className={`flex flex-col items-center gap-1 p-2 rounded-lg transition-colors ${
-                          ratio === option.value
+                        className={`px-3 py-1.5 rounded-md text-sm transition-colors text-center ${
+                          resolution === option.value
                             ? 'bg-primary text-primary-foreground'
                             : 'hover:bg-muted'
                         }`}
                       >
-                        <div 
-                          className="border-2 border-current rounded-sm"
-                          style={{ width: shape.w, height: shape.h }}
-                        />
-                        <span className="text-[10px] font-medium">{option.label}</span>
+                        {option.label}
                       </button>
-                    );
-                  })}
-                </div>
-              </PopoverContent>
-            </Popover>
+                    ))}
+                  </div>
+                </PopoverContent>
+              </Popover>
 
-            {/* Resolution */}
-            <Popover open={resolutionOpen} onOpenChange={setResolutionOpen}>
-              <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" className="h-9 px-3 gap-1.5 rounded-full border-border/50 bg-muted/30 hover:bg-muted/50">
-                  <span className="text-sm font-medium">{currentResolution.label}</span>
+              {/* Photo Amount */}
+              <div className="flex items-center h-9 px-2 rounded-full border border-border/50 bg-muted/30">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 text-muted-foreground hover:text-foreground"
+                  onClick={() => setPhotoAmount(Math.max(1, photoAmount - 1))}
+                  disabled={photoAmount <= 1}
+                >
+                  <Minus className="w-3.5 h-3.5" />
                 </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-28 p-1.5 bg-popover" align="start">
-                <div className="flex flex-col gap-0.5">
-                  {resolutionOptions.map((option) => (
-                    <button
-                      key={option.value}
-                      onClick={() => {
-                        setResolution(option.value);
-                        setResolutionOpen(false);
-                      }}
-                      className={`px-3 py-1.5 rounded-md text-sm transition-colors text-center ${
-                        resolution === option.value
-                          ? 'bg-primary text-primary-foreground'
-                          : 'hover:bg-muted'
-                      }`}
-                    >
-                      {option.label}
-                    </button>
-                  ))}
-                </div>
-              </PopoverContent>
-            </Popover>
+                <span className="text-sm font-medium w-6 text-center">{photoAmount}/4</span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 text-muted-foreground hover:text-foreground"
+                  onClick={() => setPhotoAmount(Math.min(4, photoAmount + 1))}
+                  disabled={photoAmount >= 4}
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                </Button>
+              </div>
 
-            {/* Photo Amount */}
-            <div className="flex items-center h-9 px-2 rounded-full border border-border/50 bg-muted/30">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6 text-muted-foreground hover:text-foreground"
-                onClick={() => setPhotoAmount(Math.max(1, photoAmount - 1))}
-                disabled={photoAmount <= 1}
-              >
-                <Minus className="w-3.5 h-3.5" />
-              </Button>
-              <span className="text-sm font-medium w-6 text-center">{photoAmount}/4</span>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6 text-muted-foreground hover:text-foreground"
-                onClick={() => setPhotoAmount(Math.min(4, photoAmount + 1))}
-                disabled={photoAmount >= 4}
-              >
-                <Plus className="w-3.5 h-3.5" />
-              </Button>
+              {/* Style Guide */}
+              <Popover open={styleGuideOpen} onOpenChange={setStyleGuideOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className={`h-9 w-9 p-0 rounded-full border-border/50 bg-muted/30 hover:bg-muted/50 ${styleGuideUrl ? 'text-primary border-primary' : ''}`}
+                  >
+                    <Image className="w-4 h-4" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-48 p-2 bg-popover" align="start">
+                  <div className="space-y-2">
+                    <p className="text-xs text-muted-foreground">Style Reference</p>
+                    {styleGuideUrl ? (
+                      <div className="relative">
+                        <img
+                          src={styleGuideUrl}
+                          alt="Style guide"
+                          className="w-full h-24 object-cover rounded-lg cursor-pointer"
+                          onClick={() => {
+                            setStyleGuideLightboxOpen(true);
+                            setStyleGuideOpen(false);
+                          }}
+                        />
+                        <button
+                          onClick={() => setStyleGuideUrl(null)}
+                          className="absolute top-1 right-1 w-5 h-5 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => fileInputRef.current?.click()}
+                        className="w-full h-20 border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center gap-1 hover:border-primary/50 transition-colors"
+                      >
+                        <Upload className="w-4 h-4 text-muted-foreground" />
+                        <span className="text-xs text-muted-foreground">Upload</span>
+                      </button>
+                    )}
+                  </div>
+                </PopoverContent>
+              </Popover>
+
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleStyleGuideUpload}
+                className="hidden"
+              />
             </div>
 
-            {/* Style Guide */}
-            <Popover open={styleGuideOpen} onOpenChange={setStyleGuideOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className={`h-9 w-9 p-0 rounded-full border-border/50 bg-muted/30 hover:bg-muted/50 ${styleGuideUrl ? 'text-primary border-primary' : ''}`}
-                >
-                  <Image className="w-4 h-4" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-48 p-2 bg-popover" align="start">
-                <div className="space-y-2">
-                  <p className="text-xs text-muted-foreground">Style Reference</p>
-                  {styleGuideUrl ? (
-                    <div className="relative">
-                      <img
-                        src={styleGuideUrl}
-                        alt="Style guide"
-                        className="w-full h-24 object-cover rounded-lg cursor-pointer"
-                        onClick={() => {
-                          setStyleGuideLightboxOpen(true);
-                          setStyleGuideOpen(false);
-                        }}
-                      />
-                      <button
-                        onClick={() => setStyleGuideUrl(null)}
-                        className="absolute top-1 right-1 w-5 h-5 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => fileInputRef.current?.click()}
-                      className="w-full h-20 border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center gap-1 hover:border-primary/50 transition-colors"
-                    >
-                      <Upload className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-xs text-muted-foreground">Upload</span>
-                    </button>
-                  )}
-                </div>
-              </PopoverContent>
-            </Popover>
-
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              onChange={handleStyleGuideUpload}
-              className="hidden"
-            />
+            {/* Generate Button - Inside the box on the right */}
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    onClick={handleGenerate}
+                    disabled={isGenerating || loadingCount >= 8 || (!prompt.trim() && selectedPhotos.length === 0)}
+                    className="h-10 px-6 rounded-xl bg-primary hover:bg-primary/90 font-semibold text-sm shadow-lg"
+                  >
+                    <Sparkles className="w-4 h-4 mr-2" />
+                    Generate
+                  </Button>
+                </TooltipTrigger>
+                {loadingCount >= 8 && (
+                  <TooltipContent>
+                    <p>Generation limit reached — please wait for current images to complete</p>
+                  </TooltipContent>
+                )}
+              </Tooltip>
+            </TooltipProvider>
           </div>
         </div>
-
-        {/* Generate Button - Separate on right */}
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                onClick={handleGenerate}
-                disabled={isGenerating || loadingCount >= 8 || (!prompt.trim() && selectedPhotos.length === 0)}
-                className="h-14 px-8 rounded-2xl bg-primary hover:bg-primary/90 font-semibold text-base shadow-lg"
-              >
-                <Sparkles className="w-5 h-5 mr-2" />
-                Generate
-              </Button>
-            </TooltipTrigger>
-            {loadingCount >= 8 && (
-              <TooltipContent>
-                <p>Generation limit reached — please wait for current images to complete</p>
-              </TooltipContent>
-            )}
-          </Tooltip>
-        </TooltipProvider>
       </div>
 
       {/* Style Guide Lightbox */}
