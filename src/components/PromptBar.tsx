@@ -86,7 +86,6 @@ export const PromptBar: React.FC<PromptBarProps> = ({
   const handleGenerate = () => {
     if (prompt.trim() || selectedPhotos.length > 0) {
       onGenerate(prompt);
-      setPrompt('');
     }
   };
 
