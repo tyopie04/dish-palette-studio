@@ -151,31 +151,42 @@ const Index = () => {
     setSelectedPhotos((prev) => prev.filter((p) => p.id !== id));
   }, []);
 
-  const addLoadingEntry = useCallback((prompt?: string, ratio?: string, resolution?: string) => {
-    const id = `gen-${Date.now()}`;
-    const newEntry: GenerationEntry = {
-      id,
-      images: [],
-      timestamp: new Date(),
-      isLoading: true,
-      prompt,
-      ratio,
-      resolution,
-    };
-    setGenerationHistory((prev) => [newEntry, ...prev]);
-    return id;
+  const addLoadingEntries = useCallback((count: number, prompt?: string, ratio?: string, resolution?: string) => {
+    const ids: string[] = [];
+    const newEntries: GenerationEntry[] = [];
+    
+    for (let i = 0; i < count; i++) {
+      const id = `gen-${Date.now()}-${i}`;
+      ids.push(id);
+      newEntries.push({
+        id,
+        images: [],
+        timestamp: new Date(),
+        isLoading: true,
+        prompt,
+        ratio,
+        resolution,
+      });
+    }
+    
+    setGenerationHistory((prev) => [...newEntries, ...prev]);
+    return ids;
   }, []);
 
-  const updateEntryWithImages = useCallback((id: string, images: string[]) => {
+  const updateEntryWithImage = useCallback((id: string, image: string) => {
     setGenerationHistory((prev) =>
       prev.map((entry) =>
-        entry.id === id ? { ...entry, images, isLoading: false } : entry
+        entry.id === id ? { ...entry, images: [image], isLoading: false } : entry
       )
     );
   }, []);
 
   const removeLoadingEntry = useCallback((id: string) => {
     setGenerationHistory((prev) => prev.filter((entry) => entry.id !== id));
+  }, []);
+
+  const removeLoadingEntries = useCallback((ids: string[]) => {
+    setGenerationHistory((prev) => prev.filter((entry) => !ids.includes(entry.id)));
   }, []);
 
   const extractImagesFromResponse = (data: any): string[] => {
@@ -186,7 +197,8 @@ const Index = () => {
   };
 
   const handleGenerate = useCallback(async (prompt: string) => {
-    const loadingId = addLoadingEntry(prompt, selectedRatio, selectedResolution);
+    // Create one loading entry per image being generated
+    const loadingIds = addLoadingEntries(selectedPhotoAmount, prompt, selectedRatio, selectedResolution);
     
     try {
       const imagePromises = selectedPhotos.map((p) => compressImageToBase64(p.src));
@@ -213,28 +225,40 @@ const Index = () => {
 
       if (error) {
         toast.error(error.message || 'Failed to generate content');
-        removeLoadingEntry(loadingId);
+        removeLoadingEntries(loadingIds);
         return;
       }
 
       const images = extractImagesFromResponse(data);
       
       if (images.length > 0) {
-        updateEntryWithImages(loadingId, images);
-        toast.success("Content generated successfully!");
+        // Update each loading entry with its corresponding image
+        images.forEach((image, index) => {
+          if (loadingIds[index]) {
+            updateEntryWithImage(loadingIds[index], image);
+          }
+        });
+        
+        // Remove any extra loading entries that didn't get images
+        const unusedIds = loadingIds.slice(images.length);
+        if (unusedIds.length > 0) {
+          removeLoadingEntries(unusedIds);
+        }
+        
+        toast.success(`Generated ${images.length} image${images.length > 1 ? 's' : ''} successfully!`);
       } else if (data?.error) {
         toast.error(data.error.message || 'AI generation failed');
-        removeLoadingEntry(loadingId);
+        removeLoadingEntries(loadingIds);
       } else {
         toast.error('No images were generated');
-        removeLoadingEntry(loadingId);
+        removeLoadingEntries(loadingIds);
       }
     } catch (err) {
       console.error('Generation error:', err);
       toast.error('Failed to generate content');
-      removeLoadingEntry(loadingId);
+      removeLoadingEntries(loadingIds);
     }
-  }, [selectedPhotos, selectedRatio, selectedResolution, selectedPhotoAmount, styleGuideUrl, user?.id, addLoadingEntry, updateEntryWithImages, removeLoadingEntry]);
+  }, [selectedPhotos, selectedRatio, selectedResolution, selectedPhotoAmount, styleGuideUrl, user?.id, addLoadingEntries, updateEntryWithImage, removeLoadingEntries]);
 
   const handlePhotosAdded = useCallback((files: File[]) => {
     uploadPhotos(files);
@@ -279,7 +303,8 @@ const Index = () => {
   }, []);
 
   const handleApplyEdit = useCallback(async (image: string, editPrompt: string) => {
-    const loadingId = addLoadingEntry("Editing...", "Edit", "Original");
+    const loadingIds = addLoadingEntries(1, "Editing...", "Edit", "Original");
+    const loadingId = loadingIds[0];
     
     try {
       const { data, error } = await supabase.functions.invoke('edit-image', {
@@ -293,7 +318,7 @@ const Index = () => {
       }
 
       if (data?.image) {
-        updateEntryWithImages(loadingId, [data.image]);
+        updateEntryWithImage(loadingId, data.image);
         toast.success("Image edited successfully!");
       } else {
         toast.error('No edited image was returned');
@@ -304,7 +329,7 @@ const Index = () => {
       toast.error('Failed to edit image');
       removeLoadingEntry(loadingId);
     }
-  }, [addLoadingEntry, updateEntryWithImages, removeLoadingEntry]);
+  }, [addLoadingEntries, updateEntryWithImage, removeLoadingEntry]);
 
   const dragOverlayContent = useMemo(() => {
     if (!activePhoto) return null;
