@@ -431,7 +431,7 @@ const Index = () => {
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
-        <div className="min-h-screen w-screen bg-background flex flex-col overflow-hidden">
+        <div className="h-screen w-full bg-background flex flex-col overflow-hidden">
           <Header />
           
           <ResizablePanelGroup direction="horizontal" className="flex-1 w-full overflow-hidden">
