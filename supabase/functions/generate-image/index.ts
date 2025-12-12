@@ -1,5 +1,152 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.86.2";
+import { decode as decodeBase64 } from "https://deno.land/std@0.168.0/encoding/base64.ts";
+
+// Helper function to extract image dimensions from base64 PNG/JPEG
+function getImageDimensions(base64Data: string): { width: number; height: number } | null {
+  try {
+    // Extract the actual base64 content (remove data URL prefix if present)
+    let base64Content = base64Data;
+    const base64Match = base64Data.match(/base64,(.+)/);
+    if (base64Match) {
+      base64Content = base64Match[1];
+    }
+    
+    const bytes = decodeBase64(base64Content);
+    
+    // Check for PNG signature (89 50 4E 47 0D 0A 1A 0A)
+    if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4E && bytes[3] === 0x47) {
+      // PNG: Width is at bytes 16-19, Height at bytes 20-23 (big-endian)
+      const width = (bytes[16] << 24) | (bytes[17] << 16) | (bytes[18] << 8) | bytes[19];
+      const height = (bytes[20] << 24) | (bytes[21] << 16) | (bytes[22] << 8) | bytes[23];
+      return { width, height };
+    }
+    
+    // Check for JPEG signature (FF D8 FF)
+    if (bytes[0] === 0xFF && bytes[1] === 0xD8 && bytes[2] === 0xFF) {
+      // JPEG: Need to find SOF marker (Start of Frame)
+      let i = 2;
+      while (i < bytes.length - 8) {
+        if (bytes[i] !== 0xFF) { i++; continue; }
+        const marker = bytes[i + 1];
+        // SOF0, SOF1, SOF2 markers contain dimensions
+        if (marker >= 0xC0 && marker <= 0xC2) {
+          const height = (bytes[i + 5] << 8) | bytes[i + 6];
+          const width = (bytes[i + 7] << 8) | bytes[i + 8];
+          return { width, height };
+        }
+        // Skip to next marker
+        const length = (bytes[i + 2] << 8) | bytes[i + 3];
+        i += 2 + length;
+      }
+    }
+    
+    // Check for WebP signature (RIFF....WEBP)
+    if (bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46 &&
+        bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42 && bytes[11] === 0x50) {
+      // WebP: VP8 chunk contains dimensions at specific offsets
+      // This is simplified - may need enhancement for VP8L/VP8X
+      if (bytes[12] === 0x56 && bytes[13] === 0x50 && bytes[14] === 0x38) {
+        // VP8 bitstream
+        const width = ((bytes[26] | (bytes[27] << 8)) & 0x3FFF);
+        const height = ((bytes[28] | (bytes[29] << 8)) & 0x3FFF);
+        if (width > 0 && height > 0) return { width, height };
+      }
+    }
+    
+    return null;
+  } catch (e) {
+    console.error('[DIMENSION] Error extracting dimensions:', e);
+    return null;
+  }
+}
+
+// Upscale an image using Gemini
+async function upscaleImage(
+  LOVABLE_API_KEY: string,
+  imageBase64: string,
+  targetWidth: number,
+  targetHeight: number,
+  currentWidth: number,
+  currentHeight: number
+): Promise<string> {
+  console.log(`[UPSCALE] Upscaling from ${currentWidth}x${currentHeight} to ${targetWidth}x${targetHeight}`);
+  
+  const upscalePrompt = `CRITICAL UPSCALING TASK:
+
+You MUST upscale this image to EXACTLY ${targetWidth}x${targetHeight} pixels.
+
+RULES:
+1. The output MUST be EXACTLY ${targetWidth}x${targetHeight} pixels - no exceptions
+2. Preserve ALL details, textures, colors, and composition exactly as they are
+3. Enhance sharpness and detail appropriate for the higher resolution
+4. Do NOT change, add, or remove any content from the image
+5. Do NOT alter colors, lighting, or any visual elements
+6. Simply make this exact image larger at ${targetWidth}x${targetHeight} pixels
+
+This is a pure resolution upscale. The content must be identical, just at higher resolution.
+Output resolution: ${targetWidth}x${targetHeight} pixels.`;
+
+  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${LOVABLE_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "google/gemini-3-pro-image-preview",
+      messages: [
+        {
+          role: "user",
+          content: [
+            { type: "text", text: upscalePrompt },
+            { type: "image_url", image_url: { url: imageBase64 } }
+          ]
+        }
+      ],
+      modalities: ["image", "text"],
+      size: `${targetWidth}x${targetHeight}`,
+      generationConfig: {
+        imageConfig: {
+          width: targetWidth,
+          height: targetHeight
+        },
+        thinkingConfig: {
+          thinkingBudget: 4096
+        }
+      }
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('[UPSCALE] Error:', response.status, errorText);
+    throw new Error(`Upscaling failed: ${response.status}`);
+  }
+
+  const data = await response.json();
+  const message = data.choices?.[0]?.message;
+  
+  // Extract the upscaled image
+  if (message?.images && message.images.length > 0) {
+    const upscaledUrl = message.images[0].image_url?.url || message.images[0].url;
+    if (upscaledUrl) {
+      console.log('[UPSCALE] Successfully upscaled image');
+      return upscaledUrl;
+    }
+  }
+  
+  // Check for inline image in content
+  if (message?.content) {
+    const base64Match = message.content.match(/data:image\/[^;]+;base64,[^\s"]+/);
+    if (base64Match) {
+      console.log('[UPSCALE] Successfully upscaled image (from content)');
+      return base64Match[0];
+    }
+  }
+  
+  throw new Error('Upscaling returned no image');
+}
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -788,8 +935,68 @@ CRITICAL: Output MUST be ${width}x${height} pixels - ultra sharp ${resolution} q
       }
       
       if (generatedImages.length > 0) {
-        allGeneratedImages.push(...generatedImages);
-        console.log(`[HAND] Added ${generatedImages.length} image(s) from generation ${imageIndex + 1}`);
+        // Check dimensions of generated images and upscale if needed
+        for (const genImage of generatedImages) {
+          const dims = getImageDimensions(genImage);
+          if (dims) {
+            console.log(`[HAND] Generated image dimensions: ${dims.width}x${dims.height}`);
+            
+            // Check if upscaling is needed (image is smaller than requested)
+            const needsUpscale = (dims.width < width * 0.9) || (dims.height < height * 0.9);
+            
+            if (needsUpscale && (resolution === "2K" || resolution === "4K")) {
+              console.log(`[UPSCALE] Image needs upscaling: got ${dims.width}x${dims.height}, need ${width}x${height}`);
+              try {
+                const upscaledImage = await upscaleImage(
+                  LOVABLE_API_KEY,
+                  genImage,
+                  width,
+                  height,
+                  dims.width,
+                  dims.height
+                );
+                
+                // Verify upscaled dimensions
+                const upscaledDims = getImageDimensions(upscaledImage);
+                if (upscaledDims) {
+                  console.log(`[UPSCALE] Upscaled result: ${upscaledDims.width}x${upscaledDims.height}`);
+                }
+                
+                allGeneratedImages.push(upscaledImage);
+                console.log(`[HAND] Added upscaled image from generation ${imageIndex + 1}`);
+              } catch (upscaleError) {
+                console.error('[UPSCALE] Failed, using original:', upscaleError);
+                allGeneratedImages.push(genImage);
+              }
+            } else {
+              allGeneratedImages.push(genImage);
+              console.log(`[HAND] Added ${resolution} image from generation ${imageIndex + 1} (${dims.width}x${dims.height})`);
+            }
+          } else {
+            // Couldn't detect dimensions, still try to upscale for 2K/4K
+            if (resolution === "2K" || resolution === "4K") {
+              console.log(`[UPSCALE] Dimensions unknown, attempting upscale to ${width}x${height}`);
+              try {
+                const upscaledImage = await upscaleImage(
+                  LOVABLE_API_KEY,
+                  genImage,
+                  width,
+                  height,
+                  1024, // Assume base is 1K
+                  Math.round(1024 * (height / width))
+                );
+                allGeneratedImages.push(upscaledImage);
+                console.log(`[HAND] Added upscaled image (dimensions were unknown)`);
+              } catch (upscaleError) {
+                console.error('[UPSCALE] Failed, using original:', upscaleError);
+                allGeneratedImages.push(genImage);
+              }
+            } else {
+              allGeneratedImages.push(genImage);
+              console.log(`[HAND] Added image from generation ${imageIndex + 1} (dimensions unknown)`);
+            }
+          }
+        }
       } else {
         console.error(`[HAND] No images found for generation ${imageIndex + 1}. Full response:`, JSON.stringify(data, null, 2));
       }
@@ -799,14 +1006,28 @@ CRITICAL: Output MUST be ${width}x${height} pixels - ultra sharp ${resolution} q
       throw new Error('No images generated - try a simpler prompt or fewer reference images');
     }
 
+    // Get final dimensions for response
+    let actualDimensions = { width: 0, height: 0 };
+    if (allGeneratedImages.length > 0) {
+      const finalDims = getImageDimensions(allGeneratedImages[0]);
+      if (finalDims) {
+        actualDimensions = finalDims;
+        console.log(`[FINAL] Output dimensions: ${finalDims.width}x${finalDims.height}`);
+      }
+    }
+
     console.log('=== GENERATION COMPLETE ===');
     console.log('Brain reasoning:', reasoning);
     console.log('Total images generated:', allGeneratedImages.length);
+    console.log('Requested resolution:', resolution, `(${width}x${height})`);
+    console.log('Actual dimensions:', actualDimensions.width > 0 ? `${actualDimensions.width}x${actualDimensions.height}` : 'unknown');
 
     return new Response(
       JSON.stringify({ 
         images: allGeneratedImages,
-        reasoning // Include reasoning in response for transparency
+        reasoning,
+        requestedResolution: { width, height, label: resolution },
+        actualDimensions: actualDimensions.width > 0 ? actualDimensions : null
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
