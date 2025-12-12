@@ -117,8 +117,8 @@ export const PromptBar: React.FC<PromptBarProps> = ({
           <div className="flex-1 flex flex-col">
             {/* Row 1: Selected Photos */}
             {selectedPhotos.length > 0 && (
-              <div className="flex items-center gap-2 px-5 pt-4 pb-2">
-                {selectedPhotos.slice(0, 6).map((photo) => (
+              <div className="flex items-center gap-2 px-5 pt-4 pb-2 flex-wrap">
+                {selectedPhotos.map((photo) => (
                   <div key={photo.id} className="relative group">
                     <img
                       src={photo.thumbnailSrc || photo.src}
@@ -133,15 +133,14 @@ export const PromptBar: React.FC<PromptBarProps> = ({
                     </button>
                   </div>
                 ))}
-                {selectedPhotos.length > 6 && (
-                  <span className="text-xs text-muted-foreground ml-1">+{selectedPhotos.length - 6}</span>
+                {/* Add more photos hint - only show if under limit */}
+                {selectedPhotos.length < 8 && (
+                  <button
+                    className="w-14 h-14 rounded-xl border-2 border-dashed border-border/50 flex items-center justify-center text-muted-foreground hover:border-primary/50 hover:text-primary transition-colors"
+                  >
+                    <Plus className="w-5 h-5" />
+                  </button>
                 )}
-                {/* Add more photos button */}
-                <button
-                  className="w-14 h-14 rounded-xl border-2 border-dashed border-border/50 flex items-center justify-center text-muted-foreground hover:border-primary/50 hover:text-primary transition-colors"
-                >
-                  <Plus className="w-5 h-5" />
-                </button>
               </div>
             )}
 
