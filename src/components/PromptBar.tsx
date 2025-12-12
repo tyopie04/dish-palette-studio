@@ -151,19 +151,16 @@ export const PromptBar: React.FC<PromptBarProps> = ({
               {/* Upload button */}
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="w-8 h-8 rounded-full border border-border/50 flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-primary/50 transition-colors flex-shrink-0"
+                className="w-8 h-8 rounded-full border border-border/50 flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-primary/50 transition-colors flex-shrink-0 self-center"
               >
                 <Plus className="w-4 h-4" />
               </button>
-              {/* Typing cursor animation when empty */}
-              {!prompt && (
-                <span className="w-0.5 h-5 bg-muted-foreground/60 animate-pulse flex-shrink-0" />
-              )}
-              <Textarea
+              <input
+                type="text"
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
                 placeholder="Describe what you want to create..."
-                className="flex-1 min-h-[24px] max-h-[60px] resize-none bg-transparent border-0 focus-visible:ring-0 text-base placeholder:text-muted-foreground/60 p-0 caret-primary"
+                className="flex-1 bg-transparent border-0 outline-none text-base text-foreground placeholder:text-muted-foreground/60 caret-primary h-8 leading-8"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
