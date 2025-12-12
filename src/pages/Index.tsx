@@ -434,33 +434,31 @@ const Index = () => {
         <div className="min-h-screen bg-background flex flex-col">
           <Header />
           
-          <ResizablePanelGroup direction="horizontal" className="flex-1">
-            {/* Left Sidebar - Menu Photos */}
+          <ResizablePanelGroup direction="horizontal" className="flex-1 overflow-hidden">
+            {/* Left Sidebar - Menu Photos - Independent scroll */}
             <ResizablePanel defaultSize={20} minSize={15} maxSize={40}>
-              <aside className="h-full border-r border-border/50 bg-card/30">
-                <ScrollArea className="h-[calc(100vh-64px)]">
-                  <div className="p-4">
-                    <PhotoGallery 
-                      photos={photos} 
-                      onPhotosAdded={handlePhotosAdded} 
-                      onDeletePhoto={handleDeletePhoto}
-                      onPhotoClick={handlePhotoClick}
-                      onReorder={handleReorder}
-                      onRenamePhoto={handleRenamePhoto}
-                      loading={photosLoading}
-                      photoSize={photoSize}
-                      onPhotoSizeChange={setPhotoSize}
-                    />
-                  </div>
-                </ScrollArea>
+              <aside className="h-[calc(100vh-64px)] border-r border-border/50 bg-card/30 overflow-y-auto overflow-x-hidden">
+                <div className="p-4">
+                  <PhotoGallery 
+                    photos={photos} 
+                    onPhotosAdded={handlePhotosAdded} 
+                    onDeletePhoto={handleDeletePhoto}
+                    onPhotoClick={handlePhotoClick}
+                    onReorder={handleReorder}
+                    onRenamePhoto={handleRenamePhoto}
+                    loading={photosLoading}
+                    photoSize={photoSize}
+                    onPhotoSizeChange={setPhotoSize}
+                  />
+                </div>
               </aside>
             </ResizablePanel>
 
             <ResizableHandle withHandle />
 
-            {/* Main Content - Generated Images */}
+            {/* Main Content - Generated Images - Independent scroll */}
             <ResizablePanel defaultSize={80}>
-              <main className="h-full flex flex-col overflow-hidden">
+              <main className="h-[calc(100vh-64px)] flex flex-col overflow-y-auto overflow-x-hidden">
                 <MasonryGallery
                   history={generationHistory}
                   onImageClick={handleImageClick}
