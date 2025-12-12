@@ -155,24 +155,22 @@ export const PromptBar: React.FC<PromptBarProps> = ({
               >
                 <Plus className="w-4 h-4" />
               </button>
-              <div className="flex-1 relative">
-                <Textarea
-                  value={prompt}
-                  onChange={(e) => setPrompt(e.target.value)}
-                  placeholder="Describe what you want to create..."
-                  className="min-h-[24px] max-h-[60px] resize-none bg-transparent border-0 focus-visible:ring-0 text-base placeholder:text-muted-foreground/60 p-0 caret-primary"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault();
-                      handleGenerate();
-                    }
-                  }}
-                />
-                {/* Typing cursor animation when empty */}
-                {!prompt && (
-                  <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-muted-foreground/60 animate-pulse pointer-events-none" />
-                )}
-              </div>
+              {/* Typing cursor animation when empty */}
+              {!prompt && (
+                <span className="w-0.5 h-5 bg-muted-foreground/60 animate-pulse flex-shrink-0" />
+              )}
+              <Textarea
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                placeholder="Describe what you want to create..."
+                className="flex-1 min-h-[24px] max-h-[60px] resize-none bg-transparent border-0 focus-visible:ring-0 text-base placeholder:text-muted-foreground/60 p-0 caret-primary"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleGenerate();
+                  }
+                }}
+              />
             </div>
 
             {/* Row 3: Controls */}
