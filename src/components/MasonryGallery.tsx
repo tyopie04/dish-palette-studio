@@ -175,20 +175,30 @@ export const MasonryGallery: React.FC<MasonryGalleryProps> = ({
     rows.push(allItems.slice(i, i + ITEMS_PER_ROW));
   }
 
-  // Calculate row heights to make each row fill the container width
-  const availableWidth = containerWidth - (GAP * (ITEMS_PER_ROW - 1));
+  // Don't render until we have a valid width
+  if (containerWidth <= 0) {
+    return (
+      <div className="flex-1 overflow-y-auto p-2 pb-24" ref={containerRef}>
+        <div className="h-32" /> {/* Placeholder to allow measurement */}
+      </div>
+    );
+  }
 
   return (
     <>
-      <div className="flex-1 overflow-y-auto overflow-x-hidden p-2 pb-24 w-full max-w-full" ref={containerRef}>
+      <div className="flex-1 overflow-y-auto overflow-x-hidden p-2 pb-24 w-full" ref={containerRef}>
         <div className="flex flex-col w-full" style={{ gap: `${GAP}px` }}>
           {rows.map((row, rowIndex) => {
             // === JUSTIFIED ROW LAYOUT ===
-            // Full rows: height = width/totalAspectRatio (fills width exactly, preserves aspect ratios)
-            // Partial rows: cap height so single images aren't huge
-            const totalAspectRatio = row.reduce((sum, item) => sum + item.aspectRatio, 0);
+            // Calculate gap space for THIS row (not assuming 4 items)
             const gapSpace = GAP * (row.length - 1);
-            const calculatedHeight = (availableWidth - gapSpace) / totalAspectRatio;
+            const rowAvailableWidth = containerWidth - gapSpace;
+            const totalAspectRatio = row.reduce((sum, item) => sum + item.aspectRatio, 0);
+            
+            // Height that makes all items fit exactly in the row width
+            const calculatedHeight = rowAvailableWidth / totalAspectRatio;
+            
+            // Partial rows: cap height so single images aren't huge
             const isPartialRow = row.length < ITEMS_PER_ROW;
             const rowHeight = isPartialRow 
               ? Math.min(MAX_ROW_HEIGHT, calculatedHeight)
@@ -197,7 +207,7 @@ export const MasonryGallery: React.FC<MasonryGalleryProps> = ({
             return (
               <div 
                 key={rowIndex} 
-                className="flex"
+                className="flex w-full"
                 style={{ gap: `${GAP}px`, height: `${rowHeight}px` }}
               >
                 {row.map((item) => {
