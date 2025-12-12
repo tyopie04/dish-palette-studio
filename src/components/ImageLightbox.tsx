@@ -129,6 +129,11 @@ export function ImageLightbox({
   // Get quality display string
   const getQualityDisplay = () => {
     if (!resolution) return null;
+    // Handle direct tier strings (e.g., "4K", "2K", "1K")
+    if (resolution === '4K' || resolution === '2K' || resolution === '1K') {
+      return resolution;
+    }
+    // Handle pixel values
     if (resolution === '4096') return '4K';
     if (resolution === '2048') return '2K';
     if (resolution === '1024') return '1K';
