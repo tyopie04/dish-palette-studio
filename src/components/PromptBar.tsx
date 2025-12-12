@@ -108,47 +108,49 @@ export const PromptBar: React.FC<PromptBarProps> = ({
     <>
       <div
         ref={setNodeRef}
-        className={`fixed bottom-6 z-50 bg-card/95 backdrop-blur-xl border border-border/50 rounded-2xl shadow-2xl transition-all duration-200 ${
+        className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-340px)] max-w-5xl bg-card/95 backdrop-blur-xl border border-border/50 rounded-2xl shadow-2xl transition-all duration-200 ml-[150px] ${
           isOver ? 'ring-2 ring-primary scale-[1.02]' : ''
         }`}
-        style={{ 
-          left: 'calc(20% + 2rem)', 
-          right: '2rem',
-          maxWidth: '1200px'
-        }}
       >
-        <div className="flex items-center gap-4 p-4">
-          {/* Selected Photos - Left */}
-          {selectedPhotos.length > 0 && (
-            <div className="flex items-center gap-2 flex-shrink-0 pr-4 border-r border-border/30">
-              {selectedPhotos.slice(0, 5).map((photo) => (
-                <div key={photo.id} className="relative group">
-                  <img
-                    src={photo.thumbnailSrc || photo.src}
-                    alt={photo.name}
-                    className="w-14 h-14 rounded-lg object-cover border border-border/50"
-                  />
-                  <button
-                    onClick={() => onRemovePhoto(photo.id)}
-                    className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </div>
-              ))}
-              {selectedPhotos.length > 5 && (
-                <span className="text-xs text-muted-foreground ml-1">+{selectedPhotos.length - 5}</span>
-              )}
-            </div>
-          )}
+        {/* Selected Photos - Top Row */}
+        {selectedPhotos.length > 0 && (
+          <div className="flex items-center gap-2 px-4 pt-4 pb-2 border-b border-border/30">
+            {selectedPhotos.slice(0, 8).map((photo) => (
+              <div key={photo.id} className="relative group">
+                <img
+                  src={photo.thumbnailSrc || photo.src}
+                  alt={photo.name}
+                  className="w-12 h-12 rounded-lg object-cover border border-border/50"
+                />
+                <button
+                  onClick={() => onRemovePhoto(photo.id)}
+                  className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            ))}
+            {selectedPhotos.length > 8 && (
+              <span className="text-xs text-muted-foreground ml-1">+{selectedPhotos.length - 8}</span>
+            )}
+            {/* Add more photos button */}
+            <button
+              className="w-12 h-12 rounded-lg border-2 border-dashed border-border/50 flex items-center justify-center text-muted-foreground hover:border-primary/50 hover:text-primary transition-colors"
+            >
+              <Plus className="w-5 h-5" />
+            </button>
+          </div>
+        )}
 
-          {/* Prompt Input - Center */}
+        {/* Bottom Row - Input and Controls */}
+        <div className="flex items-center gap-4 p-4">
+          {/* Prompt Input */}
           <div className="flex-1 min-w-0">
             <Textarea
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               placeholder="Describe what you want to create..."
-              className="min-h-[48px] max-h-[100px] resize-none bg-transparent border-0 focus-visible:ring-0 text-base placeholder:text-muted-foreground/60"
+              className="min-h-[44px] max-h-[80px] resize-none bg-transparent border-0 focus-visible:ring-0 text-base placeholder:text-muted-foreground/60"
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault();
@@ -159,7 +161,7 @@ export const PromptBar: React.FC<PromptBarProps> = ({
           </div>
 
           {/* Controls - Right */}
-          <div className="flex items-center gap-1 flex-shrink-0 pl-4 border-l border-border/30">
+          <div className="flex items-center gap-1 flex-shrink-0">
             {/* Aspect Ratio */}
             <Popover open={ratioOpen} onOpenChange={setRatioOpen}>
               <PopoverTrigger asChild>
