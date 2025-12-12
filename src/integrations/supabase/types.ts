@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      generations: {
+        Row: {
+          created_at: string
+          id: string
+          images: string[]
+          prompt: string | null
+          ratio: string | null
+          resolution: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          images?: string[]
+          prompt?: string | null
+          ratio?: string | null
+          resolution?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          images?: string[]
+          prompt?: string | null
+          ratio?: string | null
+          resolution?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       menu_photos: {
         Row: {
           category: string

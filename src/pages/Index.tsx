@@ -17,21 +17,11 @@ import { ImageLightbox } from "@/components/ImageLightbox";
 import { ImageEditDialog } from "@/components/ImageEditDialog";
 import { MenuPhoto } from "@/components/PhotoCard";
 import { useMenuPhotos, MenuPhoto as StoredMenuPhoto } from "@/hooks/useMenuPhotos";
+import { useGenerations, GenerationEntry } from "@/hooks/useGenerations";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
-
-interface GenerationEntry {
-  id: string;
-  images: string[];
-  timestamp: Date;
-  isLoading?: boolean;
-  prompt?: string;
-  ratio?: string;
-  resolution?: string;
-}
 
 // Higher quality image processing for AI generation (max 4096px for better quality)
 const compressImageToBase64 = async (url: string): Promise<string> => {
@@ -73,11 +63,19 @@ const compressImageToBase64 = async (url: string): Promise<string> => {
 const Index = () => {
   const { user } = useAuth();
   const { photos: storedPhotos, loading: photosLoading, uploadPhotos, deletePhoto, reorderPhotos, renamePhoto } = useMenuPhotos();
+  const { 
+    generations: generationHistory, 
+    addLoadingEntries, 
+    updateEntryWithImage, 
+    removeLoadingEntry, 
+    removeLoadingEntries, 
+    deleteGeneration,
+    deleteGenerations,
+  } = useGenerations();
   
   const photos = storedPhotos;
   
   const [selectedPhotos, setSelectedPhotos] = useState<MenuPhoto[]>([]);
-  const [generationHistory, setGenerationHistory] = useState<GenerationEntry[]>([]);
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
   
   const [activePhoto, setActivePhoto] = useState<MenuPhoto | null>(null);
@@ -160,44 +158,6 @@ const Index = () => {
 
   const handleRemovePhoto = useCallback((id: string) => {
     setSelectedPhotos((prev) => prev.filter((p) => p.id !== id));
-  }, []);
-
-  const addLoadingEntries = useCallback((count: number, prompt?: string, ratio?: string, resolution?: string) => {
-    const ids: string[] = [];
-    const newEntries: GenerationEntry[] = [];
-    
-    for (let i = 0; i < count; i++) {
-      const id = `gen-${Date.now()}-${i}`;
-      ids.push(id);
-      newEntries.push({
-        id,
-        images: [],
-        timestamp: new Date(),
-        isLoading: true,
-        prompt,
-        ratio,
-        resolution,
-      });
-    }
-    
-    setGenerationHistory((prev) => [...newEntries, ...prev]);
-    return ids;
-  }, []);
-
-  const updateEntryWithImage = useCallback((id: string, image: string) => {
-    setGenerationHistory((prev) =>
-      prev.map((entry) =>
-        entry.id === id ? { ...entry, images: [image], isLoading: false } : entry
-      )
-    );
-  }, []);
-
-  const removeLoadingEntry = useCallback((id: string) => {
-    setGenerationHistory((prev) => prev.filter((entry) => entry.id !== id));
-  }, []);
-
-  const removeLoadingEntries = useCallback((ids: string[]) => {
-    setGenerationHistory((prev) => prev.filter((entry) => !ids.includes(entry.id)));
   }, []);
 
   const extractImagesFromResponse = (data: any): string[] => {
@@ -299,9 +259,9 @@ const Index = () => {
   }, [renamePhoto]);
 
   const handleDeleteEntry = useCallback((entryId: string) => {
-    setGenerationHistory((prev) => prev.filter((e) => e.id !== entryId));
+    deleteGeneration(entryId);
     toast.success("Generation deleted");
-  }, []);
+  }, [deleteGeneration]);
 
   const handleToggleSelect = useCallback((imageId: string) => {
     setSelectedImages((prev) => 
@@ -350,16 +310,18 @@ const Index = () => {
     setSelectedImages([]);
   }, [selectedImages, generationHistory]);
 
-  const handleDeleteSelected = useCallback(() => {
-    const entryIdsToDelete = new Set<string>();
+  const handleDeleteSelected = useCallback(async () => {
+    const entryIdsToDelete: string[] = [];
     for (const imageId of selectedImages) {
       const entryId = imageId.split('-').slice(0, -1).join('-');
-      entryIdsToDelete.add(entryId);
+      if (!entryIdsToDelete.includes(entryId)) {
+        entryIdsToDelete.push(entryId);
+      }
     }
-    setGenerationHistory((prev) => prev.filter((e) => !entryIdsToDelete.has(e.id)));
+    await deleteGenerations(entryIdsToDelete);
     toast.success(`Deleted ${selectedImages.length} image${selectedImages.length > 1 ? 's' : ''}`);
     setSelectedImages([]);
-  }, [selectedImages]);
+  }, [selectedImages, deleteGenerations]);
 
   const handleRerun = useCallback((entry: { prompt?: string; ratio?: string; resolution?: string }) => {
     if (entry.prompt) {
