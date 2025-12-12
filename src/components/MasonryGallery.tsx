@@ -155,7 +155,7 @@ export const MasonryGallery: React.FC<MasonryGalleryProps> = ({
 
   return (
     <>
-      <div className="flex-1 overflow-y-auto p-2 pb-32" ref={containerRef}>
+      <div className="flex-1 overflow-y-auto p-2 pb-24" ref={containerRef}>
         <div className="flex flex-col" style={{ gap: `${GAP}px` }}>
           {rows.map((row, rowIndex) => {
             // Sum of aspect ratios for this row
