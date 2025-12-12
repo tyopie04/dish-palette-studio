@@ -110,12 +110,8 @@ export const useGenerations = () => {
   }, []);
 
   // Update a loading entry with the generated image and persist to database
-  const updateEntryWithImage = useCallback(async (tempId: string, image: string) => {
+  const updateEntryWithImage = useCallback(async (tempId: string, image: string, metadata?: { prompt?: string; ratio?: string; resolution?: string }) => {
     if (!user?.id) return;
-
-    // Find the entry to get its metadata
-    const entry = generations.find((e) => e.id === tempId);
-    if (!entry) return;
 
     try {
       // Insert into database
@@ -124,9 +120,9 @@ export const useGenerations = () => {
         .insert({
           user_id: user.id,
           images: [image],
-          prompt: entry.prompt || null,
-          ratio: entry.ratio || null,
-          resolution: entry.resolution || null,
+          prompt: metadata?.prompt || null,
+          ratio: metadata?.ratio || null,
+          resolution: metadata?.resolution || null,
         })
         .select()
         .single();
@@ -167,7 +163,7 @@ export const useGenerations = () => {
         )
       );
     }
-  }, [user?.id, generations]);
+  }, [user?.id]);
 
   // Remove a loading entry (local only)
   const removeLoadingEntry = useCallback((id: string) => {
