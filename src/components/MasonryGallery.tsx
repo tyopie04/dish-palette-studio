@@ -1,3 +1,16 @@
+/**
+ * IMPORTANT: DO NOT MODIFY THIS LAYOUT ALGORITHM
+ * 
+ * This implements a Highfield-style justified row gallery:
+ * - 4 items per row, flowing left-to-right
+ * - Each row scales to fill the full container width
+ * - Items maintain their aspect ratios
+ * - Row heights adjust based on the aspect ratios of items in that row
+ * 
+ * This layout has been carefully implemented and tested. Do not change
+ * the row-based layout logic without explicit user approval.
+ */
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Download, Trash2, Edit3, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
