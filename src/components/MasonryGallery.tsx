@@ -19,7 +19,6 @@ interface MasonryGalleryProps {
   onEdit: (imageUrl: string) => void;
 }
 
-// Parse ratio string to get aspect ratio number
 const parseRatio = (ratio?: string): number => {
   if (!ratio) return 1;
   const [w, h] = ratio.split(':').map(Number);
@@ -27,12 +26,33 @@ const parseRatio = (ratio?: string): number => {
   return w / h;
 };
 
+type LoadingItem = { type: 'loading'; id: string; ratio?: string; aspectRatio: number };
+type ImageItem = { type: 'image'; id: string; entryId: string; imageUrl: string; index: number; prompt?: string; ratio?: string; resolution?: string; timestamp: Date; aspectRatio: number };
+type GalleryItem = LoadingItem | ImageItem;
+
+const ITEMS_PER_ROW = 4;
+const GAP = 4;
+
 export const MasonryGallery: React.FC<MasonryGalleryProps> = ({
   history,
   onImageClick,
   onDelete,
   onEdit,
 }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState(0);
+
+  useEffect(() => {
+    const updateWidth = () => {
+      if (containerRef.current) {
+        setContainerWidth(containerRef.current.offsetWidth);
+      }
+    };
+    updateWidth();
+    window.addEventListener('resize', updateWidth);
+    return () => window.removeEventListener('resize', updateWidth);
+  }, []);
+
   const handleDownload = async (imageUrl: string, index: number) => {
     try {
       if (imageUrl.startsWith('data:')) {
@@ -59,11 +79,6 @@ export const MasonryGallery: React.FC<MasonryGalleryProps> = ({
     }
   };
 
-  type LoadingItem = { type: 'loading'; id: string; ratio?: string; aspectRatio: number };
-  type ImageItem = { type: 'image'; id: string; entryId: string; imageUrl: string; index: number; prompt?: string; ratio?: string; resolution?: string; timestamp: Date; aspectRatio: number };
-  type GalleryItem = LoadingItem | ImageItem;
-
-  // Flatten all images from history entries
   const allItems: GalleryItem[] = [];
   for (const entry of history) {
     if (entry.isLoading) {
@@ -105,97 +120,109 @@ export const MasonryGallery: React.FC<MasonryGalleryProps> = ({
     );
   }
 
+  // Group items into rows of 4
+  const rows: GalleryItem[][] = [];
+  for (let i = 0; i < allItems.length; i += ITEMS_PER_ROW) {
+    rows.push(allItems.slice(i, i + ITEMS_PER_ROW));
+  }
+
+  // Calculate row heights to make each row fill the container width
+  const availableWidth = containerWidth - (GAP * (ITEMS_PER_ROW - 1));
+
   return (
-    <div className="flex-1 overflow-y-auto p-2 pb-32">
-      <div 
-        className="w-full"
-        style={{
-          columnCount: 4,
-          columnGap: '4px',
-        }}
-      >
-        {allItems.map((item) =>
-          item.type === 'loading' ? (
-            <div
-              key={item.id}
-              className="relative bg-muted/30 rounded-md overflow-hidden mb-1"
-              style={{ 
-                aspectRatio: item.aspectRatio,
-                breakInside: 'avoid',
-              }}
+    <div className="flex-1 overflow-y-auto p-2 pb-32" ref={containerRef}>
+      <div className="flex flex-col" style={{ gap: `${GAP}px` }}>
+        {rows.map((row, rowIndex) => {
+          // Sum of aspect ratios for this row
+          const totalAspectRatio = row.reduce((sum, item) => sum + item.aspectRatio, 0);
+          // Row height that makes all items fit the available width
+          const rowHeight = availableWidth / totalAspectRatio;
+
+          return (
+            <div 
+              key={rowIndex} 
+              className="flex"
+              style={{ gap: `${GAP}px`, height: `${rowHeight}px` }}
             >
-              <LoadingCardContent ratio={item.ratio} />
-            </div>
-          ) : (
-            <div
-              key={item.id}
-              className="relative group overflow-hidden rounded-md cursor-pointer mb-1"
-              style={{ 
-                aspectRatio: item.aspectRatio,
-                breakInside: 'avoid',
-              }}
-              onClick={() => onImageClick(item.imageUrl, {
-                prompt: item.prompt,
-                ratio: item.ratio,
-                resolution: item.resolution,
-                timestamp: item.timestamp,
-                entryId: item.entryId,
+              {row.map((item) => {
+                const itemWidth = rowHeight * item.aspectRatio;
+
+                return item.type === 'loading' ? (
+                  <div
+                    key={item.id}
+                    className="relative bg-muted/30 rounded-md overflow-hidden flex-shrink-0"
+                    style={{ width: `${itemWidth}px`, height: '100%' }}
+                  >
+                    <LoadingCardContent ratio={item.ratio} />
+                  </div>
+                ) : (
+                  <div
+                    key={item.id}
+                    className="relative group overflow-hidden rounded-md cursor-pointer flex-shrink-0"
+                    style={{ width: `${itemWidth}px`, height: '100%' }}
+                    onClick={() => onImageClick(item.imageUrl, {
+                      prompt: item.prompt,
+                      ratio: item.ratio,
+                      resolution: item.resolution,
+                      timestamp: item.timestamp,
+                      entryId: item.entryId,
+                    })}
+                  >
+                    <img
+                      src={item.imageUrl}
+                      alt="Generated content"
+                      className="w-full h-full object-cover"
+                      loading="lazy"
+                    />
+                    
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+                      <div className="absolute bottom-2 left-2 right-2 flex items-center justify-end gap-1.5 pointer-events-auto">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 bg-white/10 backdrop-blur-sm hover:bg-white/20 text-white"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDownload(item.imageUrl, item.index);
+                          }}
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 bg-white/10 backdrop-blur-sm hover:bg-white/20 text-white"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onEdit(item.imageUrl);
+                          }}
+                        >
+                          <Edit3 className="w-3.5 h-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 bg-white/10 backdrop-blur-sm hover:bg-destructive/80 text-white"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onDelete(item.entryId);
+                          }}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                );
               })}
-            >
-              <img
-                src={item.imageUrl}
-                alt="Generated content"
-                className="w-full h-full object-cover"
-                loading="lazy"
-              />
-              
-              {/* Hover Overlay */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
-                <div className="absolute bottom-2 left-2 right-2 flex items-center justify-end gap-1.5 pointer-events-auto">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7 bg-white/10 backdrop-blur-sm hover:bg-white/20 text-white"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDownload(item.imageUrl, item.index);
-                    }}
-                  >
-                    <Download className="w-3.5 h-3.5" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7 bg-white/10 backdrop-blur-sm hover:bg-white/20 text-white"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onEdit(item.imageUrl);
-                    }}
-                  >
-                    <Edit3 className="w-3.5 h-3.5" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7 bg-white/10 backdrop-blur-sm hover:bg-destructive/80 text-white"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onDelete(item.entryId);
-                    }}
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </Button>
-                </div>
-              </div>
             </div>
-          )
-        )}
+          );
+        })}
       </div>
     </div>
   );
 };
 
-// Separate loading content component
 const LoadingCardContent: React.FC<{ ratio?: string }> = ({ ratio }) => {
   const [progress, setProgress] = useState(0);
   const startTime = useRef(Date.now());
