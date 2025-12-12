@@ -472,8 +472,8 @@ const Index = () => {
                 />
                 
                 {/* Floating Prompt Bar - centered in main content area */}
-                <div className="sticky bottom-6 left-0 right-0 flex justify-center pointer-events-none z-50">
-                  <div className="pointer-events-auto">
+                <div className="sticky bottom-6 left-0 right-0 flex justify-center pointer-events-none z-50 w-full px-4">
+                  <div className="pointer-events-auto w-full max-w-6xl">
                     <PromptBar
                       selectedPhotos={selectedPhotos}
                       onRemovePhoto={handleRemovePhoto}
