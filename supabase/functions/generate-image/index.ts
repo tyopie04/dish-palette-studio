@@ -731,6 +731,18 @@ MANDATORY STYLE: "${selectedStyle.name}"
       const variationSeed = Math.random().toString(36).substring(2, 10);
       console.log(`[HAND] Variation seed for image ${imageIndex + 1}: ${variationSeed}`);
       
+      // Define variation instructions for each image to ensure diversity
+      const variationStyles = [
+        "Use a DRAMATIC LOW ANGLE (looking up at the food) with WARM golden hour lighting. Position the food slightly off-center to the left.",
+        "Use a STRAIGHT-ON EYE-LEVEL angle with COOL studio lighting. Center the food with shallow depth of field blurring the background.",
+        "Use a SLIGHT HIGH ANGLE (looking down ~30 degrees) with SOFT diffused natural light. Position food to the right with props on the left.",
+        "Use a 3/4 ANGLE from the side with MOODY dramatic shadows and rim lighting. Create depth with layered background elements."
+      ];
+      
+      const variationInstruction = numImages > 1 
+        ? `\n\n🎨 VARIATION #${imageIndex + 1} SPECIFIC STYLE:\n${variationStyles[imageIndex % variationStyles.length]}\nThis variation MUST look distinctly different from other variations while keeping the SAME food ingredients.`
+        : "";
+      
       // Build the final prompt for THIS image with unique seed
       const handPrompt = `⚠️ CRITICAL INSTRUCTION - READ CAREFULLY ⚠️
 
@@ -759,7 +771,7 @@ WHAT YOU MUST NOT DO:
 ❌ Do NOT generate generic food - use the EXACT ingredients from the reference
 
 BLUEPRINT FOR STYLING (apply to the EXACT food INGREDIENTS from references):
-${blueprint}
+${blueprint}${variationInstruction}
 
 ⚠️ MANDATORY OUTPUT RESOLUTION - CRITICAL ⚠️
 You MUST generate this image at EXACTLY ${width}x${height} pixels resolution.
@@ -772,8 +784,8 @@ TECHNICAL REQUIREMENTS:
 - Aspect ratio: ${ratioDesc} (${ratio})
 - Quality: ${resolutionQuality}
 - Sharpness: Maximum - suitable for large format printing
-- Variation seed for unique output: ${variationSeed}
-- Image variation number: ${imageIndex + 1} of ${numImages}${styleInstructions}
+- Unique variation seed: ${variationSeed}
+- Image variation: ${imageIndex + 1} of ${numImages}${styleInstructions}
 
 REMEMBER: The reference photos show the REAL MENU ITEMS. Photograph them from the angle/composition shown in the style guide.
 CRITICAL: Output MUST be ${width}x${height} pixels - ultra sharp ${resolution} quality.`;
