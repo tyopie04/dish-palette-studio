@@ -408,8 +408,26 @@ const Index = () => {
       }
 
       if (data?.image) {
-        updateEntryWithImage(loadingId, data.image, { prompt: "Editing...", ratio: "Edit", resolution: "Original" });
-        toast.success("Image edited successfully!");
+        // Detect the actual aspect ratio of the edited image
+        const img = new Image();
+        img.onload = () => {
+          const width = img.naturalWidth;
+          const height = img.naturalHeight;
+          const gcd = (a: number, b: number): number => b === 0 ? a : gcd(b, a % b);
+          const divisor = gcd(width, height);
+          const ratioW = width / divisor;
+          const ratioH = height / divisor;
+          const ratio = `${ratioW}:${ratioH}`;
+          
+          updateEntryWithImage(loadingId, data.image, { prompt: editPrompt, ratio, resolution: "Original" });
+          toast.success("Image edited successfully!");
+        };
+        img.onerror = () => {
+          // Fallback if image dimensions can't be detected
+          updateEntryWithImage(loadingId, data.image, { prompt: editPrompt, ratio: "1:1", resolution: "Original" });
+          toast.success("Image edited successfully!");
+        };
+        img.src = data.image;
       } else {
         toast.error('No edited image was returned');
         removeLoadingEntry(loadingId);
