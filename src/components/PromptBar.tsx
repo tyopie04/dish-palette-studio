@@ -106,51 +106,51 @@ export const PromptBar: React.FC<PromptBarProps> = ({
 
   return (
     <>
-      <div
-        ref={setNodeRef}
-        className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-340px)] max-w-5xl bg-card/95 backdrop-blur-xl border border-border/50 rounded-2xl shadow-2xl transition-all duration-200 ml-[150px] ${
-          isOver ? 'ring-2 ring-primary scale-[1.02]' : ''
-        }`}
-      >
-        {/* Selected Photos - Top Row */}
-        {selectedPhotos.length > 0 && (
-          <div className="flex items-center gap-2 px-4 pt-4 pb-2 border-b border-border/30">
-            {selectedPhotos.slice(0, 8).map((photo) => (
-              <div key={photo.id} className="relative group">
-                <img
-                  src={photo.thumbnailSrc || photo.src}
-                  alt={photo.name}
-                  className="w-12 h-12 rounded-lg object-cover border border-border/50"
-                />
-                <button
-                  onClick={() => onRemovePhoto(photo.id)}
-                  className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                >
-                  <X className="w-3 h-3" />
-                </button>
-              </div>
-            ))}
-            {selectedPhotos.length > 8 && (
-              <span className="text-xs text-muted-foreground ml-1">+{selectedPhotos.length - 8}</span>
-            )}
-            {/* Add more photos button */}
-            <button
-              className="w-12 h-12 rounded-lg border-2 border-dashed border-border/50 flex items-center justify-center text-muted-foreground hover:border-primary/50 hover:text-primary transition-colors"
-            >
-              <Plus className="w-5 h-5" />
-            </button>
-          </div>
-        )}
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-end gap-4 ml-[150px]">
+        {/* Main Prompt Container */}
+        <div
+          ref={setNodeRef}
+          className={`w-[calc(100vw-400px)] max-w-4xl bg-card/95 backdrop-blur-xl border border-border/50 rounded-3xl shadow-2xl transition-all duration-200 ${
+            isOver ? 'ring-2 ring-primary scale-[1.02]' : ''
+          }`}
+        >
+          {/* Row 1: Selected Photos */}
+          {selectedPhotos.length > 0 && (
+            <div className="flex items-center gap-2 px-5 pt-4 pb-3">
+              {selectedPhotos.slice(0, 6).map((photo) => (
+                <div key={photo.id} className="relative group">
+                  <img
+                    src={photo.thumbnailSrc || photo.src}
+                    alt={photo.name}
+                    className="w-14 h-14 rounded-xl object-cover border border-border/50"
+                  />
+                  <button
+                    onClick={() => onRemovePhoto(photo.id)}
+                    className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              ))}
+              {selectedPhotos.length > 6 && (
+                <span className="text-xs text-muted-foreground ml-1">+{selectedPhotos.length - 6}</span>
+              )}
+              {/* Add more photos button */}
+              <button
+                className="w-14 h-14 rounded-xl border-2 border-dashed border-border/50 flex items-center justify-center text-muted-foreground hover:border-primary/50 hover:text-primary transition-colors"
+              >
+                <Plus className="w-5 h-5" />
+              </button>
+            </div>
+          )}
 
-        {/* Bottom Row - Input and Controls */}
-        <div className="flex items-center gap-4 p-4">
-          {/* Prompt Input */}
-          <div className="flex-1 min-w-0">
+          {/* Row 2: Text Prompt */}
+          <div className="px-5 py-2">
             <Textarea
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               placeholder="Describe what you want to create..."
-              className="min-h-[44px] max-h-[80px] resize-none bg-transparent border-0 focus-visible:ring-0 text-base placeholder:text-muted-foreground/60"
+              className="min-h-[40px] max-h-[80px] resize-none bg-transparent border-0 focus-visible:ring-0 text-base placeholder:text-muted-foreground/60 p-0"
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault();
@@ -160,12 +160,12 @@ export const PromptBar: React.FC<PromptBarProps> = ({
             />
           </div>
 
-          {/* Controls - Right */}
-          <div className="flex items-center gap-1 flex-shrink-0">
+          {/* Row 3: Controls */}
+          <div className="flex items-center gap-1 px-4 pb-4 pt-2">
             {/* Aspect Ratio */}
             <Popover open={ratioOpen} onOpenChange={setRatioOpen}>
               <PopoverTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-8 px-2 gap-1.5 text-muted-foreground hover:text-foreground">
+                <Button variant="outline" size="sm" className="h-9 px-3 gap-2 rounded-full border-border/50 bg-muted/30 hover:bg-muted/50">
                   <div 
                     className="border-2 border-current rounded-sm"
                     style={{ 
@@ -173,10 +173,10 @@ export const PromptBar: React.FC<PromptBarProps> = ({
                       height: ratioShapes[ratio]?.h || 14 
                     }}
                   />
-                  <span className="text-xs font-medium">{ratio}</span>
+                  <span className="text-sm font-medium">{ratio}</span>
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-64 p-2 bg-popover" align="end">
+              <PopoverContent className="w-64 p-2 bg-popover" align="start">
                 <div className="grid grid-cols-4 gap-1">
                   {ratioOptions.map((option) => {
                     const shape = ratioShapes[option.value];
@@ -208,11 +208,11 @@ export const PromptBar: React.FC<PromptBarProps> = ({
             {/* Resolution */}
             <Popover open={resolutionOpen} onOpenChange={setResolutionOpen}>
               <PopoverTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-8 px-2 text-xs font-medium text-muted-foreground hover:text-foreground">
-                  {currentResolution.label}
+                <Button variant="outline" size="sm" className="h-9 px-3 gap-1.5 rounded-full border-border/50 bg-muted/30 hover:bg-muted/50">
+                  <span className="text-sm font-medium">{currentResolution.label}</span>
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-28 p-1.5 bg-popover" align="end">
+              <PopoverContent className="w-28 p-1.5 bg-popover" align="start">
                 <div className="flex flex-col gap-0.5">
                   {resolutionOptions.map((option) => (
                     <button
@@ -235,7 +235,7 @@ export const PromptBar: React.FC<PromptBarProps> = ({
             </Popover>
 
             {/* Photo Amount */}
-            <div className="flex items-center h-8 px-1">
+            <div className="flex items-center h-9 px-2 rounded-full border border-border/50 bg-muted/30">
               <Button
                 variant="ghost"
                 size="icon"
@@ -245,7 +245,7 @@ export const PromptBar: React.FC<PromptBarProps> = ({
               >
                 <Minus className="w-3.5 h-3.5" />
               </Button>
-              <span className="text-sm font-medium w-5 text-center text-muted-foreground">{photoAmount}</span>
+              <span className="text-sm font-medium w-6 text-center">{photoAmount}/4</span>
               <Button
                 variant="ghost"
                 size="icon"
@@ -261,14 +261,14 @@ export const PromptBar: React.FC<PromptBarProps> = ({
             <Popover open={styleGuideOpen} onOpenChange={setStyleGuideOpen}>
               <PopoverTrigger asChild>
                 <Button
-                  variant="ghost"
+                  variant="outline"
                   size="sm"
-                  className={`h-8 w-8 p-0 ${styleGuideUrl ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+                  className={`h-9 w-9 p-0 rounded-full border-border/50 bg-muted/30 hover:bg-muted/50 ${styleGuideUrl ? 'text-primary border-primary' : ''}`}
                 >
-                  <Image className="w-5 h-5" />
+                  <Image className="w-4 h-4" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-48 p-2 bg-popover" align="end">
+              <PopoverContent className="w-48 p-2 bg-popover" align="start">
                 <div className="space-y-2">
                   <p className="text-xs text-muted-foreground">Style Reference</p>
                   {styleGuideUrl ? (
@@ -309,31 +309,29 @@ export const PromptBar: React.FC<PromptBarProps> = ({
               onChange={handleStyleGuideUpload}
               className="hidden"
             />
-
-            {/* Generate Button */}
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span className="ml-2">
-                    <Button
-                      onClick={handleGenerate}
-                      disabled={isGenerating || loadingCount >= 8 || (!prompt.trim() && selectedPhotos.length === 0)}
-                      className="h-9 px-5 bg-primary hover:bg-primary/90 font-medium"
-                    >
-                      <Sparkles className="w-4 h-4 mr-1.5" />
-                      Generate
-                    </Button>
-                  </span>
-                </TooltipTrigger>
-                {loadingCount >= 8 && (
-                  <TooltipContent>
-                    <p>Generation limit reached — please wait for current images to complete</p>
-                  </TooltipContent>
-                )}
-              </Tooltip>
-            </TooltipProvider>
           </div>
         </div>
+
+        {/* Generate Button - Separate on right */}
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                onClick={handleGenerate}
+                disabled={isGenerating || loadingCount >= 8 || (!prompt.trim() && selectedPhotos.length === 0)}
+                className="h-14 px-8 rounded-2xl bg-primary hover:bg-primary/90 font-semibold text-base shadow-lg"
+              >
+                <Sparkles className="w-5 h-5 mr-2" />
+                Generate
+              </Button>
+            </TooltipTrigger>
+            {loadingCount >= 8 && (
+              <TooltipContent>
+                <p>Generation limit reached — please wait for current images to complete</p>
+              </TooltipContent>
+            )}
+          </Tooltip>
+        </TooltipProvider>
       </div>
 
       {/* Style Guide Lightbox */}
