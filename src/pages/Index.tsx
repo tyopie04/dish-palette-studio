@@ -458,21 +458,23 @@ const Index = () => {
 
             {/* Main Content - Generated Images - Independent scroll */}
             <ResizablePanel defaultSize={80}>
-              <main className="h-full flex flex-col overflow-y-auto overflow-x-hidden relative">
-                <MasonryGallery
-                  history={generationHistory}
-                  onImageClick={handleImageClick}
-                  onDelete={handleDeleteEntry}
-                  onEdit={handleEditImage}
-                  onRerun={handleRerun}
-                  selectedImages={selectedImages}
-                  onToggleSelect={handleToggleSelect}
-                  onDeleteSelected={handleDeleteSelected}
-                  onDownloadSelected={handleDownloadSelected}
-                />
+              <div className="h-full relative">
+                <main className="h-full overflow-y-auto overflow-x-hidden">
+                  <MasonryGallery
+                    history={generationHistory}
+                    onImageClick={handleImageClick}
+                    onDelete={handleDeleteEntry}
+                    onEdit={handleEditImage}
+                    onRerun={handleRerun}
+                    selectedImages={selectedImages}
+                    onToggleSelect={handleToggleSelect}
+                    onDeleteSelected={handleDeleteSelected}
+                    onDownloadSelected={handleDownloadSelected}
+                  />
+                </main>
                 
-                {/* Floating Prompt Bar - centered in main content area */}
-                <div className="sticky bottom-6 left-0 right-0 flex justify-center pointer-events-none z-50 w-full px-4">
+                {/* Floating Prompt Bar - absolute positioned at bottom of panel */}
+                <div className="absolute bottom-6 left-0 right-0 flex justify-center pointer-events-none z-50 px-4">
                   <div className="pointer-events-auto w-full max-w-6xl">
                     <PromptBar
                       selectedPhotos={selectedPhotos}
@@ -491,7 +493,7 @@ const Index = () => {
                     />
                   </div>
                 </div>
-              </main>
+              </div>
             </ResizablePanel>
           </ResizablePanelGroup>
         </div>
