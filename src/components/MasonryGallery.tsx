@@ -49,10 +49,10 @@ type LoadingItem = { type: 'loading'; id: string; ratio?: string; aspectRatio: n
 type ImageItem = { type: 'image'; id: string; entryId: string; imageUrl: string; index: number; prompt?: string; ratio?: string; resolution?: string; timestamp: Date; aspectRatio: number };
 type GalleryItem = LoadingItem | ImageItem;
 
+// === LOCKED LAYOUT CONSTANTS - DO NOT MODIFY ===
 const ITEMS_PER_ROW = 4;
 const GAP = 8;
-const MAX_ROW_HEIGHT = 320; // Maximum height for partial rows
-const MIN_ROW_HEIGHT = 200; // Minimum height to ensure images are visible
+const MAX_ROW_HEIGHT = 280; // Only applied to partial rows (less than 4 items)
 
 export const MasonryGallery: React.FC<MasonryGalleryProps> = ({
   history,
@@ -183,14 +183,15 @@ export const MasonryGallery: React.FC<MasonryGalleryProps> = ({
       <div className="flex-1 overflow-y-auto p-2 pb-24" ref={containerRef}>
         <div className="flex flex-col" style={{ gap: `${GAP}px` }}>
           {rows.map((row, rowIndex) => {
-            // Sum of aspect ratios for this row
+            // === CRITICAL: DO NOT ADD MIN_ROW_HEIGHT - IT BREAKS THE MATH ===
+            // Full rows: rowHeight = width / totalAspectRatio → items fill width exactly
+            // Partial rows: cap at MAX_ROW_HEIGHT so single images aren't huge
             const totalAspectRatio = row.reduce((sum, item) => sum + item.aspectRatio, 0);
-            // Calculate row height - only apply max height constraint for partial rows
             const calculatedHeight = availableWidth / totalAspectRatio;
             const isPartialRow = row.length < ITEMS_PER_ROW;
             const rowHeight = isPartialRow 
-              ? Math.max(MIN_ROW_HEIGHT, Math.min(MAX_ROW_HEIGHT, calculatedHeight))
-              : Math.max(MIN_ROW_HEIGHT, calculatedHeight);
+              ? Math.min(MAX_ROW_HEIGHT, calculatedHeight)
+              : calculatedHeight;
 
             return (
               <div 
