@@ -117,12 +117,18 @@ const Index = () => {
     }
   }, [photos]);
 
+  const MAX_SELECTED_PHOTOS = 8;
+
   const handleDragEnd = useCallback((event: DragEndEvent) => {
     setActivePhoto(null);
     
     if (event.over?.id === "prompt-bar-drop") {
       const photo = photos.find((p) => p.id === event.active.id);
       if (photo && !selectedPhotos.find((p) => p.id === photo.id)) {
+        if (selectedPhotos.length >= MAX_SELECTED_PHOTOS) {
+          toast.error("Maximum 8 photos allowed");
+          return;
+        }
         setSelectedPhotos((prev) => [...prev, {
           id: photo.id,
           name: photo.name,
@@ -136,6 +142,10 @@ const Index = () => {
 
   const handlePhotoClick = useCallback((photo: StoredMenuPhoto) => {
     if (!selectedPhotos.find((p) => p.id === photo.id)) {
+      if (selectedPhotos.length >= MAX_SELECTED_PHOTOS) {
+        toast.error("Maximum 8 photos allowed");
+        return;
+      }
       setSelectedPhotos((prev) => [...prev, {
         id: photo.id,
         name: photo.name,

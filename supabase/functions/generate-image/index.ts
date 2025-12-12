@@ -804,12 +804,10 @@ CRITICAL: Output MUST be ${width}x${height} pixels - ultra sharp ${resolution} q
         });
       }
       
-      // Add menu photo references (limit to 6 to avoid overwhelming the model)
-      const MAX_HAND_IMAGES = 6;
+      // Add all menu photo references
       if (imageUrls && imageUrls.length > 0) {
-        const imagesToUse = imageUrls.slice(0, MAX_HAND_IMAGES);
-        console.log(`[HAND] Using ${imagesToUse.length}/${imageUrls.length} reference images`);
-        for (const url of imagesToUse) {
+        console.log(`[HAND] Using ${imageUrls.length} reference images`);
+        for (const url of imageUrls) {
           content.push({
             type: "image_url",
             image_url: { url }
