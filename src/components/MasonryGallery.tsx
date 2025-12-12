@@ -180,46 +180,52 @@ export const MasonryGallery: React.FC<MasonryGalleryProps> = ({
 
   return (
     <>
-      <div className="flex-1 overflow-y-auto p-2 pb-24" ref={containerRef}>
-        <div className="flex flex-col" style={{ gap: `${GAP}px` }}>
+      <div className="flex-1 overflow-y-auto overflow-x-hidden p-2 pb-24 w-full max-w-full" ref={containerRef}>
+        <div className="flex flex-col w-full" style={{ gap: `${GAP}px` }}>
           {rows.map((row, rowIndex) => {
-            // === CRITICAL: DO NOT ADD MIN_ROW_HEIGHT - IT BREAKS THE MATH ===
-            // Full rows: rowHeight = width / totalAspectRatio → items fill width exactly
-            // Partial rows: cap at MAX_ROW_HEIGHT so single images aren't huge
+            // === JUSTIFIED ROW LAYOUT ===
+            // Calculate row height so items fill width exactly, capped at MAX_ROW_HEIGHT
             const totalAspectRatio = row.reduce((sum, item) => sum + item.aspectRatio, 0);
             const calculatedHeight = availableWidth / totalAspectRatio;
-            const isPartialRow = row.length < ITEMS_PER_ROW;
-            const rowHeight = isPartialRow 
-              ? Math.min(MAX_ROW_HEIGHT, calculatedHeight)
-              : calculatedHeight;
+            const rowHeight = Math.min(MAX_ROW_HEIGHT, calculatedHeight);
+            
+            // Calculate gap adjustment for percentage widths
+            const totalGapWidth = GAP * (row.length - 1);
 
             return (
               <div 
                 key={rowIndex} 
-                className="flex"
+                className="flex w-full max-w-full"
                 style={{ gap: `${GAP}px`, height: `${rowHeight}px` }}
               >
                 {row.map((item) => {
-                  const itemWidth = rowHeight * item.aspectRatio;
+                  // Use percentage width so items always fit within container
+                  const itemWidthPercent = (item.aspectRatio / totalAspectRatio) * 100;
                   const isSelected = item.type === 'image' && selectedImages.includes(item.id);
 
                   return item.type === 'loading' ? (
                     <div
                       key={item.id}
-                      className="relative bg-muted/30 rounded-md overflow-hidden flex-shrink-0"
-                      style={{ width: `${itemWidth}px`, height: '100%' }}
+                      className="relative bg-muted/30 rounded-md overflow-hidden flex-shrink"
+                      style={{ 
+                        width: `calc(${itemWidthPercent}% - ${totalGapWidth / row.length}px)`, 
+                        height: '100%' 
+                      }}
                     >
                       <LoadingCardContent ratio={item.ratio} />
                     </div>
                   ) : (
                     <div
                       key={item.id}
-                      className={`relative group overflow-hidden cursor-pointer flex-shrink-0 transition-all duration-200 ${
+                      className={`relative group overflow-hidden cursor-pointer flex-shrink transition-all duration-200 ${
                         isSelected 
                           ? 'scale-[0.96] rounded-lg ring-4 ring-white' 
                           : 'rounded-md'
                       }`}
-                      style={{ width: `${itemWidth}px`, height: '100%' }}
+                      style={{ 
+                        width: `calc(${itemWidthPercent}% - ${totalGapWidth / row.length}px)`, 
+                        height: '100%' 
+                      }}
                       onClick={() => onImageClick(item.imageUrl, {
                         prompt: item.prompt,
                         ratio: item.ratio,
