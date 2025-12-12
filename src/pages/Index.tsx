@@ -392,6 +392,26 @@ const Index = () => {
     setEditingImage(image);
   }, []);
 
+  // Valid Gemini aspect ratios
+  const VALID_ASPECT_RATIOS = ['1:1', '2:3', '3:2', '3:4', '4:3', '4:5', '5:4', '9:16', '16:9', '21:9'];
+  
+  const getNearestValidRatio = (width: number, height: number): string => {
+    const targetRatio = width / height;
+    let closest = '1:1';
+    let minDiff = Infinity;
+    
+    for (const ratio of VALID_ASPECT_RATIOS) {
+      const [w, h] = ratio.split(':').map(Number);
+      const ratioValue = w / h;
+      const diff = Math.abs(ratioValue - targetRatio);
+      if (diff < minDiff) {
+        minDiff = diff;
+        closest = ratio;
+      }
+    }
+    return closest;
+  };
+
   const handleApplyEdit = useCallback(async (image: string, editPrompt: string) => {
     // Detect the source image's aspect ratio and resolution
     const getSourceInfo = (): Promise<{ ratio: string; resolution: string }> => {
@@ -400,10 +420,9 @@ const Index = () => {
         img.onload = () => {
           const width = img.naturalWidth;
           const height = img.naturalHeight;
-          const gcd = (a: number, b: number): number => b === 0 ? a : gcd(b, a % b);
-          const divisor = gcd(width, height);
-          const ratioW = width / divisor;
-          const ratioH = height / divisor;
+          
+          // Map to nearest valid Gemini aspect ratio
+          const ratio = getNearestValidRatio(width, height);
           
           // Determine resolution tier based on longest edge
           const longestEdge = Math.max(width, height);
@@ -416,7 +435,7 @@ const Index = () => {
             resolution = "1K";
           }
           
-          resolve({ ratio: `${ratioW}:${ratioH}`, resolution });
+          resolve({ ratio, resolution });
         };
         img.onerror = () => resolve({ ratio: "1:1", resolution: "1K" });
         img.src = image;
