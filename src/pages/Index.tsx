@@ -434,10 +434,10 @@ const Index = () => {
         <div className="h-screen w-full bg-background flex flex-col overflow-hidden">
           <Header />
           
-          <ResizablePanelGroup direction="horizontal" className="flex-1 w-full overflow-hidden">
+          <ResizablePanelGroup direction="horizontal" className="flex-1 min-h-0 w-full">
             {/* Left Sidebar - Menu Photos - Independent scroll */}
             <ResizablePanel defaultSize={20} minSize={15} maxSize={40}>
-              <aside className="h-[calc(100vh-64px)] border-r border-border/50 bg-card/30 overflow-y-auto overflow-x-hidden">
+              <aside className="h-full border-r border-border/50 bg-card/30 overflow-y-auto overflow-x-hidden">
                 <div className="p-4">
                   <PhotoGallery 
                     photos={photos} 
@@ -458,7 +458,7 @@ const Index = () => {
 
             {/* Main Content - Generated Images - Independent scroll */}
             <ResizablePanel defaultSize={80}>
-              <main className="h-[calc(100vh-64px)] flex flex-col overflow-y-auto overflow-x-hidden relative">
+              <main className="h-full flex flex-col overflow-y-auto overflow-x-hidden relative">
                 <MasonryGallery
                   history={generationHistory}
                   onImageClick={handleImageClick}
