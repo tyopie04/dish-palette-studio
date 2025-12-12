@@ -66,15 +66,38 @@ export const MasonryGallery: React.FC<MasonryGalleryProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
 
+  // Use ResizeObserver for reliable container width measurement
   useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
     const updateWidth = () => {
-      if (containerRef.current) {
-        setContainerWidth(containerRef.current.offsetWidth);
+      const width = container.offsetWidth;
+      if (width > 0) {
+        setContainerWidth(width);
       }
     };
+
+    // Initial measurement with a small delay to ensure DOM is ready
     updateWidth();
-    window.addEventListener('resize', updateWidth);
-    return () => window.removeEventListener('resize', updateWidth);
+    const timeoutId = setTimeout(updateWidth, 50);
+
+    // Use ResizeObserver for more reliable updates
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const width = entry.contentRect.width;
+        if (width > 0) {
+          setContainerWidth(width);
+        }
+      }
+    });
+
+    resizeObserver.observe(container);
+
+    return () => {
+      clearTimeout(timeoutId);
+      resizeObserver.disconnect();
+    };
   }, []);
 
   const handleDownload = async (imageUrl: string, index: number) => {
