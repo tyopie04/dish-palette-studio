@@ -175,18 +175,12 @@ export const MasonryGallery: React.FC<MasonryGalleryProps> = ({
     rows.push(allItems.slice(i, i + ITEMS_PER_ROW));
   }
 
-  // Don't render until we have a valid width
-  if (containerWidth <= 0) {
-    return (
-      <div className="flex-1 overflow-y-auto p-2 pb-24" ref={containerRef}>
-        <div className="h-32" /> {/* Placeholder to allow measurement */}
-      </div>
-    );
-  }
-
   return (
     <>
       <div className="flex-1 overflow-y-auto overflow-x-hidden p-2 pb-24 w-full" ref={containerRef}>
+        {containerWidth <= 0 ? (
+          <div className="h-32" /> /* Placeholder to allow measurement */
+        ) : (
         <div className="flex flex-col w-full" style={{ gap: `${GAP}px` }}>
           {rows.map((row, rowIndex) => {
             // === JUSTIFIED ROW LAYOUT ===
@@ -343,6 +337,7 @@ export const MasonryGallery: React.FC<MasonryGalleryProps> = ({
             );
           })}
         </div>
+        )}
       </div>
 
       {/* Selection bar at bottom */}
