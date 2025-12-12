@@ -300,7 +300,7 @@ export const PromptBar: React.FC<PromptBarProps> = ({
                 <TooltipTrigger asChild>
                   <Button
                     onClick={handleGenerate}
-                    disabled={isGenerating || loadingCount >= 8 || (!prompt.trim() && selectedPhotos.length === 0)}
+                    disabled={loadingCount >= 8 || (!prompt.trim() && selectedPhotos.length === 0)}
                     className="h-full px-8 rounded-2xl bg-primary hover:bg-primary/90 font-semibold text-sm shadow-lg"
                   >
                     <Sparkles className="w-4 h-4 mr-2" />
