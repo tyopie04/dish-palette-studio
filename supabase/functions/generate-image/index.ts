@@ -718,9 +718,13 @@ MANDATORY STYLE: "${selectedStyle.name}"
     
     // Generate multiple images if requested
     const numImages = Math.min(Math.max(parseInt(photoAmount) || 1, 1), 4);
-    const allGeneratedImages: string[] = [];
     
-    for (let imageIndex = 0; imageIndex < numImages; imageIndex++) {
+    // Skip upscaling when generating multiple images to avoid timeout
+    const shouldUpscale = numImages === 1 && (resolution === "2K" || resolution === "4K");
+    console.log('[HAND] Upscaling enabled:', shouldUpscale, '(only for single image 2K/4K)');
+    
+    // Helper function to generate a single image
+    const generateSingleImage = async (imageIndex: number): Promise<string | null> => {
       console.log(`[HAND] Generating image ${imageIndex + 1}/${numImages}`);
       
       // Generate unique variation seed for THIS image
@@ -800,7 +804,7 @@ CRITICAL: Output MUST be ${width}x${height} pixels - ultra sharp ${resolution} q
       }
       
       // Retry logic for transient errors
-      const maxRetries = 3;
+      const maxRetries = 2; // Reduced retries for parallel generation
       let lastError: Error | null = null;
       let response: Response | null = null;
       
@@ -808,7 +812,7 @@ CRITICAL: Output MUST be ${width}x${height} pixels - ultra sharp ${resolution} q
         try {
           console.log(`[HAND] Attempt ${attempt}/${maxRetries} for image ${imageIndex + 1}`);
           
-          // Build the request payload with multiple resolution parameter formats for compatibility
+          // Build the request payload
           const requestPayload = {
             model: "google/gemini-3-pro-image-preview",
             messages: [
@@ -818,14 +822,12 @@ CRITICAL: Output MUST be ${width}x${height} pixels - ultra sharp ${resolution} q
               }
             ],
             modalities: ["image", "text"],
-            // Try multiple parameter formats for resolution
-            size: `${width}x${height}`, // OpenAI format at root level
-            image_size: resolution, // Alternative snake_case format
+            size: `${width}x${height}`,
+            image_size: resolution,
             generationConfig: {
               imageConfig: {
                 aspectRatio: ratio,
                 imageSize: resolution,
-                // Also try explicit dimensions
                 width: width,
                 height: height
               },
@@ -835,13 +837,14 @@ CRITICAL: Output MUST be ${width}x${height} pixels - ultra sharp ${resolution} q
             }
           };
           
-          console.log(`[HAND] Request payload imageConfig:`, JSON.stringify({
-            size: requestPayload.size,
-            image_size: requestPayload.image_size,
-            imageConfig: requestPayload.generationConfig.imageConfig
-          }));
+          if (imageIndex === 0) {
+            console.log(`[HAND] Request payload imageConfig:`, JSON.stringify({
+              size: requestPayload.size,
+              image_size: requestPayload.image_size,
+              imageConfig: requestPayload.generationConfig.imageConfig
+            }));
+          }
           
-          // Use generationConfig.imageConfig for proper resolution control
           response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
             method: "POST",
             headers: {
@@ -853,7 +856,7 @@ CRITICAL: Output MUST be ${width}x${height} pixels - ultra sharp ${resolution} q
           
           // If we get a 5xx error and have retries left, wait and retry
           if (response.status >= 500 && attempt < maxRetries) {
-            const waitTime = Math.pow(2, attempt) * 1000;
+            const waitTime = Math.pow(2, attempt) * 500;
             console.log(`[HAND] Got ${response.status}, retrying in ${waitTime}ms...`);
             await new Promise(resolve => setTimeout(resolve, waitTime));
             continue;
@@ -863,7 +866,7 @@ CRITICAL: Output MUST be ${width}x${height} pixels - ultra sharp ${resolution} q
         } catch (fetchError) {
           lastError = fetchError instanceof Error ? fetchError : new Error(String(fetchError));
           if (attempt < maxRetries) {
-            const waitTime = Math.pow(2, attempt) * 1000;
+            const waitTime = Math.pow(2, attempt) * 500;
             console.log(`[HAND] Fetch error, retrying in ${waitTime}ms...`, lastError.message);
             await new Promise(resolve => setTimeout(resolve, waitTime));
           }
@@ -871,136 +874,96 @@ CRITICAL: Output MUST be ${width}x${height} pixels - ultra sharp ${resolution} q
       }
       
       if (!response) {
-        throw lastError || new Error('Failed to connect to AI gateway after retries');
+        console.error(`[HAND] Failed to generate image ${imageIndex + 1} after retries`);
+        return null;
       }
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('[HAND] AI gateway error:', response.status, errorText);
-        
-        if (response.status === 429) {
-          return new Response(JSON.stringify({ error: "Rate limits exceeded, please try again later." }), {
-            status: 429,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-        if (response.status === 402) {
-          return new Response(JSON.stringify({ error: "Payment required, please add funds to your workspace." }), {
-            status: 402,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-        if (response.status === 503 || response.status === 502 || response.status === 504) {
-          return new Response(JSON.stringify({ error: "AI service temporarily unavailable. Please try again in a moment." }), {
-            status: 503,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-        
-        throw new Error(`AI gateway error: ${response.status}`);
+        console.error(`[HAND] AI gateway error for image ${imageIndex + 1}:`, response.status, errorText);
+        return null;
       }
 
-      // Parse the response to check for errors in body and extract images
+      // Parse the response
       const data = await response.json();
       console.log(`[HAND] AI response received for image ${imageIndex + 1}`);
       
-      // Check for error in response body (AI gateway can return 200 with error in body)
+      // Check for error in response body
       if (data.error) {
-        console.error('[HAND] AI returned error in body:', data.error);
-        return new Response(JSON.stringify({ 
-          error: data.error.message || 'AI generation failed. Try reducing resolution or using fewer reference images.' 
-        }), {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        console.error(`[HAND] AI returned error for image ${imageIndex + 1}:`, data.error);
+        return null;
       }
       
       // Extract the generated image
       const message = data.choices?.[0]?.message;
-      let generatedImages: string[] = [];
+      let generatedImage: string | null = null;
       
       // Check for images array (Nano Banana format)
       if (message?.images && message.images.length > 0) {
-        generatedImages = message.images
-          .map((img: any) => img.image_url?.url || img.url)
-          .filter(Boolean);
+        generatedImage = message.images[0].image_url?.url || message.images[0].url;
       }
       
       // Check for inline image in content
-      if (generatedImages.length === 0 && message?.content) {
-        const base64Match = message.content.match(/data:image\/[^;]+;base64,[^\s"]+/g);
+      if (!generatedImage && message?.content) {
+        const base64Match = message.content.match(/data:image\/[^;]+;base64,[^\s"]+/);
         if (base64Match) {
-          generatedImages = base64Match;
+          generatedImage = base64Match[0];
         }
       }
       
-      if (generatedImages.length > 0) {
-        // Check dimensions of generated images and upscale if needed
-        for (const genImage of generatedImages) {
-          const dims = getImageDimensions(genImage);
-          if (dims) {
-            console.log(`[HAND] Generated image dimensions: ${dims.width}x${dims.height}`);
+      if (!generatedImage) {
+        console.error(`[HAND] No image found for generation ${imageIndex + 1}`);
+        return null;
+      }
+      
+      // Get dimensions
+      const dims = getImageDimensions(generatedImage);
+      if (dims) {
+        console.log(`[HAND] Generated image ${imageIndex + 1} dimensions: ${dims.width}x${dims.height}`);
+      }
+      
+      // Upscale only for single image 2K/4K
+      if (shouldUpscale && dims) {
+        const needsUpscale = (dims.width < width * 0.9) || (dims.height < height * 0.9);
+        
+        if (needsUpscale) {
+          console.log(`[UPSCALE] Image needs upscaling: got ${dims.width}x${dims.height}, need ${width}x${height}`);
+          try {
+            const upscaledImage = await upscaleImage(
+              LOVABLE_API_KEY,
+              generatedImage,
+              width,
+              height,
+              dims.width,
+              dims.height
+            );
             
-            // Check if upscaling is needed (image is smaller than requested)
-            const needsUpscale = (dims.width < width * 0.9) || (dims.height < height * 0.9);
+            const upscaledDims = getImageDimensions(upscaledImage);
+            if (upscaledDims) {
+              console.log(`[UPSCALE] Upscaled result: ${upscaledDims.width}x${upscaledDims.height}`);
+            }
             
-            if (needsUpscale && (resolution === "2K" || resolution === "4K")) {
-              console.log(`[UPSCALE] Image needs upscaling: got ${dims.width}x${dims.height}, need ${width}x${height}`);
-              try {
-                const upscaledImage = await upscaleImage(
-                  LOVABLE_API_KEY,
-                  genImage,
-                  width,
-                  height,
-                  dims.width,
-                  dims.height
-                );
-                
-                // Verify upscaled dimensions
-                const upscaledDims = getImageDimensions(upscaledImage);
-                if (upscaledDims) {
-                  console.log(`[UPSCALE] Upscaled result: ${upscaledDims.width}x${upscaledDims.height}`);
-                }
-                
-                allGeneratedImages.push(upscaledImage);
-                console.log(`[HAND] Added upscaled image from generation ${imageIndex + 1}`);
-              } catch (upscaleError) {
-                console.error('[UPSCALE] Failed, using original:', upscaleError);
-                allGeneratedImages.push(genImage);
-              }
-            } else {
-              allGeneratedImages.push(genImage);
-              console.log(`[HAND] Added ${resolution} image from generation ${imageIndex + 1} (${dims.width}x${dims.height})`);
-            }
-          } else {
-            // Couldn't detect dimensions, still try to upscale for 2K/4K
-            if (resolution === "2K" || resolution === "4K") {
-              console.log(`[UPSCALE] Dimensions unknown, attempting upscale to ${width}x${height}`);
-              try {
-                const upscaledImage = await upscaleImage(
-                  LOVABLE_API_KEY,
-                  genImage,
-                  width,
-                  height,
-                  1024, // Assume base is 1K
-                  Math.round(1024 * (height / width))
-                );
-                allGeneratedImages.push(upscaledImage);
-                console.log(`[HAND] Added upscaled image (dimensions were unknown)`);
-              } catch (upscaleError) {
-                console.error('[UPSCALE] Failed, using original:', upscaleError);
-                allGeneratedImages.push(genImage);
-              }
-            } else {
-              allGeneratedImages.push(genImage);
-              console.log(`[HAND] Added image from generation ${imageIndex + 1} (dimensions unknown)`);
-            }
+            console.log(`[HAND] Added upscaled image from generation ${imageIndex + 1}`);
+            return upscaledImage;
+          } catch (upscaleError) {
+            console.error('[UPSCALE] Failed, using original:', upscaleError);
+            return generatedImage;
           }
         }
-      } else {
-        console.error(`[HAND] No images found for generation ${imageIndex + 1}. Full response:`, JSON.stringify(data, null, 2));
       }
-    }
+      
+      console.log(`[HAND] Added image from generation ${imageIndex + 1}`);
+      return generatedImage;
+    };
+    
+    // Generate all images in parallel for speed
+    console.log(`[HAND] Starting parallel generation of ${numImages} images...`);
+    const imagePromises = Array.from({ length: numImages }, (_, i) => generateSingleImage(i));
+    const results = await Promise.all(imagePromises);
+    
+    // Filter out failed generations
+    const allGeneratedImages = results.filter((img): img is string => img !== null);
+    console.log(`[HAND] Successfully generated ${allGeneratedImages.length}/${numImages} images`);
     
     if (allGeneratedImages.length === 0) {
       throw new Error('No images generated - try a simpler prompt or fewer reference images');

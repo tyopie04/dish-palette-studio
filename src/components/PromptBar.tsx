@@ -225,7 +225,7 @@ export const PromptBar: React.FC<PromptBarProps> = ({
               </PopoverContent>
             </Popover>
 
-            {/* Photo Amount - Higgsfield style */}
+            {/* Photo Amount */}
             <div className="flex items-center h-8 px-1">
               <Button
                 variant="ghost"
@@ -241,8 +241,8 @@ export const PromptBar: React.FC<PromptBarProps> = ({
                 variant="ghost"
                 size="icon"
                 className="h-6 w-6 text-muted-foreground hover:text-foreground"
-                onClick={() => setPhotoAmount(Math.min(8, photoAmount + 1))}
-                disabled={photoAmount >= 8}
+                onClick={() => setPhotoAmount(Math.min(4, photoAmount + 1))}
+                disabled={photoAmount >= 4}
               >
                 <Plus className="w-3.5 h-3.5" />
               </Button>
