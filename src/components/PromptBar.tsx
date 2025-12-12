@@ -110,59 +110,60 @@ export const PromptBar: React.FC<PromptBarProps> = ({
         {/* Main Prompt Container */}
         <div
           ref={setNodeRef}
-          className={`w-[calc(100vw-380px)] max-w-5xl bg-card/95 backdrop-blur-xl border border-border/50 rounded-3xl shadow-2xl transition-all duration-200 ${
+          className={`w-[calc(100vw-380px)] max-w-5xl bg-card/95 backdrop-blur-xl border border-border/50 rounded-3xl shadow-2xl transition-all duration-200 flex ${
             isOver ? 'ring-2 ring-primary scale-[1.02]' : ''
           }`}
         >
-          {/* Row 1: Selected Photos */}
-          {selectedPhotos.length > 0 && (
-            <div className="flex items-center gap-2 px-5 pt-4 pb-2">
-              {selectedPhotos.slice(0, 6).map((photo) => (
-                <div key={photo.id} className="relative group">
-                  <img
-                    src={photo.thumbnailSrc || photo.src}
-                    alt={photo.name}
-                    className="w-14 h-14 rounded-xl object-cover border border-border/50"
-                  />
-                  <button
-                    onClick={() => onRemovePhoto(photo.id)}
-                    className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </div>
-              ))}
-              {selectedPhotos.length > 6 && (
-                <span className="text-xs text-muted-foreground ml-1">+{selectedPhotos.length - 6}</span>
-              )}
-              {/* Add more photos button */}
-              <button
-                className="w-14 h-14 rounded-xl border-2 border-dashed border-border/50 flex items-center justify-center text-muted-foreground hover:border-primary/50 hover:text-primary transition-colors"
-              >
-                <Plus className="w-5 h-5" />
-              </button>
+          {/* Left side: Content */}
+          <div className="flex-1 flex flex-col">
+            {/* Row 1: Selected Photos */}
+            {selectedPhotos.length > 0 && (
+              <div className="flex items-center gap-2 px-5 pt-4 pb-2">
+                {selectedPhotos.slice(0, 6).map((photo) => (
+                  <div key={photo.id} className="relative group">
+                    <img
+                      src={photo.thumbnailSrc || photo.src}
+                      alt={photo.name}
+                      className="w-14 h-14 rounded-xl object-cover border border-border/50"
+                    />
+                    <button
+                      onClick={() => onRemovePhoto(photo.id)}
+                      className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ))}
+                {selectedPhotos.length > 6 && (
+                  <span className="text-xs text-muted-foreground ml-1">+{selectedPhotos.length - 6}</span>
+                )}
+                {/* Add more photos button */}
+                <button
+                  className="w-14 h-14 rounded-xl border-2 border-dashed border-border/50 flex items-center justify-center text-muted-foreground hover:border-primary/50 hover:text-primary transition-colors"
+                >
+                  <Plus className="w-5 h-5" />
+                </button>
+              </div>
+            )}
+
+            {/* Row 2: Text Prompt */}
+            <div className="px-5 py-4 flex-1 flex items-center">
+              <Textarea
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                placeholder="Describe what you want to create..."
+                className="min-h-[24px] max-h-[60px] resize-none bg-transparent border-0 focus-visible:ring-0 text-base placeholder:text-muted-foreground/60 p-0"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleGenerate();
+                  }
+                }}
+              />
             </div>
-          )}
 
-          {/* Row 2: Text Prompt */}
-          <div className="px-5 py-2">
-            <Textarea
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              placeholder="Describe what you want to create..."
-              className="min-h-[36px] max-h-[60px] resize-none bg-transparent border-0 focus-visible:ring-0 text-base placeholder:text-muted-foreground/60 p-0"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  handleGenerate();
-                }
-              }}
-            />
-          </div>
-
-          {/* Row 3: Controls + Generate Button */}
-          <div className="flex items-stretch gap-3 p-3">
-            <div className="flex items-center gap-1 flex-1">
+            {/* Row 3: Controls */}
+            <div className="flex items-center gap-1 px-4 pb-4">
               {/* Aspect Ratio */}
               <Popover open={ratioOpen} onOpenChange={setRatioOpen}>
                 <PopoverTrigger asChild>
@@ -311,15 +312,17 @@ export const PromptBar: React.FC<PromptBarProps> = ({
                 className="hidden"
               />
             </div>
+          </div>
 
-            {/* Generate Button - Tall to fill the row */}
+          {/* Right side: Generate Button - fills full height with even padding */}
+          <div className="p-3">
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
                     onClick={handleGenerate}
                     disabled={isGenerating || loadingCount >= 8 || (!prompt.trim() && selectedPhotos.length === 0)}
-                    className="h-auto py-6 px-8 rounded-2xl bg-primary hover:bg-primary/90 font-semibold text-sm shadow-lg self-stretch"
+                    className="h-full px-10 rounded-2xl bg-primary hover:bg-primary/90 font-semibold text-sm shadow-lg"
                   >
                     <Sparkles className="w-4 h-4 mr-2" />
                     Generate
