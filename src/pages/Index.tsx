@@ -431,10 +431,10 @@ const Index = () => {
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
-        <div className="min-h-screen max-w-full bg-background flex flex-col overflow-x-hidden">
+        <div className="min-h-screen w-screen bg-background flex flex-col overflow-hidden">
           <Header />
           
-          <ResizablePanelGroup direction="horizontal" className="flex-1 overflow-hidden">
+          <ResizablePanelGroup direction="horizontal" className="flex-1 w-full overflow-hidden">
             {/* Left Sidebar - Menu Photos - Independent scroll */}
             <ResizablePanel defaultSize={20} minSize={15} maxSize={40}>
               <aside className="h-[calc(100vh-64px)] border-r border-border/50 bg-card/30 overflow-y-auto overflow-x-hidden">
