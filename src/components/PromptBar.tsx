@@ -161,8 +161,8 @@ export const PromptBar: React.FC<PromptBarProps> = ({
           </div>
 
           {/* Row 3: Controls + Generate Button */}
-          <div className="flex items-center justify-between px-4 pb-3 pt-1">
-            <div className="flex items-center gap-1">
+          <div className="flex items-stretch gap-3 p-3">
+            <div className="flex items-center gap-1 flex-1">
               {/* Aspect Ratio */}
               <Popover open={ratioOpen} onOpenChange={setRatioOpen}>
                 <PopoverTrigger asChild>
@@ -312,14 +312,14 @@ export const PromptBar: React.FC<PromptBarProps> = ({
               />
             </div>
 
-            {/* Generate Button - Inside the box on the right */}
+            {/* Generate Button - Tall to fill the row */}
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
                     onClick={handleGenerate}
                     disabled={isGenerating || loadingCount >= 8 || (!prompt.trim() && selectedPhotos.length === 0)}
-                    className="h-12 px-6 rounded-xl bg-primary hover:bg-primary/90 font-semibold text-sm shadow-lg"
+                    className="h-auto py-6 px-8 rounded-2xl bg-primary hover:bg-primary/90 font-semibold text-sm shadow-lg self-stretch"
                   >
                     <Sparkles className="w-4 h-4 mr-2" />
                     Generate
