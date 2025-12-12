@@ -105,7 +105,7 @@ export const PromptBar: React.FC<PromptBarProps> = ({
 
   return (
     <>
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 ml-[150px]">
+      <div className="fixed bottom-6 z-50" style={{ left: 'calc(50% + 120px)', transform: 'translateX(-50%)' }}>
         {/* Main Prompt Container */}
         <div
           ref={setNodeRef}
