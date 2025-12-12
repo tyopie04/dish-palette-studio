@@ -12,8 +12,8 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Download, Trash2, Pencil, Loader2, MoreHorizontal, Heart, Copy, Video } from 'lucide-react';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Download, Trash2, Pencil, Loader2, MoreHorizontal, Heart, Copy } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 
 interface GenerationEntry {
@@ -34,6 +34,8 @@ interface MasonryGalleryProps {
   onRerun?: (entry: { prompt?: string; ratio?: string; resolution?: string }) => void;
   selectedImages?: string[];
   onToggleSelect?: (imageId: string) => void;
+  onDeleteSelected?: () => void;
+  onDownloadSelected?: () => void;
 }
 
 const parseRatio = (ratio?: string): number => {
@@ -58,6 +60,8 @@ export const MasonryGallery: React.FC<MasonryGalleryProps> = ({
   onRerun,
   selectedImages = [],
   onToggleSelect,
+  onDeleteSelected,
+  onDownloadSelected,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
@@ -150,150 +154,185 @@ export const MasonryGallery: React.FC<MasonryGalleryProps> = ({
   const availableWidth = containerWidth - (GAP * (ITEMS_PER_ROW - 1));
 
   return (
-    <div className="flex-1 overflow-y-auto p-2 pb-32" ref={containerRef}>
-      <div className="flex flex-col" style={{ gap: `${GAP}px` }}>
-        {rows.map((row, rowIndex) => {
-          // Sum of aspect ratios for this row
-          const totalAspectRatio = row.reduce((sum, item) => sum + item.aspectRatio, 0);
-          // Row height that makes all items fit the available width
-          const rowHeight = availableWidth / totalAspectRatio;
+    <>
+      <div className="flex-1 overflow-y-auto p-2 pb-32" ref={containerRef}>
+        <div className="flex flex-col" style={{ gap: `${GAP}px` }}>
+          {rows.map((row, rowIndex) => {
+            // Sum of aspect ratios for this row
+            const totalAspectRatio = row.reduce((sum, item) => sum + item.aspectRatio, 0);
+            // Row height that makes all items fit the available width
+            const rowHeight = availableWidth / totalAspectRatio;
 
-          return (
-            <div 
-              key={rowIndex} 
-              className="flex"
-              style={{ gap: `${GAP}px`, height: `${rowHeight}px` }}
-            >
-              {row.map((item) => {
-                const itemWidth = rowHeight * item.aspectRatio;
+            return (
+              <div 
+                key={rowIndex} 
+                className="flex"
+                style={{ gap: `${GAP}px`, height: `${rowHeight}px` }}
+              >
+                {row.map((item) => {
+                  const itemWidth = rowHeight * item.aspectRatio;
+                  const isSelected = item.type === 'image' && selectedImages.includes(item.id);
 
-                return item.type === 'loading' ? (
-                  <div
-                    key={item.id}
-                    className="relative bg-muted/30 rounded-md overflow-hidden flex-shrink-0"
-                    style={{ width: `${itemWidth}px`, height: '100%' }}
-                  >
-                    <LoadingCardContent ratio={item.ratio} />
-                  </div>
-                ) : (
-                  <div
-                    key={item.id}
-                    className="relative group overflow-hidden rounded-md cursor-pointer flex-shrink-0"
-                    style={{ width: `${itemWidth}px`, height: '100%' }}
-                    onClick={() => onImageClick(item.imageUrl, {
-                      prompt: item.prompt,
-                      ratio: item.ratio,
-                      resolution: item.resolution,
-                      timestamp: item.timestamp,
-                      entryId: item.entryId,
-                    })}
-                  >
-                    <img
-                      src={item.imageUrl}
-                      alt="Generated content"
-                      className="w-full h-full object-cover"
-                      loading="lazy"
-                    />
-                    
-                    {/* Hover overlay - subtle gradient */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none" />
-                    
-                    {/* Top left - Select checkbox */}
-                    <div className="absolute top-3 left-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                      <div 
-                        className="w-6 h-6 rounded-md border-2 border-white/80 flex items-center justify-center cursor-pointer hover:border-white bg-transparent"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onToggleSelect?.(item.id);
-                        }}
-                      >
-                        {selectedImages.includes(item.id) && (
-                          <div className="w-3 h-3 bg-white rounded-sm" />
-                        )}
+                  return item.type === 'loading' ? (
+                    <div
+                      key={item.id}
+                      className="relative bg-muted/30 rounded-md overflow-hidden flex-shrink-0"
+                      style={{ width: `${itemWidth}px`, height: '100%' }}
+                    >
+                      <LoadingCardContent ratio={item.ratio} />
+                    </div>
+                  ) : (
+                    <div
+                      key={item.id}
+                      className={`relative group overflow-hidden cursor-pointer flex-shrink-0 transition-all duration-200 ${
+                        isSelected 
+                          ? 'scale-[0.96] rounded-lg ring-4 ring-white' 
+                          : 'rounded-md'
+                      }`}
+                      style={{ width: `${itemWidth}px`, height: '100%' }}
+                      onClick={() => onImageClick(item.imageUrl, {
+                        prompt: item.prompt,
+                        ratio: item.ratio,
+                        resolution: item.resolution,
+                        timestamp: item.timestamp,
+                        entryId: item.entryId,
+                      })}
+                    >
+                      <img
+                        src={item.imageUrl}
+                        alt="Generated content"
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                      />
+                      
+                      {/* Hover overlay - subtle gradient */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none" />
+                      
+                      {/* Top left - Select checkbox - always visible if selected */}
+                      <div className={`absolute top-3 left-3 transition-opacity duration-200 ${
+                        isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                      }`}>
+                        <div 
+                          className={`w-6 h-6 rounded-md border-2 flex items-center justify-center cursor-pointer transition-colors ${
+                            isSelected 
+                              ? 'border-primary bg-primary' 
+                              : 'border-white/80 hover:border-white bg-transparent'
+                          }`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onToggleSelect?.(item.id);
+                          }}
+                        >
+                          {isSelected && (
+                            <svg className="w-4 h-4 text-primary-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Top right controls - Edit, More */}
+                      <div className="absolute top-3 right-3 flex items-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                        <button
+                          className="flex items-center gap-1.5 text-white hover:text-white/80 transition-colors"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onEdit(item.imageUrl);
+                          }}
+                        >
+                          <Pencil className="w-4 h-4" />
+                          <span className="text-sm font-medium">Edit</span>
+                        </button>
+                        <button
+                          className="text-white hover:text-white/80 transition-colors"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onRerun?.({ prompt: item.prompt, ratio: item.ratio, resolution: item.resolution });
+                          }}
+                        >
+                          <MoreHorizontal className="w-5 h-5" />
+                        </button>
+                      </div>
+
+                      {/* Bottom right controls - Heart, Copy, Download, Delete */}
+                      <div className="absolute bottom-3 right-3 flex items-center gap-4 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                        <button
+                          className="text-white hover:text-white/80 transition-colors"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toast.success('Added to favorites');
+                          }}
+                        >
+                          <Heart className="w-5 h-5" />
+                        </button>
+                        <button
+                          className="text-white hover:text-white/80 transition-colors"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigator.clipboard.writeText(item.imageUrl);
+                            toast.success('Image URL copied');
+                          }}
+                        >
+                          <Copy className="w-5 h-5" />
+                        </button>
+                        <button
+                          className="text-white hover:text-white/80 transition-colors"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDownload(item.imageUrl, item.index);
+                          }}
+                        >
+                          <Download className="w-5 h-5" />
+                        </button>
+                        <button
+                          className="text-white hover:text-white/80 transition-colors"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onDelete(item.entryId);
+                          }}
+                        >
+                          <Trash2 className="w-5 h-5" />
+                        </button>
                       </div>
                     </div>
-
-                    {/* Top right controls - Edit, Video, More */}
-                    <div className="absolute top-3 right-3 flex items-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                      <button
-                        className="flex items-center gap-1.5 text-white hover:text-white/80 transition-colors"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onEdit(item.imageUrl);
-                        }}
-                      >
-                        <Pencil className="w-4 h-4" />
-                        <span className="text-sm font-medium">Edit</span>
-                      </button>
-                      <button
-                        className="flex items-center gap-1.5 text-white hover:text-white/80 transition-colors"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toast.info('Video feature coming soon');
-                        }}
-                      >
-                        <Video className="w-4 h-4" />
-                        <span className="text-sm font-medium">Video</span>
-                      </button>
-                      <button
-                        className="text-white hover:text-white/80 transition-colors"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onRerun?.({ prompt: item.prompt, ratio: item.ratio, resolution: item.resolution });
-                        }}
-                      >
-                        <MoreHorizontal className="w-5 h-5" />
-                      </button>
-                    </div>
-
-                    {/* Bottom right controls - Heart, Copy, Download, Delete */}
-                    <div className="absolute bottom-3 right-3 flex items-center gap-4 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                      <button
-                        className="text-white hover:text-white/80 transition-colors"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toast.success('Added to favorites');
-                        }}
-                      >
-                        <Heart className="w-5 h-5" />
-                      </button>
-                      <button
-                        className="text-white hover:text-white/80 transition-colors"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigator.clipboard.writeText(item.imageUrl);
-                          toast.success('Image URL copied');
-                        }}
-                      >
-                        <Copy className="w-5 h-5" />
-                      </button>
-                      <button
-                        className="text-white hover:text-white/80 transition-colors"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDownload(item.imageUrl, item.index);
-                        }}
-                      >
-                        <Download className="w-5 h-5" />
-                      </button>
-                      <button
-                        className="text-white hover:text-white/80 transition-colors"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onDelete(item.entryId);
-                        }}
-                      >
-                        <Trash2 className="w-5 h-5" />
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          );
-        })}
+                  );
+                })}
+              </div>
+            );
+          })}
+        </div>
       </div>
-    </div>
+
+      {/* Selection bar at bottom */}
+      {selectedImages.length > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 ml-[150px]">
+          <div className="flex items-center gap-3 bg-card/95 backdrop-blur-xl border border-border/50 rounded-full px-5 py-3 shadow-2xl">
+            <span className="text-sm font-medium text-foreground">
+              {selectedImages.length} selected
+            </span>
+            <div className="w-px h-5 bg-border" />
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 px-4 gap-2 text-primary hover:text-primary hover:bg-primary/10 rounded-full"
+              onClick={onDownloadSelected}
+            >
+              <Download className="w-4 h-4" />
+              Download
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 px-4 gap-2 text-destructive hover:text-destructive hover:bg-destructive/10 rounded-full"
+              onClick={onDeleteSelected}
+            >
+              <Trash2 className="w-4 h-4" />
+              Delete
+            </Button>
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 
