@@ -78,6 +78,7 @@ const Index = () => {
   
   const [selectedPhotos, setSelectedPhotos] = useState<MenuPhoto[]>([]);
   const [generationHistory, setGenerationHistory] = useState<GenerationEntry[]>([]);
+  const [selectedImages, setSelectedImages] = useState<string[]>([]);
   
   const [activePhoto, setActivePhoto] = useState<MenuPhoto | null>(null);
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
@@ -292,6 +293,22 @@ const Index = () => {
     toast.success("Generation deleted");
   }, []);
 
+  const handleToggleSelect = useCallback((imageId: string) => {
+    setSelectedImages((prev) => 
+      prev.includes(imageId) 
+        ? prev.filter((id) => id !== imageId)
+        : [...prev, imageId]
+    );
+  }, []);
+
+  const handleRerun = useCallback((entry: { prompt?: string; ratio?: string; resolution?: string }) => {
+    if (entry.prompt) {
+      if (entry.ratio) setSelectedRatio(entry.ratio);
+      if (entry.resolution) setSelectedResolution(entry.resolution);
+      handleGenerate(entry.prompt);
+    }
+  }, [handleGenerate]);
+
   const handleImageClick = useCallback((image: string, entryData?: { prompt?: string; ratio?: string; resolution?: string; timestamp?: Date; entryId?: string }) => {
     setLightboxImage(image);
     setLightboxMeta(entryData || {});
@@ -389,6 +406,9 @@ const Index = () => {
                   onImageClick={handleImageClick}
                   onDelete={handleDeleteEntry}
                   onEdit={handleEditImage}
+                  onRerun={handleRerun}
+                  selectedImages={selectedImages}
+                  onToggleSelect={handleToggleSelect}
                 />
               </main>
             </ResizablePanel>
@@ -408,6 +428,7 @@ const Index = () => {
             setPhotoAmount={setSelectedPhotoAmount}
             styleGuideUrl={styleGuideUrl}
             setStyleGuideUrl={setStyleGuideUrl}
+            loadingCount={activeGenerations}
           />
         </div>
 
