@@ -105,7 +105,10 @@ export function ImageLightbox({
     ? new Intl.DateTimeFormat('en-US', { 
         month: 'long', 
         day: 'numeric', 
-        year: 'numeric' 
+        year: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
       }).format(timestamp)
     : null;
 
@@ -191,10 +194,20 @@ export function ImageLightbox({
             </CollapsibleTrigger>
             <CollapsibleContent>
               <div className="p-4 space-y-3 border-b border-border">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Model</span>
-                  <span className="text-sm font-medium text-foreground">Gemini Flash Image</span>
-                </div>
+                {resolution && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">Quality</span>
+                    <span className="text-sm font-medium text-foreground">
+                      {resolution === '4096' ? '4K' : resolution === '2048' ? '2K' : '1K'}
+                    </span>
+                  </div>
+                )}
+                {ratio && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">Size</span>
+                    <span className="text-sm font-medium text-foreground">{ratio}</span>
+                  </div>
+                )}
               </div>
             </CollapsibleContent>
           </Collapsible>
@@ -210,17 +223,9 @@ export function ImageLightbox({
             </CollapsibleTrigger>
             <CollapsibleContent>
               <div className="p-4 space-y-3 border-b border-border">
-                {resolution && (
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Quality</span>
-                    <span className="text-sm font-medium text-foreground">
-                      {resolution === '4096' ? '4K' : resolution === '2048' ? '2K' : '1K'}
-                    </span>
-                  </div>
-                )}
                 {getDimensions() && (
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Size</span>
+                    <span className="text-sm text-muted-foreground">Dimensions</span>
                     <span className="text-sm font-medium text-foreground">{getDimensions()}</span>
                   </div>
                 )}
