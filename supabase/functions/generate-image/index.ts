@@ -558,11 +558,16 @@ MANDATORY STYLE: "${selectedStyle.name}"
 ⚠️ You MUST use this "${selectedStyle.name}" style exactly as specified. Do NOT default to dark/moody aesthetics unless that is the specified style.`;
     }
     
-    // Resolution quality hint for the model
-    const resolutionQuality = resolution === "4K" ? "ultra high definition 4K quality" : (resolution === "2K" ? "high definition 2K quality" : "standard 1K quality");
+    // Resolution quality hint for the model - more explicit
+    const resolutionQuality = resolution === "4K" 
+      ? `ultra high definition 4K quality (${width}x${height} pixels, extremely sharp and detailed)` 
+      : (resolution === "2K" 
+        ? `high definition 2K quality (${width}x${height} pixels, sharp and detailed)` 
+        : `standard 1K quality (${width}x${height} pixels)`);
     
     console.log('[HAND] Using Gemini image model with thinkingBudget: 16384');
     console.log('[HAND] Requested photo amount:', photoAmount);
+    console.log('[HAND] Target resolution:', resolution, `(${width}x${height} pixels)`);
     
     // Generate multiple images if requested
     const numImages = Math.min(Math.max(parseInt(photoAmount) || 1, 1), 4);
@@ -605,13 +610,22 @@ WHAT YOU MUST NOT DO:
 BLUEPRINT FOR STYLING (apply to the EXACT food INGREDIENTS from references):
 ${blueprint}
 
+⚠️ MANDATORY OUTPUT RESOLUTION - CRITICAL ⚠️
+You MUST generate this image at EXACTLY ${width}x${height} pixels resolution.
+This is ${resolution} quality - ${resolutionQuality}.
+The output image MUST be ultra sharp, highly detailed, and suitable for print/large display.
+DO NOT generate a low-resolution image. The final output MUST be ${width}x${height} pixels.
+
 TECHNICAL REQUIREMENTS:
-- Composition: ${ratioDesc} at ${dimensionString}, ${resolutionQuality}
-- Resolution: ${width}x${height} pixels
+- Output resolution: EXACTLY ${width}x${height} pixels (${resolution})
+- Aspect ratio: ${ratioDesc} (${ratio})
+- Quality: ${resolutionQuality}
+- Sharpness: Maximum - suitable for large format printing
 - Variation seed for unique output: ${variationSeed}
 - Image variation number: ${imageIndex + 1} of ${numImages}${styleInstructions}
 
-REMEMBER: The reference photos show the REAL MENU ITEMS. Photograph them from the angle/composition shown in the style guide.`;
+REMEMBER: The reference photos show the REAL MENU ITEMS. Photograph them from the angle/composition shown in the style guide.
+CRITICAL: Output MUST be ${width}x${height} pixels - ultra sharp ${resolution} quality.`;
       
       if (imageIndex === 0) {
         console.log('[HAND] Prompt preview:', handPrompt.substring(0, 400) + '...');
@@ -647,6 +661,39 @@ REMEMBER: The reference photos show the REAL MENU ITEMS. Photograph them from th
         try {
           console.log(`[HAND] Attempt ${attempt}/${maxRetries} for image ${imageIndex + 1}`);
           
+          // Build the request payload with multiple resolution parameter formats for compatibility
+          const requestPayload = {
+            model: "google/gemini-3-pro-image-preview",
+            messages: [
+              {
+                role: "user",
+                content
+              }
+            ],
+            modalities: ["image", "text"],
+            // Try multiple parameter formats for resolution
+            size: `${width}x${height}`, // OpenAI format at root level
+            image_size: resolution, // Alternative snake_case format
+            generationConfig: {
+              imageConfig: {
+                aspectRatio: ratio,
+                imageSize: resolution,
+                // Also try explicit dimensions
+                width: width,
+                height: height
+              },
+              thinkingConfig: {
+                thinkingBudget: 16384
+              }
+            }
+          };
+          
+          console.log(`[HAND] Request payload imageConfig:`, JSON.stringify({
+            size: requestPayload.size,
+            image_size: requestPayload.image_size,
+            imageConfig: requestPayload.generationConfig.imageConfig
+          }));
+          
           // Use generationConfig.imageConfig for proper resolution control
           response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
             method: "POST",
@@ -654,25 +701,7 @@ REMEMBER: The reference photos show the REAL MENU ITEMS. Photograph them from th
               Authorization: `Bearer ${LOVABLE_API_KEY}`,
               "Content-Type": "application/json",
             },
-            body: JSON.stringify({
-              model: "google/gemini-3-pro-image-preview",
-              messages: [
-                {
-                  role: "user",
-                  content
-                }
-              ],
-              modalities: ["image", "text"],
-              generationConfig: {
-                imageConfig: {
-                  aspectRatio: ratio,
-                  imageSize: resolution
-                },
-                thinkingConfig: {
-                  thinkingBudget: 16384
-                }
-              }
-            }),
+            body: JSON.stringify(requestPayload),
           });
           
           // If we get a 5xx error and have retries left, wait and retry
