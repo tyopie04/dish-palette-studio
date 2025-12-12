@@ -393,8 +393,8 @@ const Index = () => {
   }, []);
 
   const handleApplyEdit = useCallback(async (image: string, editPrompt: string) => {
-    // First detect the source image's aspect ratio for the loading placeholder
-    const getSourceRatio = (): Promise<string> => {
+    // Detect the source image's aspect ratio and resolution
+    const getSourceInfo = (): Promise<{ ratio: string; resolution: string }> => {
       return new Promise((resolve) => {
         const img = new Image();
         img.onload = () => {
@@ -404,20 +404,37 @@ const Index = () => {
           const divisor = gcd(width, height);
           const ratioW = width / divisor;
           const ratioH = height / divisor;
-          resolve(`${ratioW}:${ratioH}`);
+          
+          // Determine resolution tier based on longest edge
+          const longestEdge = Math.max(width, height);
+          let resolution: string;
+          if (longestEdge >= 3000) {
+            resolution = "4K";
+          } else if (longestEdge >= 1500) {
+            resolution = "2K";
+          } else {
+            resolution = "1K";
+          }
+          
+          resolve({ ratio: `${ratioW}:${ratioH}`, resolution });
         };
-        img.onerror = () => resolve("1:1");
+        img.onerror = () => resolve({ ratio: "1:1", resolution: "1K" });
         img.src = image;
       });
     };
 
-    const sourceRatio = await getSourceRatio();
-    const loadingIds = addLoadingEntries(1, "Editing...", sourceRatio, "Original");
+    const sourceInfo = await getSourceInfo();
+    const loadingIds = addLoadingEntries(1, "Editing...", sourceInfo.ratio, sourceInfo.resolution);
     const loadingId = loadingIds[0];
     
     try {
       const { data, error } = await supabase.functions.invoke('edit-image', {
-        body: { imageUrl: image, editPrompt }
+        body: { 
+          imageUrl: image, 
+          editPrompt,
+          resolution: sourceInfo.resolution,
+          aspectRatio: sourceInfo.ratio
+        }
       });
 
       if (error) {
@@ -438,11 +455,11 @@ const Index = () => {
           const ratioH = height / divisor;
           const ratio = `${ratioW}:${ratioH}`;
           
-          updateEntryWithImage(loadingId, data.image, { prompt: editPrompt, ratio, resolution: "Original" });
+          updateEntryWithImage(loadingId, data.image, { prompt: editPrompt, ratio, resolution: sourceInfo.resolution });
           toast.success("Image edited successfully!");
         };
         img.onerror = () => {
-          updateEntryWithImage(loadingId, data.image, { prompt: editPrompt, ratio: sourceRatio, resolution: "Original" });
+          updateEntryWithImage(loadingId, data.image, { prompt: editPrompt, ratio: sourceInfo.ratio, resolution: sourceInfo.resolution });
           toast.success("Image edited successfully!");
         };
         img.src = data.image;
