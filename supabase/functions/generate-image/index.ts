@@ -406,7 +406,6 @@ Use the ${hasStyleGuide ? "style guide image" : selectedStyle ? `"${selectedStyl
     "colors": ["Exact colors to match"]
   },
   "styleApplication": "How you are applying the ${hasStyleGuide ? 'style guide' : selectedStyle?.name || 'default'} style",
-  "compositionPlan": "Camera angle, arrangement, background based on style",
   "reasoning": "Your creative decisions for styling within the specified style",
   "imagePrompt": "CRITICAL: This prompt must:
     1. REPRODUCE the EXACT food items from the reference photos
@@ -733,14 +732,14 @@ MANDATORY STYLE: "${selectedStyle.name}"
       
       // Define variation instructions for each image to ensure diversity
       const variationStyles = [
-        "Use a DRAMATIC LOW ANGLE (looking up at the food) with WARM golden hour lighting. Position the food slightly off-center to the left.",
-        "Use a STRAIGHT-ON EYE-LEVEL angle with COOL studio lighting. Center the food with shallow depth of field blurring the background.",
-        "Use a SLIGHT HIGH ANGLE (looking down ~30 degrees) with SOFT diffused natural light. Position food to the right with props on the left.",
-        "Use a 3/4 ANGLE from the side with MOODY dramatic shadows and rim lighting. Create depth with layered background elements."
+        "Use WARM golden hour lighting.",
+        "Use COOL studio lighting with shallow depth of field.",
+        "Use SOFT diffused natural light.",
+        "Use MOODY dramatic shadows and rim lighting."
       ];
       
       const variationInstruction = numImages > 1 
-        ? `\n\n🎨 VARIATION #${imageIndex + 1} SPECIFIC STYLE:\n${variationStyles[imageIndex % variationStyles.length]}\nThis variation MUST look distinctly different from other variations while keeping the SAME food ingredients.`
+        ? `\n\n🎨 VARIATION #${imageIndex + 1} LIGHTING STYLE:\n${variationStyles[imageIndex % variationStyles.length]}\nThis variation MUST look distinctly different from other variations while keeping the SAME food ingredients.`
         : "";
       
       // Build the final prompt for THIS image with unique seed
