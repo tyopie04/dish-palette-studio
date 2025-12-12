@@ -804,9 +804,12 @@ CRITICAL: Output MUST be ${width}x${height} pixels - ultra sharp ${resolution} q
         });
       }
       
-      // Add ALL menu photo references
+      // Add menu photo references (limit to 6 to avoid overwhelming the model)
+      const MAX_HAND_IMAGES = 6;
       if (imageUrls && imageUrls.length > 0) {
-        for (const url of imageUrls) {
+        const imagesToUse = imageUrls.slice(0, MAX_HAND_IMAGES);
+        console.log(`[HAND] Using ${imagesToUse.length}/${imageUrls.length} reference images`);
+        for (const url of imagesToUse) {
           content.push({
             type: "image_url",
             image_url: { url }
@@ -924,6 +927,8 @@ CRITICAL: Output MUST be ${width}x${height} pixels - ultra sharp ${resolution} q
       
       if (!generatedImage) {
         console.error(`[HAND] No image found for generation ${imageIndex + 1}`);
+        console.error(`[HAND] Response message keys:`, message ? Object.keys(message) : 'no message');
+        console.error(`[HAND] Response content preview:`, message?.content?.substring(0, 500) || 'no content');
         return null;
       }
       
