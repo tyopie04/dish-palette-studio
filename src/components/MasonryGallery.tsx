@@ -51,6 +51,8 @@ type GalleryItem = LoadingItem | ImageItem;
 
 const ITEMS_PER_ROW = 4;
 const GAP = 4;
+const MAX_ROW_HEIGHT = 350; // Maximum height in pixels to prevent oversized images
+const MIN_ROW_HEIGHT = 120; // Minimum height to ensure loading states are visible
 
 export const MasonryGallery: React.FC<MasonryGalleryProps> = ({
   history,
@@ -183,8 +185,9 @@ export const MasonryGallery: React.FC<MasonryGalleryProps> = ({
           {rows.map((row, rowIndex) => {
             // Sum of aspect ratios for this row
             const totalAspectRatio = row.reduce((sum, item) => sum + item.aspectRatio, 0);
-            // Row height that makes all items fit the available width
-            const rowHeight = availableWidth / totalAspectRatio;
+            // Row height that makes all items fit the available width, but clamped
+            const calculatedHeight = availableWidth / totalAspectRatio;
+            const rowHeight = Math.max(MIN_ROW_HEIGHT, Math.min(MAX_ROW_HEIGHT, calculatedHeight));
 
             return (
               <div 
