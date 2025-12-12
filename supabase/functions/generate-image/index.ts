@@ -2,6 +2,230 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.86.2";
 import { decode as decodeBase64 } from "https://deno.land/std@0.168.0/encoding/base64.ts";
 
+// ============= NATIVE GEMINI API SUPPORT =============
+// When GEMINI_API_KEY is set, bypass Lovable Gateway and call Google's API directly
+// for true 2K/4K resolution support
+
+interface NativeGeminiResponse {
+  candidates?: Array<{
+    content?: {
+      parts?: Array<{
+        text?: string;
+        inlineData?: {
+          mimeType: string;
+          data: string;
+        };
+      }>;
+    };
+  }>;
+  error?: { message: string };
+}
+
+// Calculate native Gemini resolution string based on aspect ratio and resolution tier
+function getNativeGeminiResolution(resolution: string, ratio: string): string {
+  // Native Gemini supports: 1024x1024, 2048x2048, 4096x4096 as base
+  // For aspect ratios, we scale appropriately
+  const resolutionBase: Record<string, number> = {
+    "1K": 1024,
+    "2K": 2048,
+    "4K": 4096,
+  };
+  
+  const base = resolutionBase[resolution] || 1024;
+  
+  // For aspect ratios, Gemini expects the resolution as "WIDTHxHEIGHT"
+  const ratioMultipliers: Record<string, { w: number; h: number }> = {
+    "1:1": { w: 1, h: 1 },
+    "16:9": { w: 16/9, h: 1 },
+    "9:16": { w: 1, h: 16/9 },
+    "4:3": { w: 4/3, h: 1 },
+    "3:4": { w: 1, h: 4/3 },
+  };
+  
+  const mult = ratioMultipliers[ratio] || { w: 1, h: 1 };
+  
+  let width: number;
+  let height: number;
+  
+  if (mult.w >= mult.h) {
+    width = base;
+    height = Math.round(base / mult.w * mult.h);
+  } else {
+    height = base;
+    width = Math.round(base / mult.h * mult.w);
+  }
+  
+  // Round to nearest 32 (Gemini requirement)
+  width = Math.round(width / 32) * 32;
+  height = Math.round(height / 32) * 32;
+  
+  return `${width}x${height}`;
+}
+
+// Fetch image and convert to base64 for native Gemini API
+async function imageUrlToBase64(url: string): Promise<{ mimeType: string; data: string } | null> {
+  try {
+    // If already base64 data URL, extract parts
+    if (url.startsWith('data:')) {
+      const match = url.match(/^data:(image\/[^;]+);base64,(.+)$/);
+      if (match) {
+        return { mimeType: match[1], data: match[2] };
+      }
+      return null;
+    }
+    
+    // Fetch the image
+    const response = await fetch(url);
+    if (!response.ok) {
+      console.error('[NATIVE] Failed to fetch image:', url, response.status);
+      return null;
+    }
+    
+    const contentType = response.headers.get('content-type') || 'image/jpeg';
+    const arrayBuffer = await response.arrayBuffer();
+    const bytes = new Uint8Array(arrayBuffer);
+    let binary = '';
+    for (let i = 0; i < bytes.length; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+    const base64 = btoa(binary);
+    
+    return { mimeType: contentType, data: base64 };
+  } catch (error) {
+    console.error('[NATIVE] Error converting image to base64:', error);
+    return null;
+  }
+}
+
+// Generate image using Google's native Gemini API for true 2K/4K support
+async function generateImageNative(
+  GEMINI_API_KEY: string,
+  prompt: string,
+  resolution: string,
+  ratio: string,
+  imageUrls?: string[],
+  styleGuideUrl?: string
+): Promise<string | null> {
+  console.log('[NATIVE] Using Google Native Gemini API for true resolution support');
+  
+  const nativeResolution = getNativeGeminiResolution(resolution, ratio);
+  console.log('[NATIVE] Target resolution:', nativeResolution);
+  
+  // Build the parts array for the request
+  const parts: Array<{ text?: string; inlineData?: { mimeType: string; data: string } }> = [];
+  
+  // Add the prompt text
+  parts.push({ text: prompt });
+  
+  // Add style guide image if provided
+  if (styleGuideUrl) {
+    const styleData = await imageUrlToBase64(styleGuideUrl);
+    if (styleData) {
+      parts.push({ inlineData: styleData });
+      console.log('[NATIVE] Added style guide image');
+    }
+  }
+  
+  // Add reference images
+  if (imageUrls && imageUrls.length > 0) {
+    console.log('[NATIVE] Processing', imageUrls.length, 'reference images...');
+    for (const url of imageUrls) {
+      const imgData = await imageUrlToBase64(url);
+      if (imgData) {
+        parts.push({ inlineData: imgData });
+      }
+    }
+    console.log('[NATIVE] Added reference images');
+  }
+  
+  // Build the native Gemini API request
+  const requestBody = {
+    contents: [{ parts }],
+    generationConfig: {
+      responseModalities: ["TEXT", "IMAGE"],
+      imageConfig: {
+        resolution: nativeResolution,
+        aspectRatio: ratio.replace(':', '_'), // Convert "16:9" to "16_9"
+      }
+    }
+  };
+  
+  console.log('[NATIVE] Request config:', JSON.stringify({
+    resolution: nativeResolution,
+    aspectRatio: ratio,
+    numParts: parts.length,
+    model: 'gemini-2.0-flash-preview-image-generation'
+  }));
+  
+  const maxRetries = 3;
+  let lastError: Error | null = null;
+  
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      console.log(`[NATIVE] Attempt ${attempt}/${maxRetries}`);
+      
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-preview-image-generation:generateContent?key=${GEMINI_API_KEY}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(requestBody)
+        }
+      );
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[NATIVE] API error:', response.status, errorText);
+        
+        if (response.status >= 500 && attempt < maxRetries) {
+          const delay = Math.pow(2, attempt) * 1000;
+          console.log(`[NATIVE] Retrying in ${delay}ms...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+          continue;
+        }
+        
+        throw new Error(`Native Gemini API error: ${response.status} - ${errorText}`);
+      }
+      
+      const data: NativeGeminiResponse = await response.json();
+      
+      if (data.error) {
+        throw new Error(`Native Gemini error: ${data.error.message}`);
+      }
+      
+      // Extract the generated image from the response
+      const candidates = data.candidates || [];
+      for (const candidate of candidates) {
+        const parts = candidate.content?.parts || [];
+        for (const part of parts) {
+          if (part.inlineData?.data) {
+            const mimeType = part.inlineData.mimeType || 'image/png';
+            const base64Data = part.inlineData.data;
+            const dataUrl = `data:${mimeType};base64,${base64Data}`;
+            console.log('[NATIVE] Successfully extracted generated image');
+            return dataUrl;
+          }
+        }
+      }
+      
+      console.error('[NATIVE] No image found in response');
+      return null;
+      
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+      console.error(`[NATIVE] Attempt ${attempt} failed:`, lastError.message);
+      
+      if (attempt < maxRetries) {
+        const delay = Math.pow(2, attempt) * 1000;
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+  }
+  
+  console.error('[NATIVE] All attempts failed:', lastError?.message);
+  return null;
+}
+
 // Helper function to extract image dimensions from base64 PNG/JPEG
 function getImageDimensions(base64Data: string): { width: number; height: number } | null {
   try {
@@ -712,12 +936,18 @@ MANDATORY STYLE: "${selectedStyle.name}"
     console.log('[HAND] Requested photo amount:', photoAmount);
     console.log('[HAND] Target resolution:', resolution, `(${width}x${height} pixels)`);
     
+    // Check for native Gemini API key for true 2K/4K resolution
+    const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
+    const useNativeApi = !!GEMINI_API_KEY && (resolution === '2K' || resolution === '4K');
+    console.log('[HAND] Native Gemini API available:', !!GEMINI_API_KEY);
+    console.log('[HAND] Using Native API for true resolution:', useNativeApi);
+    
     // Generate multiple images if requested
     const numImages = Math.min(Math.max(parseInt(photoAmount) || 1, 1), 4);
     
-    // Skip upscaling when generating multiple images to avoid timeout
-    const shouldUpscale = numImages === 1 && (resolution === "2K" || resolution === "4K");
-    console.log('[HAND] Upscaling enabled:', shouldUpscale, '(only for single image 2K/4K)');
+    // Skip upscaling when using native API (it gives true resolution) or multiple images
+    const shouldUpscale = !useNativeApi && numImages === 1 && (resolution === "2K" || resolution === "4K");
+    console.log('[HAND] Upscaling enabled:', shouldUpscale, useNativeApi ? '(disabled - using native API)' : '(only for single image 2K/4K)');
     
     // Helper function to generate a single image
     const generateSingleImage = async (imageIndex: number): Promise<string | null> => {
@@ -808,6 +1038,32 @@ Generate a ${resolution} quality food photograph that executes the user's vision
         }
       }
       
+      // ========== USE NATIVE GEMINI API FOR TRUE 2K/4K RESOLUTION ==========
+      if (useNativeApi && GEMINI_API_KEY) {
+        console.log(`[NATIVE] Using Google's Native Gemini API for image ${imageIndex + 1} (true ${resolution} resolution)`);
+        
+        const nativeResult = await generateImageNative(
+          GEMINI_API_KEY,
+          handPrompt,
+          resolution,
+          ratio,
+          imageUrls,
+          styleGuideUrl
+        );
+        
+        if (nativeResult) {
+          // Get dimensions to verify
+          const dims = getImageDimensions(nativeResult);
+          if (dims) {
+            console.log(`[NATIVE] Generated image ${imageIndex + 1} dimensions: ${dims.width}x${dims.height}`);
+          }
+          return nativeResult;
+        } else {
+          console.log(`[NATIVE] Native API failed for image ${imageIndex + 1}, falling back to Lovable Gateway`);
+        }
+      }
+      
+      // ========== FALLBACK: LOVABLE GATEWAY ==========
       // Retry logic for transient errors
       const maxRetries = 2; // Reduced retries for parallel generation
       let lastError: Error | null = null;
@@ -815,7 +1071,7 @@ Generate a ${resolution} quality food photograph that executes the user's vision
       
       for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
-          console.log(`[HAND] Attempt ${attempt}/${maxRetries} for image ${imageIndex + 1}`);
+          console.log(`[HAND] Attempt ${attempt}/${maxRetries} for image ${imageIndex + 1} (Lovable Gateway)`);
           
           // Build the request payload
           const requestPayload = {
