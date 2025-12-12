@@ -95,18 +95,65 @@ export function ImageLightbox({
     }
   };
 
-  // Calculate image dimensions from resolution and ratio
-  const getDimensions = () => {
-    if (!resolution || !ratio) return null;
-    const [w, h] = ratio.split(':').map(Number);
-    const baseSize = parseInt(resolution);
-    if (w > h) {
-      return `${baseSize}x${Math.round(baseSize * (h / w))}`;
-    } else if (h > w) {
-      return `${Math.round(baseSize * (w / h))}x${baseSize}`;
+  // Normalize ratio to standard formats (e.g., "24:43" -> "9:16")
+  const normalizeRatio = (rawRatio: string): string => {
+    const [w, h] = rawRatio.split(':').map(Number);
+    if (isNaN(w) || isNaN(h)) return rawRatio;
+    
+    const aspectRatio = w / h;
+    
+    // Common aspect ratios with tolerance
+    const standardRatios: { ratio: number; label: string }[] = [
+      { ratio: 1, label: '1:1' },
+      { ratio: 16 / 9, label: '16:9' },
+      { ratio: 9 / 16, label: '9:16' },
+      { ratio: 4 / 3, label: '4:3' },
+      { ratio: 3 / 4, label: '3:4' },
+      { ratio: 3 / 2, label: '3:2' },
+      { ratio: 2 / 3, label: '2:3' },
+      { ratio: 21 / 9, label: '21:9' },
+      { ratio: 9 / 21, label: '9:21' },
+    ];
+    
+    // Find closest standard ratio (within 5% tolerance)
+    for (const std of standardRatios) {
+      if (Math.abs(aspectRatio - std.ratio) / std.ratio < 0.05) {
+        return std.label;
+      }
     }
-    return `${baseSize}x${baseSize}`;
+    
+    // If no match, return a simplified version
+    return rawRatio;
   };
+
+  // Get quality display string
+  const getQualityDisplay = () => {
+    if (!resolution) return null;
+    if (resolution === '4096') return '4K';
+    if (resolution === '2048') return '2K';
+    if (resolution === '1024') return '1K';
+    if (resolution === 'Original') return 'Original';
+    // Try to parse as number
+    const num = parseInt(resolution);
+    if (!isNaN(num)) {
+      if (num >= 3840) return '4K';
+      if (num >= 1920) return '2K';
+      return '1K';
+    }
+    return resolution;
+  };
+
+  // Calculate image dimensions from resolution and ratio
+  const [imageDimensions, setImageDimensions] = useState<string | null>(null);
+  
+  useEffect(() => {
+    // Load the actual image to get real dimensions
+    const img = new Image();
+    img.onload = () => {
+      setImageDimensions(`${img.naturalWidth}x${img.naturalHeight}`);
+    };
+    img.src = image;
+  }, [image]);
 
   const formattedDate = timestamp 
     ? new Intl.DateTimeFormat('en-US', { 
@@ -225,18 +272,18 @@ export function ImageLightbox({
             </CollapsibleTrigger>
             <CollapsibleContent>
               <div className="p-4 space-y-3 border-b border-border">
-                {resolution && (
+                {getQualityDisplay() && (
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-muted-foreground">Quality</span>
                     <span className="text-sm font-medium text-foreground">
-                      {resolution === '4096' ? '4K' : resolution === '2048' ? '2K' : '1K'}
+                      {getQualityDisplay()}
                     </span>
                   </div>
                 )}
                 {ratio && (
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-muted-foreground">Size</span>
-                    <span className="text-sm font-medium text-foreground">{ratio}</span>
+                    <span className="text-sm font-medium text-foreground">{normalizeRatio(ratio)}</span>
                   </div>
                 )}
               </div>
@@ -254,10 +301,10 @@ export function ImageLightbox({
             </CollapsibleTrigger>
             <CollapsibleContent>
               <div className="p-4 space-y-3 border-b border-border">
-                {getDimensions() && (
+                {imageDimensions && (
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-muted-foreground">Dimensions</span>
-                    <span className="text-sm font-medium text-foreground">{getDimensions()}</span>
+                    <span className="text-sm font-medium text-foreground">{imageDimensions}</span>
                   </div>
                 )}
                 {formattedDate && (
