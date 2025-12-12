@@ -21,46 +21,7 @@ interface NativeGeminiResponse {
   error?: { message: string };
 }
 
-// Calculate native Gemini resolution string based on aspect ratio and resolution tier
-function getNativeGeminiResolution(resolution: string, ratio: string): string {
-  // Native Gemini supports: 1024x1024, 2048x2048, 4096x4096 as base
-  // For aspect ratios, we scale appropriately
-  const resolutionBase: Record<string, number> = {
-    "1K": 1024,
-    "2K": 2048,
-    "4K": 4096,
-  };
-  
-  const base = resolutionBase[resolution] || 1024;
-  
-  // For aspect ratios, Gemini expects the resolution as "WIDTHxHEIGHT"
-  const ratioMultipliers: Record<string, { w: number; h: number }> = {
-    "1:1": { w: 1, h: 1 },
-    "16:9": { w: 16/9, h: 1 },
-    "9:16": { w: 1, h: 16/9 },
-    "4:3": { w: 4/3, h: 1 },
-    "3:4": { w: 1, h: 4/3 },
-  };
-  
-  const mult = ratioMultipliers[ratio] || { w: 1, h: 1 };
-  
-  let width: number;
-  let height: number;
-  
-  if (mult.w >= mult.h) {
-    width = base;
-    height = Math.round(base / mult.w * mult.h);
-  } else {
-    height = base;
-    width = Math.round(base / mult.h * mult.w);
-  }
-  
-  // Round to nearest 32 (Gemini requirement)
-  width = Math.round(width / 32) * 32;
-  height = Math.round(height / 32) * 32;
-  
-  return `${width}x${height}`;
-}
+// Note: Native Gemini API uses imageSize: "1K"|"2K"|"4K" directly, not pixel dimensions
 
 // Fetch image and convert to base64 for native Gemini API
 async function imageUrlToBase64(url: string): Promise<{ mimeType: string; data: string } | null> {
@@ -107,9 +68,7 @@ async function generateImageNative(
   styleGuideUrl?: string
 ): Promise<string | null> {
   console.log('[NATIVE] Using Google Native Gemini API for true resolution support');
-  
-  const nativeResolution = getNativeGeminiResolution(resolution, ratio);
-  console.log('[NATIVE] Target resolution:', nativeResolution);
+  console.log('[NATIVE] Target imageSize:', resolution, 'aspectRatio:', ratio);
   
   // Build the parts array for the request
   const parts: Array<{ text?: string; inlineData?: { mimeType: string; data: string } }> = [];
@@ -138,23 +97,24 @@ async function generateImageNative(
     console.log('[NATIVE] Added reference images');
   }
   
-  // Build the native Gemini API request
+  // Build the native Gemini API request with correct parameter names
+  // Google's native API expects: imageSize: "1K"|"2K"|"4K" and aspectRatio: "16:9" (with colon)
   const requestBody = {
     contents: [{ parts }],
     generationConfig: {
       responseModalities: ["TEXT", "IMAGE"],
       imageConfig: {
-        resolution: nativeResolution,
-        aspectRatio: ratio.replace(':', '_'), // Convert "16:9" to "16_9"
+        imageSize: resolution,  // "1K", "2K", or "4K"
+        aspectRatio: ratio,     // "16:9", "9:16", "1:1", etc. (keep the colon)
       }
     }
   };
   
   console.log('[NATIVE] Request config:', JSON.stringify({
-    resolution: nativeResolution,
+    imageSize: resolution,
     aspectRatio: ratio,
     numParts: parts.length,
-    model: 'gemini-2.0-flash-preview-image-generation'
+    model: 'gemini-3-pro-image-preview'
   }));
   
   const maxRetries = 3;
@@ -165,7 +125,7 @@ async function generateImageNative(
       console.log(`[NATIVE] Attempt ${attempt}/${maxRetries}`);
       
       const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-preview-image-generation:generateContent?key=${GEMINI_API_KEY}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-image-preview:generateContent?key=${GEMINI_API_KEY}`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
