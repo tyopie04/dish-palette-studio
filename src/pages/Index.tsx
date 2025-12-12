@@ -301,6 +301,56 @@ const Index = () => {
     );
   }, []);
 
+  const handleDownloadSelected = useCallback(async () => {
+    for (const imageId of selectedImages) {
+      // Find the image URL from generationHistory
+      for (const entry of generationHistory) {
+        for (let idx = 0; idx < entry.images.length; idx++) {
+          const id = `${entry.id}-${idx}`;
+          if (id === imageId) {
+            const imageUrl = entry.images[idx];
+            try {
+              if (imageUrl.startsWith('data:')) {
+                const link = document.createElement('a');
+                link.href = imageUrl;
+                link.download = `generated-${Date.now()}-${idx}.png`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+              } else {
+                const response = await fetch(imageUrl);
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `generated-${Date.now()}-${idx}.png`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                window.URL.revokeObjectURL(url);
+              }
+            } catch (error) {
+              console.error('Download failed:', error);
+            }
+          }
+        }
+      }
+    }
+    toast.success(`Downloaded ${selectedImages.length} image${selectedImages.length > 1 ? 's' : ''}`);
+    setSelectedImages([]);
+  }, [selectedImages, generationHistory]);
+
+  const handleDeleteSelected = useCallback(() => {
+    const entryIdsToDelete = new Set<string>();
+    for (const imageId of selectedImages) {
+      const entryId = imageId.split('-').slice(0, -1).join('-');
+      entryIdsToDelete.add(entryId);
+    }
+    setGenerationHistory((prev) => prev.filter((e) => !entryIdsToDelete.has(e.id)));
+    toast.success(`Deleted ${selectedImages.length} image${selectedImages.length > 1 ? 's' : ''}`);
+    setSelectedImages([]);
+  }, [selectedImages]);
+
   const handleRerun = useCallback((entry: { prompt?: string; ratio?: string; resolution?: string }) => {
     if (entry.prompt) {
       if (entry.ratio) setSelectedRatio(entry.ratio);
@@ -409,6 +459,8 @@ const Index = () => {
                   onRerun={handleRerun}
                   selectedImages={selectedImages}
                   onToggleSelect={handleToggleSelect}
+                  onDeleteSelected={handleDeleteSelected}
+                  onDownloadSelected={handleDownloadSelected}
                 />
               </main>
             </ResizablePanel>
