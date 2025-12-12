@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useDroppable } from '@dnd-kit/core';
-import { X, Square, RectangleHorizontal, RectangleVertical, Smartphone, Monitor, Film, Image, Settings2, Sparkles, Plus, Minus, Upload } from 'lucide-react';
+import { X, Image, Sparkles, Plus, Minus, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -29,15 +29,27 @@ interface PromptBarProps {
   setStyleGuideUrl: (url: string | null) => void;
 }
 
+// Aspect ratio shapes - consistent simple rectangles
+const ratioShapes: Record<string, { w: number; h: number }> = {
+  "1:1": { w: 14, h: 14 },
+  "4:5": { w: 12, h: 15 },
+  "3:4": { w: 12, h: 16 },
+  "9:16": { w: 10, h: 18 },
+  "16:9": { w: 18, h: 10 },
+  "4:3": { w: 16, h: 12 },
+  "3:2": { w: 16, h: 11 },
+  "21:9": { w: 20, h: 9 },
+};
+
 const ratioOptions = [
-  { value: '1:1', label: '1:1', icon: Square, desc: 'Square' },
-  { value: '4:5', label: '4:5', icon: RectangleVertical, desc: 'Portrait' },
-  { value: '3:4', label: '3:4', icon: RectangleVertical, desc: 'Portrait' },
-  { value: '9:16', label: '9:16', icon: Smartphone, desc: 'Stories' },
-  { value: '16:9', label: '16:9', icon: Monitor, desc: 'Landscape' },
-  { value: '4:3', label: '4:3', icon: RectangleHorizontal, desc: 'Standard' },
-  { value: '3:2', label: '3:2', icon: RectangleHorizontal, desc: 'Classic' },
-  { value: '21:9', label: '21:9', icon: Film, desc: 'Cinematic' },
+  { value: '1:1', label: '1:1', desc: 'Square' },
+  { value: '4:5', label: '4:5', desc: 'Portrait' },
+  { value: '3:4', label: '3:4', desc: 'Portrait' },
+  { value: '9:16', label: '9:16', desc: 'Stories' },
+  { value: '16:9', label: '16:9', desc: 'Landscape' },
+  { value: '4:3', label: '4:3', desc: 'Standard' },
+  { value: '3:2', label: '3:2', desc: 'Classic' },
+  { value: '21:9', label: '21:9', desc: 'Cinematic' },
 ];
 
 const resolutionOptions = [
@@ -144,29 +156,42 @@ export const PromptBar: React.FC<PromptBarProps> = ({
             {/* Aspect Ratio */}
             <Popover open={ratioOpen} onOpenChange={setRatioOpen}>
               <PopoverTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground">
-                  <currentRatio.icon className="w-5 h-5" />
+                <Button variant="ghost" size="sm" className="h-8 px-2 gap-1.5 text-muted-foreground hover:text-foreground">
+                  <div 
+                    className="border-2 border-current rounded-sm"
+                    style={{ 
+                      width: ratioShapes[ratio]?.w || 14, 
+                      height: ratioShapes[ratio]?.h || 14 
+                    }}
+                  />
+                  <span className="text-xs font-medium">{ratio}</span>
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-64 p-2 bg-popover" align="end">
                 <div className="grid grid-cols-4 gap-1">
-                  {ratioOptions.map((option) => (
-                    <button
-                      key={option.value}
-                      onClick={() => {
-                        setRatio(option.value);
-                        setRatioOpen(false);
-                      }}
-                      className={`flex flex-col items-center gap-1 p-2 rounded-lg transition-colors ${
-                        ratio === option.value
-                          ? 'bg-primary text-primary-foreground'
-                          : 'hover:bg-muted'
-                      }`}
-                    >
-                      <option.icon className="w-4 h-4" />
-                      <span className="text-[10px] font-medium">{option.label}</span>
-                    </button>
-                  ))}
+                  {ratioOptions.map((option) => {
+                    const shape = ratioShapes[option.value];
+                    return (
+                      <button
+                        key={option.value}
+                        onClick={() => {
+                          setRatio(option.value);
+                          setRatioOpen(false);
+                        }}
+                        className={`flex flex-col items-center gap-1 p-2 rounded-lg transition-colors ${
+                          ratio === option.value
+                            ? 'bg-primary text-primary-foreground'
+                            : 'hover:bg-muted'
+                        }`}
+                      >
+                        <div 
+                          className="border-2 border-current rounded-sm"
+                          style={{ width: shape.w, height: shape.h }}
+                        />
+                        <span className="text-[10px] font-medium">{option.label}</span>
+                      </button>
+                    );
+                  })}
                 </div>
               </PopoverContent>
             </Popover>

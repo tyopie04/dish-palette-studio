@@ -23,12 +23,12 @@ interface PromptBuilderProps {
   setStyleGuideUrl: (url: string | null) => void;
 }
 
-// Aspect ratio visual shapes
+// Aspect ratio visual shapes - consistent simple rectangles
 const ratioShapes: Record<string, { w: number; h: number }> = {
-  "1:1": { w: 16, h: 16 },
-  "16:9": { w: 20, h: 11 },
-  "9:16": { w: 11, h: 20 },
-  "4:3": { w: 18, h: 14 },
+  "1:1": { w: 14, h: 14 },
+  "16:9": { w: 18, h: 10 },
+  "9:16": { w: 10, h: 18 },
+  "4:3": { w: 16, h: 12 },
 };
 
 const ratioOptions = [
