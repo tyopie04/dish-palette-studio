@@ -393,7 +393,26 @@ const Index = () => {
   }, []);
 
   const handleApplyEdit = useCallback(async (image: string, editPrompt: string) => {
-    const loadingIds = addLoadingEntries(1, "Editing...", "Edit", "Original");
+    // First detect the source image's aspect ratio for the loading placeholder
+    const getSourceRatio = (): Promise<string> => {
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          const width = img.naturalWidth;
+          const height = img.naturalHeight;
+          const gcd = (a: number, b: number): number => b === 0 ? a : gcd(b, a % b);
+          const divisor = gcd(width, height);
+          const ratioW = width / divisor;
+          const ratioH = height / divisor;
+          resolve(`${ratioW}:${ratioH}`);
+        };
+        img.onerror = () => resolve("1:1");
+        img.src = image;
+      });
+    };
+
+    const sourceRatio = await getSourceRatio();
+    const loadingIds = addLoadingEntries(1, "Editing...", sourceRatio, "Original");
     const loadingId = loadingIds[0];
     
     try {
@@ -423,8 +442,7 @@ const Index = () => {
           toast.success("Image edited successfully!");
         };
         img.onerror = () => {
-          // Fallback if image dimensions can't be detected
-          updateEntryWithImage(loadingId, data.image, { prompt: editPrompt, ratio: "1:1", resolution: "Original" });
+          updateEntryWithImage(loadingId, data.image, { prompt: editPrompt, ratio: sourceRatio, resolution: "Original" });
           toast.success("Image edited successfully!");
         };
         img.src = data.image;
