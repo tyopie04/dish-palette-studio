@@ -47,14 +47,28 @@ serve(async (req) => {
       console.log('[EDIT] Source image fetched successfully');
     }
 
-    // Build the prompt for editing
-    const fullPrompt = `Edit this food photography image: ${editPrompt}. 
-Keep the food items visible and maintain professional food photography quality.
-Output the edited image at ${resolution} resolution with ${aspectRatio} aspect ratio.`;
+    // Calculate target dimensions based on resolution tier
+    let targetDimension: number;
+    switch (resolution) {
+      case '4K': targetDimension = 4096; break;
+      case '2K': targetDimension = 2048; break;
+      default: targetDimension = 1024; break;
+    }
 
-    // Use native Gemini API for true resolution support
+    // Build the prompt for editing with resolution guidance
+    const fullPrompt = `Edit this food photography image: ${editPrompt}
+
+IMPORTANT OUTPUT REQUIREMENTS:
+- Maintain the same aspect ratio as the input image (${aspectRatio})
+- Generate at the highest possible resolution (target: ${targetDimension}px on longest edge)
+- Keep the food items visible and maintain professional food photography quality
+- Preserve the overall composition and lighting style`;
+
+    console.log(`[EDIT] Using prompt with ${resolution} resolution target (${targetDimension}px)`);
+
+    // Use native Gemini API for editing
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-image-preview:generateContent?key=${GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp-image-generation:generateContent?key=${GEMINI_API_KEY}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -71,9 +85,7 @@ Output the edited image at ${resolution} resolution with ${aspectRatio} aspect r
             ]
           }],
           generationConfig: {
-            responseModalities: ["image", "text"],
-            imageSize: resolution,
-            aspectRatio: aspectRatio
+            responseModalities: ["image", "text"]
           }
         }),
       }
@@ -118,7 +130,7 @@ Output the edited image at ${resolution} resolution with ${aspectRatio} aspect r
       throw new Error('No edited image was generated');
     }
 
-    console.log(`[EDIT] Edit complete - resolution: ${resolution}`);
+    console.log(`[EDIT] Edit complete - requested resolution: ${resolution}`);
 
     return new Response(JSON.stringify({ image: editedImageUrl }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
