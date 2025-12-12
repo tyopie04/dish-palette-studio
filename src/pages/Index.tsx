@@ -206,7 +206,7 @@ const Index = () => {
         // Update each loading entry with its corresponding image
         images.forEach((image, index) => {
           if (loadingIds[index]) {
-            updateEntryWithImage(loadingIds[index], image);
+            updateEntryWithImage(loadingIds[index], image, { prompt, ratio: selectedRatio, resolution: selectedResolution });
           }
         });
         
@@ -357,7 +357,7 @@ const Index = () => {
       }
 
       if (data?.image) {
-        updateEntryWithImage(loadingId, data.image);
+        updateEntryWithImage(loadingId, data.image, { prompt: "Editing...", ratio: "Edit", resolution: "Original" });
         toast.success("Image edited successfully!");
       } else {
         toast.error('No edited image was returned');
