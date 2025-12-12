@@ -107,21 +107,33 @@ export const MasonryGallery: React.FC<MasonryGalleryProps> = ({
 
   return (
     <div className="flex-1 overflow-y-auto p-2 pb-32">
-      <div className="grid grid-cols-4 gap-1 w-full">
+      <div 
+        className="w-full"
+        style={{
+          columnCount: 4,
+          columnGap: '4px',
+        }}
+      >
         {allItems.map((item) =>
           item.type === 'loading' ? (
             <div
               key={item.id}
-              className="relative bg-muted/30 rounded-md overflow-hidden w-full"
-              style={{ aspectRatio: item.aspectRatio }}
+              className="relative bg-muted/30 rounded-md overflow-hidden mb-1"
+              style={{ 
+                aspectRatio: item.aspectRatio,
+                breakInside: 'avoid',
+              }}
             >
               <LoadingCardContent ratio={item.ratio} />
             </div>
           ) : (
             <div
               key={item.id}
-              className="relative group overflow-hidden rounded-md cursor-pointer w-full"
-              style={{ aspectRatio: item.aspectRatio }}
+              className="relative group overflow-hidden rounded-md cursor-pointer mb-1"
+              style={{ 
+                aspectRatio: item.aspectRatio,
+                breakInside: 'avoid',
+              }}
               onClick={() => onImageClick(item.imageUrl, {
                 prompt: item.prompt,
                 ratio: item.ratio,
