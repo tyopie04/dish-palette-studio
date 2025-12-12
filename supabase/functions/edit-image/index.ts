@@ -47,47 +47,46 @@ serve(async (req) => {
       console.log('[EDIT] Source image fetched successfully');
     }
 
-    // Calculate target dimensions based on resolution tier
-    let targetDimension: number;
-    switch (resolution) {
-      case '4K': targetDimension = 4096; break;
-      case '2K': targetDimension = 2048; break;
-      default: targetDimension = 1024; break;
-    }
+    // Build the prompt for editing
+    const fullPrompt = `Edit this food photography image: ${editPrompt}. Keep the food items visible and maintain professional food photography quality.`;
 
-    // Build the prompt for editing with resolution guidance
-    const fullPrompt = `Edit this food photography image: ${editPrompt}
+    console.log(`[EDIT] Using Gemini 3 Pro with imageSize: ${resolution}, aspectRatio: ${aspectRatio}`);
 
-IMPORTANT OUTPUT REQUIREMENTS:
-- Maintain the same aspect ratio as the input image (${aspectRatio})
-- Generate at the highest possible resolution (target: ${targetDimension}px on longest edge)
-- Keep the food items visible and maintain professional food photography quality
-- Preserve the overall composition and lighting style`;
+    // Build request with the same structure as generate-image (imageConfig inside generationConfig)
+    const requestBody = {
+      contents: [{
+        parts: [
+          { text: fullPrompt },
+          {
+            inlineData: {
+              mimeType: imageData.mimeType,
+              data: imageData.data
+            }
+          }
+        ]
+      }],
+      generationConfig: {
+        responseModalities: ["TEXT", "IMAGE"],
+        imageConfig: {
+          imageSize: resolution,    // "1K", "2K", or "4K"
+          aspectRatio: aspectRatio  // "16:9", "9:16", "1:1", etc.
+        }
+      }
+    };
 
-    console.log(`[EDIT] Using prompt with ${resolution} resolution target (${targetDimension}px)`);
+    console.log('[EDIT] Request config:', JSON.stringify({
+      imageSize: resolution,
+      aspectRatio: aspectRatio,
+      model: 'gemini-3-pro-image-preview'
+    }));
 
-    // Use native Gemini API for editing
+    // Use native Gemini 3 Pro API for true 4K support
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp-image-generation:generateContent?key=${GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-image-preview:generateContent?key=${GEMINI_API_KEY}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{
-            parts: [
-              { text: fullPrompt },
-              {
-                inlineData: {
-                  mimeType: imageData.mimeType,
-                  data: imageData.data
-                }
-              }
-            ]
-          }],
-          generationConfig: {
-            responseModalities: ["image", "text"]
-          }
-        }),
+        body: JSON.stringify(requestBody)
       }
     );
 
@@ -130,7 +129,7 @@ IMPORTANT OUTPUT REQUIREMENTS:
       throw new Error('No edited image was generated');
     }
 
-    console.log(`[EDIT] Edit complete - requested resolution: ${resolution}`);
+    console.log(`[EDIT] Edit complete - resolution: ${resolution}, aspectRatio: ${aspectRatio}`);
 
     return new Response(JSON.stringify({ image: editedImageUrl }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
