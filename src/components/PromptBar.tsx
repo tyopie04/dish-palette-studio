@@ -319,7 +319,7 @@ export const PromptBar: React.FC<PromptBarProps> = ({
                   <Button
                     onClick={handleGenerate}
                     disabled={isGenerating || loadingCount >= 8 || (!prompt.trim() && selectedPhotos.length === 0)}
-                    className="h-10 px-6 rounded-xl bg-primary hover:bg-primary/90 font-semibold text-sm shadow-lg"
+                    className="h-10 px-12 rounded-xl bg-primary hover:bg-primary/90 font-semibold text-sm shadow-lg"
                   >
                     <Sparkles className="w-4 h-4 mr-2" />
                     Generate
