@@ -12,8 +12,15 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Download, Trash2, Edit3, Loader2 } from 'lucide-react';
+import { Download, Trash2, Edit3, Loader2, MoreHorizontal, ExternalLink, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 interface GenerationEntry {
   id: string;
@@ -30,6 +37,9 @@ interface MasonryGalleryProps {
   onImageClick: (imageUrl: string, entryData?: { prompt?: string; ratio?: string; resolution?: string; timestamp?: Date; entryId?: string }) => void;
   onDelete: (id: string) => void;
   onEdit: (imageUrl: string) => void;
+  onRerun?: (entry: { prompt?: string; ratio?: string; resolution?: string }) => void;
+  selectedImages?: string[];
+  onToggleSelect?: (imageId: string) => void;
 }
 
 const parseRatio = (ratio?: string): number => {
@@ -51,6 +61,9 @@ export const MasonryGallery: React.FC<MasonryGalleryProps> = ({
   onImageClick,
   onDelete,
   onEdit,
+  onRerun,
+  selectedImages = [],
+  onToggleSelect,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
@@ -188,42 +201,99 @@ export const MasonryGallery: React.FC<MasonryGalleryProps> = ({
                       loading="lazy"
                     />
                     
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
-                      <div className="absolute bottom-2 left-2 right-2 flex items-center justify-end gap-1.5 pointer-events-auto">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 bg-white/10 backdrop-blur-sm hover:bg-white/20 text-white"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDownload(item.imageUrl, item.index);
-                          }}
-                        >
-                          <Download className="w-3.5 h-3.5" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 bg-white/10 backdrop-blur-sm hover:bg-white/20 text-white"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onEdit(item.imageUrl);
-                          }}
-                        >
-                          <Edit3 className="w-3.5 h-3.5" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 bg-white/10 backdrop-blur-sm hover:bg-destructive/80 text-white"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onDelete(item.entryId);
-                          }}
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </Button>
+                    {/* Hover overlay */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none" />
+                    
+                    {/* Top left - Select checkbox */}
+                    <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                      <div 
+                        className="w-5 h-5 rounded bg-white/90 backdrop-blur-sm flex items-center justify-center cursor-pointer hover:bg-white"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onToggleSelect?.(item.id);
+                        }}
+                      >
+                        <Checkbox 
+                          checked={selectedImages.includes(item.id)}
+                          className="h-4 w-4 border-muted-foreground/50 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                        />
                       </div>
+                    </div>
+
+                    {/* Bottom controls */}
+                    <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                      {/* Edit button on left */}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2.5 bg-white/90 backdrop-blur-sm hover:bg-white text-foreground gap-1.5"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onEdit(item.imageUrl);
+                        }}
+                      >
+                        <Edit3 className="w-3.5 h-3.5" />
+                        <span className="text-xs font-medium">Edit</span>
+                      </Button>
+
+                      {/* More dropdown on right */}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 bg-white/90 backdrop-blur-sm hover:bg-white text-foreground"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <MoreHorizontal className="w-4 h-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-40">
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onImageClick(item.imageUrl, {
+                                prompt: item.prompt,
+                                ratio: item.ratio,
+                                resolution: item.resolution,
+                                timestamp: item.timestamp,
+                                entryId: item.entryId,
+                              });
+                            }}
+                          >
+                            <ExternalLink className="w-4 h-4 mr-2" />
+                            Open
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onRerun?.({ prompt: item.prompt, ratio: item.ratio, resolution: item.resolution });
+                            }}
+                          >
+                            <RefreshCw className="w-4 h-4 mr-2" />
+                            Re-run
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDownload(item.imageUrl, item.index);
+                            }}
+                          >
+                            <Download className="w-4 h-4 mr-2" />
+                            Download
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="text-destructive focus:text-destructive"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onDelete(item.entryId);
+                            }}
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   </div>
                 );

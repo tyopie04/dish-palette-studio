@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
-
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 interface MenuPhoto {
   id: string;
   name: string;
@@ -27,6 +27,7 @@ interface PromptBarProps {
   setPhotoAmount: (amount: number) => void;
   styleGuideUrl: string | null;
   setStyleGuideUrl: (url: string | null) => void;
+  loadingCount?: number;
 }
 
 // Aspect ratio shapes - consistent simple rectangles
@@ -71,6 +72,7 @@ export const PromptBar: React.FC<PromptBarProps> = ({
   setPhotoAmount,
   styleGuideUrl,
   setStyleGuideUrl,
+  loadingCount = 0,
 }) => {
   const [prompt, setPrompt] = useState('');
   const [styleGuideLightboxOpen, setStyleGuideLightboxOpen] = useState(false);
@@ -302,14 +304,27 @@ export const PromptBar: React.FC<PromptBarProps> = ({
             />
 
             {/* Generate Button */}
-            <Button
-              onClick={handleGenerate}
-              disabled={isGenerating || (!prompt.trim() && selectedPhotos.length === 0)}
-              className="h-9 px-5 ml-2 bg-primary hover:bg-primary/90 font-medium"
-            >
-              <Sparkles className="w-4 h-4 mr-1.5" />
-              Generate
-            </Button>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="ml-2">
+                    <Button
+                      onClick={handleGenerate}
+                      disabled={isGenerating || loadingCount >= 8 || (!prompt.trim() && selectedPhotos.length === 0)}
+                      className="h-9 px-5 bg-primary hover:bg-primary/90 font-medium"
+                    >
+                      <Sparkles className="w-4 h-4 mr-1.5" />
+                      Generate
+                    </Button>
+                  </span>
+                </TooltipTrigger>
+                {loadingCount >= 8 && (
+                  <TooltipContent>
+                    <p>Generation limit reached — please wait for current images to complete</p>
+                  </TooltipContent>
+                )}
+              </Tooltip>
+            </TooltipProvider>
           </div>
         </div>
       </div>
