@@ -45,18 +45,25 @@ const LoadingCard: React.FC<{ ratio?: string; aspectRatio: number; height: numbe
     return () => clearInterval(interval);
   }, []);
 
+  // Ensure minimum dimensions for visibility
+  const minHeight = 200;
+  const actualHeight = Math.max(minHeight, height);
+  const actualWidth = actualHeight * aspectRatio;
+
   return (
     <div 
       className="relative bg-muted/30 rounded-md overflow-hidden flex-shrink-0"
       style={{ 
-        width: height * aspectRatio,
-        height: height,
+        width: actualWidth,
+        height: actualHeight,
+        minWidth: 200,
+        minHeight: minHeight,
       }}
     >
       {/* Generating badge in top left */}
       <div className="absolute top-3 left-3 z-10">
-        <div className="flex items-center gap-2 bg-muted/80 backdrop-blur-sm rounded-full px-3 py-1.5">
-          <Loader2 className="w-3.5 h-3.5 text-foreground/70 animate-spin" />
+        <div className="flex items-center gap-2 bg-muted/80 backdrop-blur-sm rounded-full px-3 py-1.5 whitespace-nowrap">
+          <Loader2 className="w-3.5 h-3.5 text-foreground/70 animate-spin flex-shrink-0" />
           <span className="text-xs font-medium text-foreground/70">Generating...</span>
         </div>
       </div>
