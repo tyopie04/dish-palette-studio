@@ -778,16 +778,27 @@ This is ${resolution} quality - ${resolutionQuality}.
 The output image MUST be ultra sharp, highly detailed, and suitable for print/large display.
 DO NOT generate a low-resolution image. The final output MUST be ${width}x${height} pixels.
 
+📝 TEXT FIDELITY - EXTREMELY IMPORTANT 📝
+Any text, logos, brand names, or writing visible on packaging, cups, cans, bottles, or containers MUST be:
+- Perfectly legible and crystal clear
+- Spelled correctly with accurate letterforms
+- Sharp edges on all characters - no blur or smudging
+- Correct font style matching the reference exactly
+- Proper spacing and alignment as shown in reference
+- High contrast and readable at any zoom level
+This includes: drink labels, can logos (Fanta, Coca-Cola, etc.), cup branding, sauce bottle labels, and any other text elements.
+
 TECHNICAL REQUIREMENTS:
 - Output resolution: EXACTLY ${width}x${height} pixels (${resolution})
 - Aspect ratio: ${ratioDesc} (${ratio})
 - Quality: ${resolutionQuality}
 - Sharpness: Maximum - suitable for large format printing
+- Text clarity: Maximum - all text must be perfectly readable
 - Unique variation seed: ${variationSeed}
 - Image variation: ${imageIndex + 1} of ${numImages}${styleInstructions}
 
 REMEMBER: The reference photos show the REAL MENU ITEMS. Photograph them from the angle/composition shown in the style guide.
-CRITICAL: Output MUST be ${width}x${height} pixels - ultra sharp ${resolution} quality.`;
+CRITICAL: Output MUST be ${width}x${height} pixels - ultra sharp ${resolution} quality with PERFECT text legibility.`;
       
       if (imageIndex === 0) {
         console.log('[HAND] Prompt preview:', handPrompt.substring(0, 400) + '...');
