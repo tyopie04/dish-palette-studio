@@ -341,84 +341,81 @@ Style Name: ${selectedStyle.name}
 ⚠️ CRITICAL: You MUST apply this "${selectedStyle.name}" style. Do NOT default to dark/moody aesthetics unless that is the selected style. Do NOT derive any style from logos or brand assets.`;
   }
   
-  const systemPrompt = `You are an expert food photography art director. Your job is to create STAGING INSTRUCTIONS for an AI that will PHOTOGRAPH the EXACT food INGREDIENTS from the reference images.
+  const systemPrompt = `You are an expert food photography art director. Your PRIMARY TASK is to execute the USER'S CREATIVE DIRECTION while photographing real menu items.
 
-⚠️ CRITICAL - FALSE ADVERTISING PREVENTION ⚠️
-The reference food photos show REAL MENU ITEMS that will be sold to customers. The generated image MUST show the EXACT SAME FOOD INGREDIENTS - same bun type, same patties, same ingredients, same toppings, same cheese. 
+=== 🎯 PRIORITY #1: USER'S CREATIVE DIRECTION ===
+The user's prompt is your MAIN INSTRUCTION. Execute it precisely:
+- If they say "top-down" → shoot from DIRECTLY ABOVE (burgers appear as circles, you see the top of buns)
+- If they say "2700K lighting" → use WARM tungsten-style lighting at that color temperature
+- If they say "table spread" → arrange ALL items on a table surface
+- If they say "action shot" → show food being eaten, held, or in motion
+- INTERPRET the angle literally. A "top-down shot of a burger" means you see a CIRCLE (the top of the bun), NOT a side view.
 
-YOU ARE NOT CREATING NEW FOOD - you are directing a PHOTO SHOOT of the EXISTING food items.
+=== 🎯 PRIORITY #2: INCLUDE ALL ${imageUrls?.length || 0} REFERENCE ITEMS ===
+⚠️ MANDATORY: You have EXACTLY ${imageUrls?.length || 0} reference food items provided.
+You MUST include ALL ${imageUrls?.length || 0} items in your generated image.
+ITEMS TO INCLUDE: ${photoNames?.join(', ') || 'See reference images'}
 
-Think of it like this: The food is already cooked and plated. You are the photographer choosing:
-- Camera angle and perspective
-- Lighting setup  
-- Background
-- Arrangement/composition
-- Props and styling
-- How the food is held or positioned
+Before generating, mentally verify: "I am including [item 1], [item 2], [item 3]..." for all ${imageUrls?.length || 0} items.
+MISSING ANY ITEM IS A FAILURE.
 
-YOU CANNOT CHANGE (the INGREDIENTS):
-- The food ingredients (bun type, patty count, toppings, cheese type)
-- The sauce type and placement
-- Any identifying food characteristics
+=== 🎯 PRIORITY #3: PRESERVE FOOD INGREDIENTS ===
+The reference photos show REAL MENU ITEMS. Preserve these characteristics:
+- Same bun type (sesame, brioche, potato, etc.)
+- Same number of patties and toppings
+- Same cheese type and sauce placement
+- Same identifying food characteristics
 
-YOU CAN (AND SHOULD) CHANGE TO MATCH STYLE GUIDE:
-- Camera angle and perspective (front, side, top-down, eating angle, etc.)
-- How the food is positioned or held in the scene
-- Lighting direction and quality
-- Background and environment
+Think of it like this: You are RE-PHOTOGRAPHING existing food from a NEW ANGLE specified by the user.
+
+=== WHAT YOU CONTROL (THE PHOTOGRAPHY) ===
+✅ Camera angle (as specified by user's prompt)
+✅ Lighting direction, warmth, and quality
+✅ Background and environment
+✅ Composition and arrangement
+✅ How food is positioned in the scene
+
+=== WHAT STAYS FIXED (THE FOOD ITSELF) ===
+❌ Bun type, patty count, toppings, cheese type
+❌ Sauce type and placement
+❌ Food construction and ingredients
 
 ${styleSection}
 
-=== CHAIN-OF-THOUGHT ANALYSIS ===
-
-STEP 1 - IDENTIFY EXACT FOOD ITEMS:
-For each reference photo, catalog the EXACT details:
-- Bun type and color (sesame, brioche, pretzel, plain - note exact shade)
-- Number of patties and their appearance (thickness, char marks, color)
-- Exact toppings in order from top to bottom
-- Cheese type and melt pattern
-- Sauce visibility and placement
-- Any unique identifying features
-
-STEP 2 - APPLY THE SPECIFIED STYLE:
-Use the ${hasStyleGuide ? "style guide image" : selectedStyle ? `"${selectedStyle.name}" preset` : "default"} to determine:
-- Lighting direction, warmth, and shadow quality
-- Background surface/color
-- Overall color grading and mood
-- Composition approach
-
 === INPUT CONTEXT ===
+- User's creative direction: "${userPrompt}"
 - Aspect ratio: ${ratio}
 - Resolution: ${dimensionString}
-- Reference food photos: ${imageUrls?.length || 0}
-- ALL MENU ITEMS: ${photoNames?.join(', ') || 'None specified'}
+- Number of reference food items: ${imageUrls?.length || 0} (INCLUDE ALL)
+- Menu item names: ${photoNames?.join(', ') || 'None specified'}
 - Style: ${hasStyleGuide ? 'From style guide image' : selectedStyle?.name || 'Default'}
 - Variation seed: ${randomSeed}
 
-⚠️ IMPORTANT: Include ALL menu items listed above in your composition and prompt.
-
-=== OUTPUT FORMAT ===
+=== OUTPUT FORMAT (JSON) ===
 {
   "visualAnalysis": {
-    "foodItems": ["EXACT description of each item - be specific about bun type, patty count, exact toppings, cheese type"],
-    "identifyingFeatures": ["Unique characteristics that MUST be preserved"],
-    "textures": ["Surface textures to preserve"],
-    "colors": ["Exact colors to match"]
+    "foodItems": ["Detailed description of each reference item's ingredients - be SPECIFIC about bun type, patty count, exact toppings"],
+    "identifyingFeatures": ["Unique characteristics to preserve"],
+    "textures": ["Surface textures visible"],
+    "colors": ["Exact colors to maintain"]
   },
-  "styleApplication": "How you are applying the ${hasStyleGuide ? 'style guide' : selectedStyle?.name || 'default'} style",
-  "reasoning": "Your creative decisions for styling within the specified style",
-  "imagePrompt": "CRITICAL: This prompt must:
-    1. REPRODUCE the EXACT food items from the reference photos
-    2. Apply the ${hasStyleGuide ? 'style guide' : selectedStyle?.name || 'default'} style for lighting/background/mood
-    3. Include detailed food characteristics that must be preserved
-    4. NOT describe generic food - describe THE SPECIFIC items from the references"
+  "userDirectionInterpretation": "How I will execute the user's '${userPrompt}' instruction - specifically the camera angle and lighting",
+  "angleTransformation": "How the food will appear from the requested angle (e.g., 'top-down means burgers appear as circles showing top of buns')",
+  "itemInclusionPlan": "Confirming I will include all ${imageUrls?.length || 0} items: ${photoNames?.join(', ') || 'all reference items'}",
+  "styleApplication": "How I'm applying the ${hasStyleGuide ? 'style guide' : selectedStyle?.name || 'default'} style",
+  "reasoning": "My creative decisions for this shoot",
+  "imagePrompt": "Detailed generation prompt that:
+    1. EXECUTES the user's angle/lighting direction as the primary focus
+    2. INCLUDES all ${imageUrls?.length || 0} reference items
+    3. PRESERVES exact food ingredients from references
+    4. Describes food as seen FROM THE REQUESTED ANGLE"
 }
 
-=== RULES ===
-1. The food in the output MUST be visually identical to the reference photos
-2. ONLY lighting, angle, background, and composition can change
-3. You MUST use the specified style - do not default to dark/moody if another style is specified
-4. Include the variation seed ${randomSeed} for unique outputs`;
+=== CRITICAL REMINDERS ===
+1. USER'S PROMPT IS YOUR MAIN TASK - execute their creative direction
+2. ALL ${imageUrls?.length || 0} ITEMS must appear in the generated image
+3. Food ingredients stay identical, only photography changes
+4. Include variation seed ${randomSeed} for unique outputs`;
 
   console.log('[BRAIN] Calling Gemini 2.5 Pro for MULTIMODAL reasoning with enhanced thinking...');
   console.log('[BRAIN] Reference images to analyze:', imageUrls?.length || 0);
@@ -743,51 +740,47 @@ MANDATORY STYLE: "${selectedStyle.name}"
         : "";
       
       // Build the final prompt for THIS image with unique seed
-      const handPrompt = `⚠️ CRITICAL INSTRUCTION - READ CAREFULLY ⚠️
+      const handPrompt = `🎯 YOUR PRIMARY TASK: Execute the user's creative direction while photographing real menu items.
 
-You MUST REPRODUCE the EXACT food INGREDIENTS from the reference photos. This is for commercial advertising.
+=== STEP 1: EXECUTE USER'S CREATIVE DIRECTION ===
+The user requested: "${prompt || 'Professional food photography'}"
 
-WHAT "VISUALLY IDENTICAL" MEANS (the INGREDIENTS):
-✅ Same bun type (sesame, brioche, potato, etc.)
-✅ Same number of patties and their appearance
-✅ Same toppings, cheese type, and sauce
-✅ Same overall food construction and ingredients
+INTERPRET THIS LITERALLY:
+- "top-down" = Camera DIRECTLY ABOVE looking down (burgers appear as CIRCLES - you see tops of buns, not sides)
+- "2700K lighting" = Warm tungsten/amber lighting at 2700 Kelvin color temperature
+- "table spread" = All items arranged on a table surface, shot from above or slight angle
+- "45-degree angle" = Camera at 45 degrees to the food
+- "action shot" = Food being eaten, held, or in motion
 
-WHAT CAN (AND SHOULD) CHANGE TO MATCH THE STYLE GUIDE:
-✅ Camera angle and perspective (front, side, top-down, eating angle)
-✅ How the food is held or positioned in the scene
-✅ Lighting direction and quality
-✅ Background and environment
+The food items from reference photos must be RE-PHOTOGRAPHED from YOUR REQUESTED ANGLE.
+If you asked for top-down, a burger should look like a circle (top of bun visible), NOT a side product shot.
 
-If a style guide shows someone EATING the food, show it at that eating angle.
-If a style guide shows a top-down view, use that angle.
-If a style guide shows food being held in hands, show the menu item held that way.
-The INGREDIENTS stay the same, but the ANGLE and COMPOSITION match the style guide.
+=== STEP 2: INCLUDE ALL ${imageUrls?.length || 0} ITEMS ===
+⚠️ MANDATORY: You have ${imageUrls?.length || 0} reference food items.
+You MUST include ALL ${imageUrls?.length || 0} items in this image. Count them. Include them all.
+Do NOT skip or omit any items. Missing items = FAILURE.
 
-WHAT YOU MUST NOT DO:
-❌ Do NOT change the bun type, patty count, toppings, or cheese
-❌ Do NOT create different food items than shown in the reference
-❌ Do NOT generate generic food - use the EXACT ingredients from the reference
+=== STEP 3: PRESERVE FOOD INGREDIENTS ===
+Keep the same bun type, patty count, toppings, cheese, and sauce from each reference photo.
+Only the PHOTOGRAPHY changes (angle, lighting, background), not the FOOD ITSELF.
 
-BLUEPRINT FOR STYLING (apply to the EXACT food INGREDIENTS from references):
+=== BLUEPRINT FROM ART DIRECTOR ===
 ${blueprint}${variationInstruction}
 
-⚠️ MANDATORY OUTPUT RESOLUTION - CRITICAL ⚠️
-You MUST generate this image at EXACTLY ${width}x${height} pixels resolution.
-This is ${resolution} quality - ${resolutionQuality}.
-The output image MUST be ultra sharp, highly detailed, and suitable for print/large display.
-DO NOT generate a low-resolution image. The final output MUST be ${width}x${height} pixels.
-
-TECHNICAL REQUIREMENTS:
-- Output resolution: EXACTLY ${width}x${height} pixels (${resolution})
+=== TECHNICAL SPECS ===
+- Resolution: ${width}x${height} pixels (${resolution})
 - Aspect ratio: ${ratioDesc} (${ratio})
 - Quality: ${resolutionQuality}
-- Sharpness: Maximum - suitable for large format printing
-- Unique variation seed: ${variationSeed}
-- Image variation: ${imageIndex + 1} of ${numImages}${styleInstructions}
+- Variation seed: ${variationSeed}
+- Image ${imageIndex + 1} of ${numImages}${styleInstructions}
 
-REMEMBER: The reference photos show the REAL MENU ITEMS. Photograph them from the angle/composition shown in the style guide.
-CRITICAL: Output MUST be ${width}x${height} pixels - ultra sharp ${resolution} quality.`;
+=== FINAL CHECKLIST ===
+✅ Am I using the ANGLE requested by the user? (top-down = looking straight down)
+✅ Am I including ALL ${imageUrls?.length || 0} reference items?
+✅ Am I preserving exact food ingredients from each reference?
+✅ Am I applying the correct lighting as specified?
+
+Generate a ${resolution} quality food photograph that executes the user's vision.`;
       
       if (imageIndex === 0) {
         console.log('[HAND] Prompt preview:', handPrompt.substring(0, 400) + '...');
