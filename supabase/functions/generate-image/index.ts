@@ -380,16 +380,7 @@ For each reference photo, catalog the EXACT details:
 - Sauce visibility and placement
 - Any unique identifying features
 
-STEP 2 - EXTRACT ALL VISIBLE TEXT (CRITICAL FOR BRAND ACCURACY):
-For each reference photo containing packaging, cans, bottles, or containers:
-- Read and transcribe ALL visible text EXACTLY as shown
-- Note the EXACT spelling of brand names (e.g., "FANTA" not "Fenta")
-- Note the EXACT spelling of product names (e.g., "berry" not "dairy")
-- Note any taglines, descriptions, or small print visible
-- Describe the font style, color, and placement of each text element
-This text MUST be reproduced EXACTLY in the generated image.
-
-STEP 3 - APPLY THE SPECIFIED STYLE:
+STEP 2 - APPLY THE SPECIFIED STYLE:
 Use the ${hasStyleGuide ? "style guide image" : selectedStyle ? `"${selectedStyle.name}" preset` : "default"} to determine:
 - Lighting direction, warmth, and shadow quality
 - Background surface/color
@@ -412,25 +403,22 @@ Use the ${hasStyleGuide ? "style guide image" : selectedStyle ? `"${selectedStyl
     "foodItems": ["EXACT description of each item - be specific about bun type, patty count, exact toppings, cheese type"],
     "identifyingFeatures": ["Unique characteristics that MUST be preserved"],
     "textures": ["Surface textures to preserve"],
-    "colors": ["Exact colors to match"],
-    "visibleText": ["EXACT transcription of ALL text visible on packaging/labels - spell correctly: brand names, product names, taglines, etc."]
+    "colors": ["Exact colors to match"]
   },
   "styleApplication": "How you are applying the ${hasStyleGuide ? 'style guide' : selectedStyle?.name || 'default'} style",
   "reasoning": "Your creative decisions for styling within the specified style",
   "imagePrompt": "CRITICAL: This prompt must:
     1. REPRODUCE the EXACT food items from the reference photos
-    2. Include ALL visible text from packaging SPELLED EXACTLY as shown (e.g., 'FANTA berry' not 'Fenta dairy')
-    3. Apply the ${hasStyleGuide ? 'style guide' : selectedStyle?.name || 'default'} style for lighting/background/mood
-    4. Include detailed food characteristics that must be preserved
-    5. NOT describe generic food - describe THE SPECIFIC items from the references"
+    2. Apply the ${hasStyleGuide ? 'style guide' : selectedStyle?.name || 'default'} style for lighting/background/mood
+    3. Include detailed food characteristics that must be preserved
+    4. NOT describe generic food - describe THE SPECIFIC items from the references"
 }
 
 === RULES ===
 1. The food in the output MUST be visually identical to the reference photos
 2. ONLY lighting, angle, background, and composition can change
 3. You MUST use the specified style - do not default to dark/moody if another style is specified
-4. Include the variation seed ${randomSeed} for unique outputs
-5. ALL TEXT on packaging MUST be spelled EXACTLY as shown in reference photos`;
+4. Include the variation seed ${randomSeed} for unique outputs`;
 
   console.log('[BRAIN] Calling Gemini 2.5 Pro for MULTIMODAL reasoning with enhanced thinking...');
   console.log('[BRAIN] Reference images to analyze:', imageUrls?.length || 0);
@@ -765,14 +753,6 @@ WHAT "VISUALLY IDENTICAL" MEANS (the INGREDIENTS):
 ✅ Same toppings, cheese type, and sauce
 ✅ Same overall food construction and ingredients
 
-📝 TEXT & BRANDING - ABSOLUTELY CRITICAL 📝
-Any text on packaging, cans, cups, or bottles MUST be spelled EXACTLY as shown:
-✅ Copy brand names LETTER BY LETTER from the reference (e.g., "FANTA" not "FENTA")
-✅ Copy product names EXACTLY (e.g., "berry" not "dairy", "berry" not "Barry")
-✅ Match the exact font style, color, and placement
-✅ All text must be crystal clear and legible
-❌ Do NOT guess or hallucinate text - READ it from the reference image
-
 WHAT CAN (AND SHOULD) CHANGE TO MATCH THE STYLE GUIDE:
 ✅ Camera angle and perspective (front, side, top-down, eating angle)
 ✅ How the food is held or positioned in the scene
@@ -788,7 +768,6 @@ WHAT YOU MUST NOT DO:
 ❌ Do NOT change the bun type, patty count, toppings, or cheese
 ❌ Do NOT create different food items than shown in the reference
 ❌ Do NOT generate generic food - use the EXACT ingredients from the reference
-❌ Do NOT misspell ANY text on packaging - copy it EXACTLY from reference
 
 BLUEPRINT FOR STYLING (apply to the EXACT food INGREDIENTS from references):
 ${blueprint}${variationInstruction}
@@ -799,27 +778,16 @@ This is ${resolution} quality - ${resolutionQuality}.
 The output image MUST be ultra sharp, highly detailed, and suitable for print/large display.
 DO NOT generate a low-resolution image. The final output MUST be ${width}x${height} pixels.
 
-📝 TEXT FIDELITY - EXTREMELY IMPORTANT 📝
-Any text, logos, brand names, or writing visible on packaging, cups, cans, bottles, or containers MUST be:
-- Perfectly legible and crystal clear
-- Spelled correctly with accurate letterforms
-- Sharp edges on all characters - no blur or smudging
-- Correct font style matching the reference exactly
-- Proper spacing and alignment as shown in reference
-- High contrast and readable at any zoom level
-This includes: drink labels, can logos (Fanta, Coca-Cola, etc.), cup branding, sauce bottle labels, and any other text elements.
-
 TECHNICAL REQUIREMENTS:
 - Output resolution: EXACTLY ${width}x${height} pixels (${resolution})
 - Aspect ratio: ${ratioDesc} (${ratio})
 - Quality: ${resolutionQuality}
 - Sharpness: Maximum - suitable for large format printing
-- Text clarity: Maximum - all text must be perfectly readable
 - Unique variation seed: ${variationSeed}
 - Image variation: ${imageIndex + 1} of ${numImages}${styleInstructions}
 
 REMEMBER: The reference photos show the REAL MENU ITEMS. Photograph them from the angle/composition shown in the style guide.
-CRITICAL: Output MUST be ${width}x${height} pixels - ultra sharp ${resolution} quality with PERFECT text legibility.`;
+CRITICAL: Output MUST be ${width}x${height} pixels - ultra sharp ${resolution} quality.`;
       
       if (imageIndex === 0) {
         console.log('[HAND] Prompt preview:', handPrompt.substring(0, 400) + '...');
