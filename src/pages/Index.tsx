@@ -331,10 +331,61 @@ const Index = () => {
     }
   }, [handleGenerate]);
 
+  // Create a flat list of all completed images for navigation
+  const allCompletedImages = useMemo(() => {
+    const images: Array<{
+      image: string;
+      prompt?: string;
+      ratio?: string;
+      resolution?: string;
+      timestamp?: Date;
+      entryId: string;
+    }> = [];
+    
+    generationHistory
+      .filter(entry => !entry.isLoading && entry.images.length > 0)
+      .forEach(entry => {
+        entry.images.forEach((img) => {
+          images.push({
+            image: img,
+            prompt: entry.prompt,
+            ratio: entry.ratio,
+            resolution: entry.resolution,
+            timestamp: entry.timestamp,
+            entryId: entry.id
+          });
+        });
+      });
+    
+    return images;
+  }, [generationHistory]);
+
+  const [currentImageIndex, setCurrentImageIndex] = useState<number>(-1);
+
   const handleImageClick = useCallback((image: string, entryData?: { prompt?: string; ratio?: string; resolution?: string; timestamp?: Date; entryId?: string }) => {
     setLightboxImage(image);
     setLightboxMeta(entryData || {});
-  }, []);
+    
+    // Find the index of this image in allCompletedImages
+    const index = allCompletedImages.findIndex(item => item.image === image);
+    setCurrentImageIndex(index);
+  }, [allCompletedImages]);
+
+  const handleNavigate = useCallback((direction: 'prev' | 'next') => {
+    const newIndex = direction === 'prev' ? currentImageIndex - 1 : currentImageIndex + 1;
+    if (newIndex >= 0 && newIndex < allCompletedImages.length) {
+      const item = allCompletedImages[newIndex];
+      setLightboxImage(item.image);
+      setLightboxMeta({
+        prompt: item.prompt,
+        ratio: item.ratio,
+        resolution: item.resolution,
+        timestamp: item.timestamp,
+        entryId: item.entryId
+      });
+      setCurrentImageIndex(newIndex);
+    }
+  }, [currentImageIndex, allCompletedImages]);
 
   const handleEditImage = useCallback((image: string) => {
     setLightboxImage(null);
@@ -466,7 +517,7 @@ const Index = () => {
       {lightboxImage && (
         <ImageLightbox
           image={lightboxImage}
-          onClose={() => setLightboxImage(null)}
+          onClose={() => { setLightboxImage(null); setCurrentImageIndex(-1); }}
           onEdit={() => handleEditImage(lightboxImage)}
           onDelete={lightboxMeta.entryId ? () => handleDeleteEntry(lightboxMeta.entryId!) : undefined}
           onRecreate={lightboxMeta.prompt ? () => handleGenerate(lightboxMeta.prompt!) : undefined}
@@ -474,6 +525,9 @@ const Index = () => {
           ratio={lightboxMeta.ratio}
           resolution={lightboxMeta.resolution}
           timestamp={lightboxMeta.timestamp}
+          onNavigate={handleNavigate}
+          hasPrev={currentImageIndex > 0}
+          hasNext={currentImageIndex < allCompletedImages.length - 1}
         />
       )}
 

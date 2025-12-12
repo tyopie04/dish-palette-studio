@@ -1,8 +1,7 @@
-import { useState } from "react";
-import { X, Download, RefreshCw, Pencil, Trash2, Copy, ChevronDown, ChevronUp, Info, Settings2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { X, Download, RefreshCw, Pencil, Trash2, Copy, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Info, Settings2 } from "lucide-react";
 import { Button } from "./ui/button";
 import { toast } from "sonner";
-import { useEffect } from "react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "./ui/collapsible";
 
 interface ImageLightboxProps {
@@ -15,6 +14,9 @@ interface ImageLightboxProps {
   ratio?: string;
   resolution?: string;
   timestamp?: Date;
+  onNavigate?: (direction: 'prev' | 'next') => void;
+  hasPrev?: boolean;
+  hasNext?: boolean;
 }
 
 export function ImageLightbox({ 
@@ -26,23 +28,28 @@ export function ImageLightbox({
   prompt,
   ratio, 
   resolution,
-  timestamp 
+  timestamp,
+  onNavigate,
+  hasPrev = false,
+  hasNext = false
 }: ImageLightboxProps) {
   const [infoOpen, setInfoOpen] = useState(true);
   const [additionalOpen, setAdditionalOpen] = useState(true);
 
-  // Close on escape key
+  // Handle keyboard events
   useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
+    const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
+      if (e.key === "ArrowLeft" && hasPrev && onNavigate) onNavigate('prev');
+      if (e.key === "ArrowRight" && hasNext && onNavigate) onNavigate('next');
     };
-    document.addEventListener("keydown", handleEscape);
+    document.addEventListener("keydown", handleKeyDown);
     document.body.style.overflow = "hidden";
     return () => {
-      document.removeEventListener("keydown", handleEscape);
+      document.removeEventListener("keydown", handleKeyDown);
       document.body.style.overflow = "";
     };
-  }, [onClose]);
+  }, [onClose, onNavigate, hasPrev, hasNext]);
 
   const handleDownload = async () => {
     try {
@@ -126,6 +133,30 @@ export function ImageLightbox({
       >
         <X className="w-5 h-5" />
       </Button>
+
+      {/* Left Navigation Arrow */}
+      {hasPrev && onNavigate && (
+        <Button
+          variant="ghost"
+          size="icon"
+          className="absolute left-4 top-1/2 -translate-y-1/2 h-12 w-12 bg-white/10 hover:bg-white/20 text-white z-10 rounded-full"
+          onClick={(e) => { e.stopPropagation(); onNavigate('prev'); }}
+        >
+          <ChevronLeft className="w-6 h-6" />
+        </Button>
+      )}
+
+      {/* Right Navigation Arrow */}
+      {hasNext && onNavigate && (
+        <Button
+          variant="ghost"
+          size="icon"
+          className="absolute right-[340px] top-1/2 -translate-y-1/2 h-12 w-12 bg-white/10 hover:bg-white/20 text-white z-10 rounded-full mr-4"
+          onClick={(e) => { e.stopPropagation(); onNavigate('next'); }}
+        >
+          <ChevronRight className="w-6 h-6" />
+        </Button>
+      )}
 
       {/* Main Image Area - clicking here closes lightbox */}
       <div 
