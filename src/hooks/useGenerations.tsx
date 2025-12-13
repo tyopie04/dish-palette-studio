@@ -16,10 +16,17 @@ export const useGenerations = () => {
   const [generations, setGenerations] = useState<GenerationEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [hasFetched, setHasFetched] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const fetchGenerations = useCallback(async (retryCount = 0) => {
     // Only fetch once - don't overwrite user-generated content
     if (hasFetched) return;
+    
+    // Don't fetch if we're actively generating - this prevents race conditions
+    if (isGenerating) {
+      console.log('[GENERATIONS] Skipping fetch - generation in progress');
+      return;
+    }
 
     try {
       // Limit to last 50 generations to prevent timeout on cold starts
@@ -30,13 +37,11 @@ export const useGenerations = () => {
         .limit(50);
 
       if (error) {
-        // Retry on timeout errors
-        if (error.code === '57014' && retryCount < 3) {
-          console.log(`Retrying fetch (attempt ${retryCount + 1}/3)...`);
-          await new Promise(r => setTimeout(r, 1000 * (retryCount + 1)));
-          return fetchGenerations(retryCount + 1);
-        }
-        throw error;
+        console.error('Error fetching generations:', error);
+        // DON'T set hasFetched on error - allow retries later
+        // DON'T update state on error - preserve any existing entries
+        setLoading(false);
+        return; // Return early, don't touch state
       }
 
       const mappedGenerations: GenerationEntry[] = (data || []).map((gen) => ({
@@ -59,14 +64,13 @@ export const useGenerations = () => {
       });
       
       setHasFetched(true);
+      setLoading(false);
     } catch (error) {
       console.error('Error fetching generations:', error);
-      // Don't block the UI - user can still generate new ones
-      setHasFetched(true); // Mark as fetched to prevent retries
-    } finally {
+      // DON'T update state on error - preserve any existing entries
       setLoading(false);
     }
-  }, [hasFetched]);
+  }, [hasFetched, isGenerating]);
 
   useEffect(() => {
     fetchGenerations();
@@ -255,6 +259,8 @@ export const useGenerations = () => {
   return {
     generations,
     loading,
+    isGenerating,
+    setIsGenerating,
     fetchGenerations,
     loadImagesForEntry,
     addLoadingEntry,
