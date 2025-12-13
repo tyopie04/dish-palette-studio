@@ -37,6 +37,7 @@ interface MasonryGalleryProps {
   onDeleteSelected?: () => void;
   onDownloadSelected?: () => void;
   onLoadImages?: (id: string) => void;
+  onClearAll?: () => void;
 }
 
 const parseRatio = (ratio?: string): number => {
@@ -66,6 +67,7 @@ export const MasonryGallery: React.FC<MasonryGalleryProps> = ({
   onDeleteSelected,
   onDownloadSelected,
   onLoadImages,
+  onClearAll,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
@@ -153,7 +155,8 @@ export const MasonryGallery: React.FC<MasonryGalleryProps> = ({
         ratio: entry.ratio,
         aspectRatio: parseRatio(entry.ratio),
       });
-    } else {
+    } else if (entry.images.length > 0) {
+      // Only add entries that have images
       for (let idx = 0; idx < entry.images.length; idx++) {
         allItems.push({
           type: 'image',
@@ -169,7 +172,11 @@ export const MasonryGallery: React.FC<MasonryGalleryProps> = ({
         });
       }
     }
+    // Skip entries with isLoading=false and no images (failed loads)
   }
+
+  // Check if there are failed entries (history has items but none could load)
+  const hasFailedEntries = history.length > 0 && allItems.length === 0;
 
   if (allItems.length === 0) {
     return (
@@ -177,10 +184,25 @@ export const MasonryGallery: React.FC<MasonryGalleryProps> = ({
         <div className="w-24 h-24 rounded-full bg-muted/50 flex items-center justify-center mb-6">
           <Pencil className="w-10 h-10 text-muted-foreground/50" />
         </div>
-        <h3 className="text-xl font-semibold text-foreground/80 mb-2">No generations yet</h3>
-        <p className="text-muted-foreground max-w-md">
-          Select photos from the menu, describe what you want to create, and hit generate to see your content here.
+        <h3 className="text-xl font-semibold text-foreground/80 mb-2">
+          {hasFailedEntries ? 'Unable to load previous generations' : 'No generations yet'}
+        </h3>
+        <p className="text-muted-foreground max-w-md mb-4">
+          {hasFailedEntries 
+            ? 'The previous images are too large to load. Clear them to start fresh.'
+            : 'Select photos from the menu, describe what you want to create, and hit generate to see your content here.'
+          }
         </p>
+        {hasFailedEntries && onClearAll && (
+          <Button 
+            variant="destructive" 
+            onClick={onClearAll}
+            className="gap-2"
+          >
+            <Trash2 className="w-4 h-4" />
+            Clear Old Generations
+          </Button>
+        )}
       </div>
     );
   }
