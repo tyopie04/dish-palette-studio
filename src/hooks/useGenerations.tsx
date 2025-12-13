@@ -15,8 +15,12 @@ export interface GenerationEntry {
 export const useGenerations = () => {
   const [generations, setGenerations] = useState<GenerationEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [hasFetched, setHasFetched] = useState(false);
 
   const fetchGenerations = useCallback(async (retryCount = 0) => {
+    // Only fetch once - don't overwrite user-generated content
+    if (hasFetched) return;
+
     try {
       // Limit to last 50 generations to prevent timeout on cold starts
       const { data, error } = await supabase
@@ -45,14 +49,24 @@ export const useGenerations = () => {
         isLoading: false,
       }));
 
-      setGenerations(mappedGenerations);
+      // MERGE with existing loading entries instead of replacing
+      setGenerations((prev) => {
+        const loadingEntries = prev.filter(e => e.isLoading || e.id.startsWith('gen-'));
+        const fetchedIds = new Set(mappedGenerations.map(g => g.id));
+        // Keep loading entries that aren't in fetched data
+        const newLoadingEntries = loadingEntries.filter(e => !fetchedIds.has(e.id));
+        return [...newLoadingEntries, ...mappedGenerations];
+      });
+      
+      setHasFetched(true);
     } catch (error) {
       console.error('Error fetching generations:', error);
-      // Don't block the UI - just show empty and let user generate new ones
+      // Don't block the UI - user can still generate new ones
+      setHasFetched(true); // Mark as fetched to prevent retries
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [hasFetched]);
 
   useEffect(() => {
     fetchGenerations();
