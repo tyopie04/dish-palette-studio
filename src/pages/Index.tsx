@@ -174,6 +174,9 @@ const Index = () => {
     const loadingIds = addLoadingEntries(selectedPhotoAmount, prompt, selectedRatio, selectedResolution);
     console.log('[GENERATE] Created loading entries:', loadingIds);
     
+    // Small delay to ensure state update has propagated
+    await new Promise(resolve => setTimeout(resolve, 50));
+    
     try {
       console.log('[GENERATE] Compressing images...');
       const imagePromises = selectedPhotos.map((p) => compressImageToBase64(p.src));
@@ -211,11 +214,16 @@ const Index = () => {
       console.log('[GENERATE] Extracted', images.length, 'images from response');
       
       if (images.length > 0) {
+        console.log('[GENERATE] About to update entries. Loading IDs:', loadingIds, 'Images:', images.length);
+        
         // Update each loading entry with its corresponding image
         images.forEach((image, index) => {
-          console.log('[GENERATE] Updating entry', loadingIds[index], 'with image of length', image?.length);
-          if (loadingIds[index]) {
-            updateEntryWithImage(loadingIds[index], image, { prompt, ratio: selectedRatio, resolution: selectedResolution });
+          const tempId = loadingIds[index];
+          console.log('[GENERATE] Updating entry', tempId, 'with image of length', image?.length);
+          if (tempId && image) {
+            updateEntryWithImage(tempId, image, { prompt, ratio: selectedRatio, resolution: selectedResolution });
+          } else {
+            console.error('[GENERATE] Missing tempId or image:', { tempId, hasImage: !!image });
           }
         });
         
