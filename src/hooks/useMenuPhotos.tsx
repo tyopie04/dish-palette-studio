@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { toast } from "sonner";
+import { retryWithBackoff } from "@/lib/retryWithBackoff";
 
 export interface MenuPhoto {
   id: string;
@@ -66,7 +67,7 @@ export function useMenuPhotos() {
   const [photos, setPhotos] = useState<MenuPhoto[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Fetch photos from database
+  // Fetch photos from database with retry logic
   const fetchPhotos = useCallback(async () => {
     if (!user) {
       setPhotos([]);
@@ -75,15 +76,27 @@ export function useMenuPhotos() {
     }
 
     try {
-      const { data, error } = await supabase
-        .from("menu_photos")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("display_order", { ascending: true });
+      const data = await retryWithBackoff(
+        async () => {
+          const { data, error } = await supabase
+            .from("menu_photos")
+            .select("*")
+            .eq("user_id", user.id)
+            .order("display_order", { ascending: true });
 
-      if (error) throw error;
+          if (error) throw error;
+          return data as DbMenuPhoto[];
+        },
+        {
+          maxRetries: 3,
+          initialDelayMs: 1000,
+          onRetry: (attempt) => {
+            console.log(`Retrying photos fetch (${attempt}/3)...`);
+          },
+        }
+      );
 
-      const mappedPhotos: MenuPhoto[] = (data as DbMenuPhoto[]).map((photo) => ({
+      const mappedPhotos: MenuPhoto[] = data.map((photo) => ({
         id: photo.id,
         name: photo.name,
         src: photo.original_url,
@@ -94,7 +107,7 @@ export function useMenuPhotos() {
       setPhotos(mappedPhotos);
     } catch (error) {
       console.error("Error fetching photos:", error);
-      toast.error("Failed to load photos");
+      // Don't show error toast on cold start
     } finally {
       setLoading(false);
     }
