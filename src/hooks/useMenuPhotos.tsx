@@ -1,8 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "./useAuth";
+import { useState, useCallback } from "react";
 import { toast } from "sonner";
-import { retryWithBackoff } from "@/lib/retryWithBackoff";
 
 export interface MenuPhoto {
   id: string;
@@ -12,19 +9,8 @@ export interface MenuPhoto {
   category: string;
 }
 
-interface DbMenuPhoto {
-  id: string;
-  user_id: string;
-  name: string;
-  category: string;
-  original_url: string;
-  thumbnail_url: string;
-  display_order: number;
-  created_at: string;
-}
-
 // Generate thumbnail from image file
-async function generateThumbnail(file: File, maxSize: number = 400): Promise<Blob> {
+async function generateThumbnail(file: File, maxSize: number = 400): Promise<string> {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.onload = () => {
@@ -48,14 +34,7 @@ async function generateThumbnail(file: File, maxSize: number = 400): Promise<Blo
         return;
       }
       ctx.drawImage(img, 0, 0, width, height);
-      canvas.toBlob(
-        (blob) => {
-          if (blob) resolve(blob);
-          else reject(new Error("Failed to create thumbnail"));
-        },
-        "image/jpeg",
-        0.8
-      );
+      resolve(canvas.toDataURL("image/jpeg", 0.8));
     };
     img.onerror = () => reject(new Error("Failed to load image"));
     img.src = URL.createObjectURL(file);
@@ -63,135 +42,37 @@ async function generateThumbnail(file: File, maxSize: number = 400): Promise<Blo
 }
 
 export function useMenuPhotos() {
-  const { user } = useAuth();
   const [photos, setPhotos] = useState<MenuPhoto[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading] = useState(false);
 
-  // Fetch photos from database with retry logic
+  // No-op fetch
   const fetchPhotos = useCallback(async () => {
-    if (!user) {
-      setPhotos([]);
-      setLoading(false);
-      return;
-    }
+    // Local only
+  }, []);
 
-    try {
-      const data = await retryWithBackoff(
-        async () => {
-          const { data, error } = await supabase
-            .from("menu_photos")
-            .select("*")
-            .eq("user_id", user.id)
-            .order("display_order", { ascending: true });
-
-          if (error) throw error;
-          return data as DbMenuPhoto[];
-        },
-        {
-          maxRetries: 3,
-          initialDelayMs: 1000,
-          onRetry: (attempt) => {
-            console.log(`Retrying photos fetch (${attempt}/3)...`);
-          },
-        }
-      );
-
-      const mappedPhotos: MenuPhoto[] = data.map((photo) => ({
-        id: photo.id,
-        name: photo.name,
-        src: photo.original_url,
-        thumbnailSrc: photo.thumbnail_url,
-        category: photo.category,
-      }));
-
-      setPhotos(mappedPhotos);
-    } catch (error) {
-      console.error("Error fetching photos:", error);
-      // Don't show error toast on cold start
-    } finally {
-      setLoading(false);
-    }
-  }, [user]);
-
-  useEffect(() => {
-    fetchPhotos();
-  }, [fetchPhotos]);
-
-  // Upload new photos
+  // Upload new photos (local only - creates data URLs)
   const uploadPhotos = useCallback(async (files: File[]) => {
-    if (!user) return;
-
     const uploadPromises = files.map(async (file, index) => {
-      const timestamp = Date.now();
+      const id = `photo-${Date.now()}-${index}`;
       const fileName = file.name.replace(/\.[^/.]+$/, "");
-      const fileExt = file.name.split(".").pop();
-      const originalPath = `${user.id}/original-${timestamp}-${index}.${fileExt}`;
-      const thumbnailPath = `${user.id}/thumb-${timestamp}-${index}.jpg`;
+      
+      // Create data URL for the original
+      const originalUrl = await new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.readAsDataURL(file);
+      });
 
-      try {
-        // Generate thumbnail
-        const thumbnailBlob = await generateThumbnail(file);
+      // Generate thumbnail
+      const thumbnailUrl = await generateThumbnail(file);
 
-        // Upload original
-        const { error: originalError } = await supabase.storage
-          .from("menu-photos")
-          .upload(originalPath, file);
-
-        if (originalError) throw originalError;
-
-        // Upload thumbnail
-        const { error: thumbError } = await supabase.storage
-          .from("menu-photos")
-          .upload(thumbnailPath, thumbnailBlob);
-
-        if (thumbError) throw thumbError;
-
-        // Get public URLs
-        const { data: originalUrlData } = supabase.storage
-          .from("menu-photos")
-          .getPublicUrl(originalPath);
-
-        const { data: thumbUrlData } = supabase.storage
-          .from("menu-photos")
-          .getPublicUrl(thumbnailPath);
-
-        // Get current max display_order
-        const { data: maxOrderData } = await supabase
-          .from("menu_photos")
-          .select("display_order")
-          .eq("user_id", user.id)
-          .order("display_order", { ascending: false })
-          .limit(1);
-
-        const maxOrder = maxOrderData?.[0]?.display_order ?? -1;
-
-        // Insert into database
-        const { data: insertedPhoto, error: insertError } = await supabase
-          .from("menu_photos")
-          .insert({
-            user_id: user.id,
-            name: fileName,
-            category: "Uploaded",
-            original_url: originalUrlData.publicUrl,
-            thumbnail_url: thumbUrlData.publicUrl,
-            display_order: maxOrder + 1 + index,
-          })
-          .select()
-          .single();
-
-        if (insertError) throw insertError;
-
-        return {
-          id: insertedPhoto.id,
-          name: fileName,
-          src: originalUrlData.publicUrl,
-          thumbnailSrc: thumbUrlData.publicUrl,
-          category: "Uploaded",
-        } as MenuPhoto;
-      } catch (error) {
-        console.error("Error uploading photo:", error);
-        throw error;
-      }
+      return {
+        id,
+        name: fileName,
+        src: originalUrl,
+        thumbnailSrc: thumbnailUrl,
+        category: "Uploaded",
+      } as MenuPhoto;
     });
 
     try {
@@ -201,80 +82,26 @@ export function useMenuPhotos() {
     } catch (error) {
       toast.error("Failed to upload some photos");
     }
-  }, [user]);
+  }, []);
 
   // Delete photo
   const deletePhoto = useCallback(async (id: string) => {
-    if (!user) return;
-
-    try {
-      const { error } = await supabase
-        .from("menu_photos")
-        .delete()
-        .eq("id", id)
-        .eq("user_id", user.id);
-
-      if (error) throw error;
-
-      setPhotos((prev) => prev.filter((p) => p.id !== id));
-      toast.success("Photo deleted");
-    } catch (error) {
-      console.error("Error deleting photo:", error);
-      toast.error("Failed to delete photo");
-    }
-  }, [user]);
+    setPhotos((prev) => prev.filter((p) => p.id !== id));
+    toast.success("Photo deleted");
+  }, []);
 
   // Reorder photos
   const reorderPhotos = useCallback(async (newPhotos: MenuPhoto[]) => {
-    if (!user) return;
-
     setPhotos(newPhotos);
-
-    try {
-      const updates = newPhotos.map((photo, index) => ({
-        id: photo.id,
-        user_id: user.id,
-        name: photo.name,
-        category: photo.category,
-        original_url: photo.src,
-        thumbnail_url: photo.thumbnailSrc,
-        display_order: index,
-      }));
-
-      const { error } = await supabase
-        .from("menu_photos")
-        .upsert(updates, { onConflict: "id" });
-
-      if (error) throw error;
-    } catch (error) {
-      console.error("Error reordering photos:", error);
-      toast.error("Failed to save photo order");
-      fetchPhotos(); // Revert to server state
-    }
-  }, [user, fetchPhotos]);
+  }, []);
 
   // Rename photo
   const renamePhoto = useCallback(async (id: string, newName: string) => {
-    if (!user) return;
-
-    try {
-      const { error } = await supabase
-        .from("menu_photos")
-        .update({ name: newName })
-        .eq("id", id)
-        .eq("user_id", user.id);
-
-      if (error) throw error;
-
-      setPhotos((prev) =>
-        prev.map((p) => (p.id === id ? { ...p, name: newName } : p))
-      );
-      toast.success("Photo renamed");
-    } catch (error) {
-      console.error("Error renaming photo:", error);
-      toast.error("Failed to rename photo");
-    }
-  }, [user]);
+    setPhotos((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, name: newName } : p))
+    );
+    toast.success("Photo renamed");
+  }, []);
 
   return {
     photos,
