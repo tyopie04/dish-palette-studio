@@ -18,7 +18,7 @@ import { ImageEditDialog } from "@/components/ImageEditDialog";
 import { MenuPhoto } from "@/components/PhotoCard";
 import { useMenuPhotos, MenuPhoto as StoredMenuPhoto } from "@/hooks/useMenuPhotos";
 import { useGenerations, GenerationEntry } from "@/hooks/useGenerations";
-import { useAuth } from "@/hooks/useAuth";
+
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
@@ -61,7 +61,6 @@ const compressImageToBase64 = async (url: string): Promise<string> => {
 };
 
 const Index = () => {
-  const { user } = useAuth();
   const { photos: storedPhotos, loading: photosLoading, uploadPhotos, deletePhoto, reorderPhotos, renamePhoto } = useMenuPhotos();
   const { 
     generations: generationHistory, 
@@ -192,7 +191,7 @@ const Index = () => {
           imageUrls, 
           photoNames, 
           styleGuideUrl: styleGuideBase64,
-          userId: user?.id
+          
         }
       });
 
@@ -231,7 +230,7 @@ const Index = () => {
       toast.error('Failed to generate content');
       removeLoadingEntries(loadingIds);
     }
-  }, [selectedPhotos, selectedRatio, selectedResolution, selectedPhotoAmount, styleGuideUrl, user?.id, addLoadingEntries, updateEntryWithImage, removeLoadingEntries]);
+  }, [selectedPhotos, selectedRatio, selectedResolution, selectedPhotoAmount, styleGuideUrl, addLoadingEntries, updateEntryWithImage, removeLoadingEntries]);
 
   const handlePhotosAdded = useCallback((files: File[]) => {
     uploadPhotos(files);
