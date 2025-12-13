@@ -62,7 +62,12 @@ export const useGenerations = () => {
           isLoading: false,
         }));
 
-        setGenerations(entries);
+        setGenerations((prev) => {
+          // Keep any loading entries that are currently active
+          const loadingEntries = prev.filter(e => e.isLoading);
+          // Merge loading entries with the fetched history
+          return [...loadingEntries, ...entries];
+        });
       } catch (err) {
         console.error('Error fetching generations:', err);
       } finally {
