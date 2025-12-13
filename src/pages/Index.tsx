@@ -72,6 +72,7 @@ const Index = () => {
     deleteGeneration,
     deleteGenerations,
     loadImagesForEntry,
+    clearAllGenerations,
   } = useGenerations();
   
   const photos = storedPhotos;
@@ -557,6 +558,7 @@ const Index = () => {
                     onDeleteSelected={handleDeleteSelected}
                     onDownloadSelected={handleDownloadSelected}
                     onLoadImages={loadImagesForEntry}
+                    onClearAll={clearAllGenerations}
                   />
                 </main>
                 

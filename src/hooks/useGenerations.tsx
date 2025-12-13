@@ -80,6 +80,10 @@ export const useGenerations = () => {
 
       if (error) {
         console.error('Error loading images for entry:', error);
+        // Mark as failed (not loading) so it doesn't block button
+        setGenerations(prev => prev.map(e =>
+          e.id === entryId ? { ...e, isLoading: false, images: [] } : e
+        ));
         return;
       }
 
@@ -87,9 +91,18 @@ export const useGenerations = () => {
         setGenerations(prev => prev.map(e =>
           e.id === entryId ? { ...e, images: data.images, isLoading: false } : e
         ));
+      } else {
+        // No images found, mark as not loading
+        setGenerations(prev => prev.map(e =>
+          e.id === entryId ? { ...e, isLoading: false, images: [] } : e
+        ));
       }
     } catch (err) {
       console.error('Error loading images:', err);
+      // Mark as failed
+      setGenerations(prev => prev.map(e =>
+        e.id === entryId ? { ...e, isLoading: false, images: [] } : e
+      ));
     }
   }, []);
 
@@ -251,6 +264,29 @@ export const useGenerations = () => {
     }
   }, []);
 
+  // Clear all generations (for cleaning up corrupted data)
+  const clearAllGenerations = useCallback(async () => {
+    if (!user?.id) return;
+    
+    try {
+      const { error } = await supabase
+        .from('generations')
+        .delete()
+        .eq('user_id', user.id);
+
+      if (error) {
+        console.error('Error clearing generations:', error);
+        toast.error('Failed to clear generations');
+        return;
+      }
+
+      setGenerations([]);
+      toast.success('All generations cleared');
+    } catch (err) {
+      console.error('Error clearing generations:', err);
+    }
+  }, [user?.id]);
+
   return {
     generations,
     loading,
@@ -263,6 +299,7 @@ export const useGenerations = () => {
     removeLoadingEntries,
     deleteGeneration,
     deleteGenerations,
+    clearAllGenerations,
     setGenerations,
   };
 };
