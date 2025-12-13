@@ -28,7 +28,7 @@ export const useGenerations = () => {
   const [generations, setGenerations] = useState<GenerationEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Fetch generations from database
+  // Two-phase fetch: metadata first (fast), then images in batches
   useEffect(() => {
     const fetchGenerations = async () => {
       if (!user?.id) {
@@ -38,36 +38,66 @@ export const useGenerations = () => {
       }
 
       try {
-        const { data, error } = await supabase
+        // Phase 1: Fetch only metadata (no images) - this is fast
+        const { data: metaData, error: metaError } = await supabase
           .from('generations')
-          .select('*')
+          .select('id, prompt, ratio, resolution, created_at')
           .eq('user_id', user.id)
           .order('created_at', { ascending: false })
-          .limit(20);
+          .limit(10);
 
-        if (error) {
-          console.error('Error fetching generations:', error);
+        if (metaError) {
+          console.error('Error fetching generations metadata:', metaError);
           toast.error('Failed to load generations');
           setLoading(false);
           return;
         }
 
-        const entries: GenerationEntry[] = (data || []).map((g: DbGeneration) => ({
+        // Create entries with placeholder for images (showing as loading)
+        const entries: GenerationEntry[] = (metaData || []).map((g) => ({
           id: g.id,
-          images: g.images || [],
+          images: [],
           timestamp: new Date(g.created_at),
           prompt: g.prompt || undefined,
           ratio: g.ratio || undefined,
           resolution: g.resolution || undefined,
-          isLoading: false,
+          isLoading: true, // Mark as loading until images load
         }));
 
         setGenerations((prev) => {
-          // Keep any loading entries that are currently active
-          const loadingEntries = prev.filter(e => e.isLoading);
-          // Merge loading entries with the fetched history
+          const loadingEntries = prev.filter(e => e.isLoading && e.id.startsWith('gen-'));
           return [...loadingEntries, ...entries];
         });
+        setLoading(false);
+
+        // Phase 2: Lazy load images in small batches
+        const ids = (metaData || []).map((g) => g.id);
+        const BATCH_SIZE = 2;
+        
+        for (let i = 0; i < ids.length; i += BATCH_SIZE) {
+          const batchIds = ids.slice(i, i + BATCH_SIZE);
+          
+          const { data: imageData, error: imageError } = await supabase
+            .from('generations')
+            .select('id, images')
+            .in('id', batchIds);
+
+          if (imageError) {
+            console.error('Error fetching images batch:', imageError);
+            continue;
+          }
+
+          // Update entries with loaded images
+          setGenerations((prev) =>
+            prev.map((entry) => {
+              const loaded = imageData?.find((d) => d.id === entry.id);
+              if (loaded) {
+                return { ...entry, images: loaded.images || [], isLoading: false };
+              }
+              return entry;
+            })
+          );
+        }
       } catch (err) {
         console.error('Error fetching generations:', err);
       } finally {
