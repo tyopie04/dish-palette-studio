@@ -1,12 +1,10 @@
-import { Moon, Sun, LogOut } from "lucide-react";
+import { Moon, Sun } from "lucide-react";
 import { Button } from "./ui/button";
 import { useTheme } from "@/hooks/useTheme";
-import { useAuth } from "@/hooks/useAuth";
 import staxLogo from "@/assets/stax-logo.png";
 
 export function Header() {
   const { theme, toggleTheme } = useTheme();
-  const { user, signOut } = useAuth();
 
   return (
     <header className="border-b border-border/50 bg-card/30 backdrop-blur-xl sticky top-0 z-50">
@@ -34,12 +32,6 @@ export function Header() {
             </a>
           </nav>
 
-          {user && (
-            <span className="text-xs text-muted-foreground hidden md:block truncate max-w-32">
-              {user.email}
-            </span>
-          )}
-
           <Button
             variant="ghost"
             size="icon"
@@ -52,18 +44,6 @@ export function Header() {
               <Moon className="h-5 w-5" />
             )}
           </Button>
-
-          {user && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={signOut}
-              className="h-9 w-9"
-              title="Sign out"
-            >
-              <LogOut className="h-5 w-5" />
-            </Button>
-          )}
         </div>
       </div>
     </header>
