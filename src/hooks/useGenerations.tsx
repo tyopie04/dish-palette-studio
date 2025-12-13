@@ -73,8 +73,10 @@ export const useGenerations = () => {
   }, [hasFetched, isGenerating]);
 
   useEffect(() => {
-    fetchGenerations();
-  }, [fetchGenerations]);
+    // Temporarily disabled - Supabase query timing out (error 57014)
+    // fetchGenerations();
+    setLoading(false);
+  }, []);
 
   const loadImagesForEntry = useCallback(async (entryId: string) => {
     setGenerations(prev => prev.map(e =>
