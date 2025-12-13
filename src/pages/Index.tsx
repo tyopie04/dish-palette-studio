@@ -71,6 +71,7 @@ const Index = () => {
     removeLoadingEntries, 
     deleteGeneration,
     deleteGenerations,
+    fetchGenerations,
   } = useGenerations();
   
   const photos = storedPhotos;
@@ -217,6 +218,8 @@ const Index = () => {
         }
         
         toast.success(`Generated ${images.length} image${images.length > 1 ? 's' : ''} successfully!`);
+        // Force refresh from database to ensure UI sync
+        await fetchGenerations();
       } else if (data?.error) {
         toast.error(data.error.message || 'AI generation failed');
         removeLoadingEntries(loadingIds);

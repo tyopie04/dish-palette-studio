@@ -28,14 +28,52 @@ export const useGenerations = () => {
   const [generations, setGenerations] = useState<GenerationEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Disable historical fetch - base64 images in DB cause timeouts
-  // Only show new generations created in this session
-  useEffect(() => {
+  // Fetch generations from database
+  const fetchGenerations = useCallback(async () => {
     if (!user?.id) {
       setGenerations([]);
+      setLoading(false);
+      return;
     }
-    setLoading(false);
+
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('generations')
+        .select('id, images, prompt, ratio, resolution, created_at')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(20);
+
+      if (error) {
+        console.error('Error fetching generations:', error);
+        toast.error('Failed to load generations');
+        setLoading(false);
+        return;
+      }
+
+      const entries: GenerationEntry[] = (data || []).map((g) => ({
+        id: g.id,
+        images: g.images || [],
+        timestamp: new Date(g.created_at),
+        prompt: g.prompt || undefined,
+        ratio: g.ratio || undefined,
+        resolution: g.resolution || undefined,
+        isLoading: false,
+      }));
+
+      setGenerations(entries);
+    } catch (err) {
+      console.error('Error fetching generations:', err);
+    } finally {
+      setLoading(false);
+    }
   }, [user?.id]);
+
+  // Initial fetch on mount
+  useEffect(() => {
+    fetchGenerations();
+  }, [fetchGenerations]);
 
   // Add a loading entry (local only, not persisted)
   const addLoadingEntry = useCallback((id: string, prompt?: string, ratio?: string, resolution?: string) => {
@@ -193,6 +231,7 @@ export const useGenerations = () => {
   return {
     generations,
     loading,
+    fetchGenerations,
     addLoadingEntry,
     addLoadingEntries,
     updateEntryWithImage,
