@@ -1,8 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from './useAuth';
+import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
-import { retryWithBackoff } from '@/lib/retryWithBackoff';
 
 export interface GenerationEntry {
   id: string;
@@ -14,115 +11,24 @@ export interface GenerationEntry {
   resolution?: string;
 }
 
-interface DbGeneration {
-  id: string;
-  user_id: string;
-  images: string[];
-  prompt: string | null;
-  ratio: string | null;
-  resolution: string | null;
-  created_at: string;
-}
-
 export const useGenerations = () => {
-  const { user } = useAuth();
   const [generations, setGenerations] = useState<GenerationEntry[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading] = useState(false);
 
-  // Fetch generations metadata only (no images - they timeout)
+  // No-op fetch since we're not using database
   const fetchGenerations = useCallback(async () => {
-    if (!user?.id) {
-      setGenerations([]);
-      setLoading(false);
-      return;
-    }
-
-    try {
-      setLoading(true);
-      
-      const data = await retryWithBackoff(
-        async () => {
-          const { data, error } = await supabase
-            .from('generations')
-            .select('id, prompt, ratio, resolution, created_at')
-            .eq('user_id', user.id)
-            .order('created_at', { ascending: false })
-            .limit(20);
-
-          if (error) throw error;
-          return data;
-        },
-        {
-          maxRetries: 3,
-          initialDelayMs: 1000,
-          onRetry: (attempt) => {
-            console.log(`Retrying generations fetch (${attempt}/3)...`);
-          },
-        }
-      );
-
-      const entries: GenerationEntry[] = (data || []).map((g) => ({
-        id: g.id,
-        images: [],
-        timestamp: new Date(g.created_at),
-        prompt: g.prompt || undefined,
-        ratio: g.ratio || undefined,
-        resolution: g.resolution || undefined,
-        isLoading: true, // Mark as loading since we need to fetch images
-      }));
-
-      setGenerations(entries);
-    } catch (err) {
-      console.error('Error fetching generations:', err);
-      // Don't show error toast on cold start - user will see connection status
-    } finally {
-      setLoading(false);
-    }
-  }, [user?.id]);
-
-  // Load images for a single entry (lazy loading)
-  const loadImagesForEntry = useCallback(async (entryId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('generations')
-        .select('images')
-        .eq('id', entryId)
-        .maybeSingle();
-
-      if (error) {
-        console.error('Error loading images for entry:', error);
-        // Mark as failed (not loading) so it doesn't block button
-        setGenerations(prev => prev.map(e =>
-          e.id === entryId ? { ...e, isLoading: false, images: [] } : e
-        ));
-        return;
-      }
-
-      if (data?.images && data.images.length > 0) {
-        setGenerations(prev => prev.map(e =>
-          e.id === entryId ? { ...e, images: data.images, isLoading: false } : e
-        ));
-      } else {
-        // No images found, mark as not loading
-        setGenerations(prev => prev.map(e =>
-          e.id === entryId ? { ...e, isLoading: false, images: [] } : e
-        ));
-      }
-    } catch (err) {
-      console.error('Error loading images:', err);
-      // Mark as failed
-      setGenerations(prev => prev.map(e =>
-        e.id === entryId ? { ...e, isLoading: false, images: [] } : e
-      ));
-    }
+    // Local only - no database
   }, []);
 
-  // Initial fetch on mount
-  useEffect(() => {
-    fetchGenerations();
-  }, [fetchGenerations]);
+  // Load images for a single entry (no-op without database)
+  const loadImagesForEntry = useCallback(async (entryId: string) => {
+    // Mark as loaded
+    setGenerations(prev => prev.map(e =>
+      e.id === entryId ? { ...e, isLoading: false } : e
+    ));
+  }, []);
 
-  // Add a loading entry (local only, not persisted)
+  // Add a loading entry (local only)
   const addLoadingEntry = useCallback((id: string, prompt?: string, ratio?: string, resolution?: string) => {
     const newEntry: GenerationEntry = {
       id,
@@ -159,63 +65,25 @@ export const useGenerations = () => {
     return ids;
   }, []);
 
-  // Update a loading entry with the generated image and persist to database
+  // Update a loading entry with the generated image (local only)
   const updateEntryWithImage = useCallback(async (tempId: string, image: string, metadata?: { prompt?: string; ratio?: string; resolution?: string }) => {
-    if (!user?.id) return;
+    setGenerations((prev) =>
+      prev.map((e) =>
+        e.id === tempId
+          ? {
+              ...e,
+              images: [image],
+              isLoading: false,
+              prompt: metadata?.prompt || e.prompt,
+              ratio: metadata?.ratio || e.ratio,
+              resolution: metadata?.resolution || e.resolution,
+            }
+          : e
+      )
+    );
+  }, []);
 
-    try {
-      // Insert into database
-      const { data, error } = await supabase
-        .from('generations')
-        .insert({
-          user_id: user.id,
-          images: [image],
-          prompt: metadata?.prompt || null,
-          ratio: metadata?.ratio || null,
-          resolution: metadata?.resolution || null,
-        })
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Error saving generation:', error);
-        // Still update the UI even if DB save fails
-        setGenerations((prev) =>
-          prev.map((e) =>
-            e.id === tempId ? { ...e, images: [image], isLoading: false } : e
-          )
-        );
-        return;
-      }
-
-      // Update local state with the real database ID
-      setGenerations((prev) =>
-        prev.map((e) =>
-          e.id === tempId
-            ? {
-                id: data.id,
-                images: [image],
-                timestamp: new Date(data.created_at),
-                isLoading: false,
-                prompt: data.prompt || undefined,
-                ratio: data.ratio || undefined,
-                resolution: data.resolution || undefined,
-              }
-            : e
-        )
-      );
-    } catch (err) {
-      console.error('Error saving generation:', err);
-      // Still update the UI
-      setGenerations((prev) =>
-        prev.map((e) =>
-          e.id === tempId ? { ...e, images: [image], isLoading: false } : e
-        )
-      );
-    }
-  }, [user?.id]);
-
-  // Remove a loading entry (local only)
+  // Remove a loading entry
   const removeLoadingEntry = useCallback((id: string) => {
     setGenerations((prev) => prev.filter((entry) => entry.id !== id));
   }, []);
@@ -225,78 +93,21 @@ export const useGenerations = () => {
     setGenerations((prev) => prev.filter((entry) => !ids.includes(entry.id)));
   }, []);
 
-  // Delete a generation from the database
+  // Delete a generation
   const deleteGeneration = useCallback(async (id: string) => {
-    // First remove from UI
     setGenerations((prev) => prev.filter((e) => e.id !== id));
-
-    // Check if it's a temp ID (not yet in DB)
-    if (id.startsWith('gen-')) {
-      return;
-    }
-
-    try {
-      const { error } = await supabase
-        .from('generations')
-        .delete()
-        .eq('id', id);
-
-      if (error) {
-        console.error('Error deleting generation:', error);
-        toast.error('Failed to delete from database');
-      }
-    } catch (err) {
-      console.error('Error deleting generation:', err);
-    }
   }, []);
 
   // Delete multiple generations
   const deleteGenerations = useCallback(async (ids: string[]) => {
-    // Remove from UI first
     setGenerations((prev) => prev.filter((e) => !ids.includes(e.id)));
-
-    // Filter out temp IDs
-    const dbIds = ids.filter((id) => !id.startsWith('gen-'));
-    
-    if (dbIds.length === 0) return;
-
-    try {
-      const { error } = await supabase
-        .from('generations')
-        .delete()
-        .in('id', dbIds);
-
-      if (error) {
-        console.error('Error deleting generations:', error);
-        toast.error('Failed to delete from database');
-      }
-    } catch (err) {
-      console.error('Error deleting generations:', err);
-    }
   }, []);
 
-  // Clear all generations (for cleaning up corrupted data)
+  // Clear all generations
   const clearAllGenerations = useCallback(async () => {
-    if (!user?.id) return;
-    
-    try {
-      const { error } = await supabase
-        .from('generations')
-        .delete()
-        .eq('user_id', user.id);
-
-      if (error) {
-        console.error('Error clearing generations:', error);
-        toast.error('Failed to clear generations');
-        return;
-      }
-
-      setGenerations([]);
-      toast.success('All generations cleared');
-    } catch (err) {
-      console.error('Error clearing generations:', err);
-    }
-  }, [user?.id]);
+    setGenerations([]);
+    toast.success('All generations cleared');
+  }, []);
 
   return {
     generations,
