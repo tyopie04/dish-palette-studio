@@ -51,17 +51,25 @@ export default function Auth() {
         : await signUp(email, password);
 
       if (error) {
+        const errorMessage = error.message || String(error) || '';
+        
         // Handle specific error messages
-        if (error.message.includes("Invalid login credentials")) {
+        if (errorMessage.includes("Invalid login credentials")) {
           toast.error("Invalid email or password");
-        } else if (error.message.includes("User already registered")) {
+        } else if (errorMessage.includes("User already registered")) {
           toast.error("This email is already registered. Try logging in.");
-        } else if (error.message.includes("503") || error.message.includes("upstream") || error.message.includes("connection")) {
-          toast.error("Server is temporarily unavailable. Please try again.");
-        } else if (error.message) {
-          toast.error(error.message);
+        } else if (
+          errorMessage.includes("503") || 
+          errorMessage.includes("upstream") || 
+          errorMessage.includes("connection") ||
+          errorMessage.includes("network") ||
+          errorMessage.includes("fetch")
+        ) {
+          toast.error("Server is temporarily unavailable. Please wait a moment and try again.");
+        } else if (errorMessage && errorMessage !== '{}' && errorMessage !== '[object Object]') {
+          toast.error(errorMessage);
         } else {
-          toast.error("Something went wrong. Please try again.");
+          toast.error("Unable to connect. The server may still be waking up - please try again in a few seconds.");
         }
       } else if (!isLogin) {
         toast.success("Account created! You can now log in.");
