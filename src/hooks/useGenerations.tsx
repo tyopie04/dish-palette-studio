@@ -28,100 +28,13 @@ export const useGenerations = () => {
   const [generations, setGenerations] = useState<GenerationEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Two-phase fetch: metadata first (fast), then images in batches
+  // Disable historical fetch - base64 images in DB cause timeouts
+  // Only show new generations created in this session
   useEffect(() => {
-    const fetchGenerations = async () => {
-      if (!user?.id) {
-        setGenerations([]);
-        setLoading(false);
-        return;
-      }
-
-      try {
-        // Phase 1: Fetch only metadata (no images) - this is fast
-        const { data: metaData, error: metaError } = await supabase
-          .from('generations')
-          .select('id, prompt, ratio, resolution, created_at')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false })
-          .limit(10);
-
-        if (metaError) {
-          console.error('Error fetching generations metadata:', metaError);
-          toast.error('Failed to load generations');
-          setLoading(false);
-          return;
-        }
-
-        // Create entries with placeholder for images (showing as loading)
-        const entries: GenerationEntry[] = (metaData || []).map((g) => ({
-          id: g.id,
-          images: [],
-          timestamp: new Date(g.created_at),
-          prompt: g.prompt || undefined,
-          ratio: g.ratio || undefined,
-          resolution: g.resolution || undefined,
-          isLoading: true, // Mark as loading until images load
-        }));
-
-        setGenerations((prev) => {
-          // Keep any active generation loading entries (those starting with 'gen-')
-          const activeGenerations = prev.filter(e => e.isLoading && e.id.startsWith('gen-'));
-          // Merge: active generations first, then database entries (with isLoading for images)
-          return [...activeGenerations, ...entries];
-        });
-        setLoading(false);
-
-        // Phase 2: Lazy load images in small batches
-        const ids = (metaData || []).map((g) => g.id);
-        const BATCH_SIZE = 2;
-        
-        const loadBatch = async (batchIds: string[]) => {
-          try {
-            const { data: imageData, error: imageError } = await supabase
-              .from('generations')
-              .select('id, images')
-              .in('id', batchIds);
-
-            if (imageError) {
-              console.error('Error fetching images batch:', imageError);
-              // Mark as not loading even on error so UI doesn't hang
-              setGenerations((prev) =>
-                prev.map((entry) => 
-                  batchIds.includes(entry.id) ? { ...entry, isLoading: false } : entry
-                )
-              );
-              return;
-            }
-
-            // Update entries with loaded images
-            setGenerations((prev) =>
-              prev.map((entry) => {
-                const loaded = imageData?.find((d) => d.id === entry.id);
-                if (loaded) {
-                  return { ...entry, images: loaded.images || [], isLoading: false };
-                }
-                return entry;
-              })
-            );
-          } catch (err) {
-            console.error('Error in batch load:', err);
-          }
-        };
-
-        // Load all batches
-        for (let i = 0; i < ids.length; i += BATCH_SIZE) {
-          const batchIds = ids.slice(i, i + BATCH_SIZE);
-          await loadBatch(batchIds);
-        }
-      } catch (err) {
-        console.error('Error fetching generations:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchGenerations();
+    if (!user?.id) {
+      setGenerations([]);
+    }
+    setLoading(false);
   }, [user?.id]);
 
   // Add a loading entry (local only, not persisted)
