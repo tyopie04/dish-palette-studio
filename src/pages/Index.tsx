@@ -206,7 +206,16 @@ const Index = () => {
           styleGuideUrl: styleGuideBase64,
         }
       });
-      console.log('[GENERATE] Edge function response:', { hasData: !!data, hasError: !!error, dataKeys: data ? Object.keys(data) : [] });
+      
+      // DETAILED RESPONSE LOGGING
+      console.log('[GENERATE] Raw edge function response:', data);
+      console.log('[GENERATE] Response structure:', { 
+        hasImages: !!data?.images,
+        imagesCount: data?.images?.length,
+        firstImagePreview: data?.images?.[0]?.substring(0, 100),
+        allKeys: Object.keys(data || {}),
+        hasError: !!error
+      });
 
       if (error) {
         console.error('[GENERATE] Edge function error:', error);
@@ -217,6 +226,7 @@ const Index = () => {
 
       const images = extractImagesFromResponse(data);
       console.log('[GENERATE] Extracted', images.length, 'images from response');
+      console.log('[GENERATE] First image starts with:', images[0]?.substring(0, 50));
       
       if (images.length > 0) {
         console.log('[GENERATE] About to update entries. Loading IDs:', loadingIds, 'Images:', images.length);

@@ -119,16 +119,21 @@ export const useGenerations = () => {
   }, []);
 
   const updateEntryWithImage = useCallback(async (tempId: string, image: string, metadata?: { prompt?: string; ratio?: string; resolution?: string }) => {
-    console.log('[GENERATIONS] updateEntryWithImage called:', tempId, 'Image length:', image?.length);
-    console.log('[GENERATIONS] Image type:', image?.startsWith('data:image') ? 'base64' : 'URL');
+    console.log('[GENERATIONS] ============ updateEntryWithImage START ============');
+    console.log('[GENERATIONS] Step 0: Called with tempId:', tempId);
+    console.log('[GENERATIONS] Step 0: Image length:', image?.length);
+    console.log('[GENERATIONS] Step 0: Image starts with:', image?.substring(0, 50));
+    console.log('[GENERATIONS] Step 0: Is base64:', image?.startsWith('data:image'));
     
     // Update UI immediately with base64 (shows instantly)
+    console.log('[GENERATIONS] Step 1: Updating UI state with base64...');
     setGenerations((prev) => {
       const found = prev.some(e => e.id === tempId);
-      console.log('[GENERATIONS] Updating entry. Found:', found, 'Total entries:', prev.length);
+      console.log('[GENERATIONS] Step 1: Found entry:', found, 'Total entries:', prev.length);
+      console.log('[GENERATIONS] Step 1: All entry IDs:', prev.map(e => e.id));
       
       if (!found) {
-        console.warn('[GENERATIONS] Entry not found, creating new entry for:', tempId);
+        console.warn('[GENERATIONS] Step 1: Entry NOT FOUND, creating new entry for:', tempId);
         return [
           {
             id: tempId,
@@ -146,19 +151,28 @@ export const useGenerations = () => {
           ? { ...e, images: [image], isLoading: false, ...metadata }
           : e
       );
-      console.log('[GENERATIONS] State after update:', updated.map(e => ({ id: e.id, hasImages: e.images.length > 0, isLoading: e.isLoading })));
+      console.log('[GENERATIONS] Step 1: State updated. New state:', updated.slice(0, 3).map(e => ({ 
+        id: e.id, 
+        hasImages: e.images.length > 0, 
+        isLoading: e.isLoading,
+        imagePreview: e.images[0]?.substring(0, 30)
+      })));
       return updated;
     });
 
     try {
+      console.log('[GENERATIONS] Step 2: Starting storage upload...');
+      
       // Upload image to storage bucket instead of saving base64 to DB
       const fileName = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}.png`;
       
       // Convert base64 to blob
+      console.log('[GENERATIONS] Step 2a: Converting base64 to binary...');
       const base64Data = image.replace(/^data:image\/\w+;base64,/, '');
       const binaryData = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
+      console.log('[GENERATIONS] Step 2a: Binary size:', binaryData.length, 'bytes');
       
-      console.log('[GENERATIONS] Uploading to storage:', fileName, 'Size:', binaryData.length);
+      console.log('[GENERATIONS] Step 2b: Uploading to storage bucket...');
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('generated-images')
         .upload(fileName, binaryData, {
@@ -166,27 +180,28 @@ export const useGenerations = () => {
           cacheControl: '31536000',
         });
 
-      console.log('[GENERATIONS] Storage upload result:', { 
-        uploadData, 
-        uploadError, 
-        fileName,
-        willSaveURL: uploadData ? 'YES' : 'NO'
+      console.log('[GENERATIONS] Step 2b: Storage upload result:', { 
+        success: !!uploadData,
+        uploadError: uploadError?.message, 
+        fileName
       });
 
       if (uploadError) {
-        console.error('[GENERATIONS] Storage upload error:', uploadError);
+        console.error('[GENERATIONS] Step 2b: Storage upload FAILED:', uploadError);
         throw uploadError;
       }
 
       // Get public URL
+      console.log('[GENERATIONS] Step 3: Getting public URL...');
       const { data: urlData } = supabase.storage
         .from('generated-images')
         .getPublicUrl(fileName);
       
       const publicUrl = urlData.publicUrl;
-      console.log('[GENERATIONS] Public URL to save:', publicUrl);
+      console.log('[GENERATIONS] Step 3: Got public URL:', publicUrl);
 
       // Save URL (not base64) to database
+      console.log('[GENERATIONS] Step 4: Saving to database...');
       const { data, error } = await supabase
         .from('generations')
         .insert({
@@ -199,13 +214,17 @@ export const useGenerations = () => {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('[GENERATIONS] Step 4: Database insert FAILED:', error);
+        throw error;
+      }
 
-      console.log('[GENERATIONS] Saved to DB with ID:', data.id);
+      console.log('[GENERATIONS] Step 4: Saved to DB with ID:', data.id);
       
       // Update state with real ID and URL
-      setGenerations((prev) =>
-        prev.map((e) =>
+      console.log('[GENERATIONS] Step 5: Updating state with real ID and URL...');
+      setGenerations((prev) => {
+        const updated = prev.map((e) =>
           e.id === tempId
             ? {
                 id: data.id,
@@ -217,11 +236,18 @@ export const useGenerations = () => {
                 resolution: data.resolution || undefined,
               }
             : e
-        )
-      );
+        );
+        console.log('[GENERATIONS] Step 5: Final state after DB save:', updated.slice(0, 3).map(e => ({ 
+          id: e.id, 
+          hasImages: e.images.length > 0, 
+          isLoading: e.isLoading 
+        })));
+        return updated;
+      });
+      console.log('[GENERATIONS] ============ updateEntryWithImage COMPLETE ============');
     } catch (error) {
-      console.error('[GENERATIONS] Error saving generation:', error);
-      // Image is already showing (base64), just log the error
+      console.error('[GENERATIONS] ERROR in updateEntryWithImage:', error);
+      console.log('[GENERATIONS] Note: Image should still be visible as base64 in UI');
     }
   }, []);
 

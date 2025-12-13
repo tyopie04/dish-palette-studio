@@ -146,6 +146,15 @@ export const MasonryGallery: React.FC<MasonryGalleryProps> = ({
     }
   };
 
+  // DEBUG: Log what MasonryGallery receives
+  console.log('[MASONRY] Received history:', history.length, 'entries');
+  console.log('[MASONRY] History details:', history.slice(0, 5).map(e => ({
+    id: e.id,
+    isLoading: e.isLoading,
+    imagesCount: e.images?.length,
+    firstImagePreview: e.images?.[0]?.substring(0, 50)
+  })));
+
   const allItems: GalleryItem[] = [];
   for (const entry of history) {
     if (entry.isLoading) {
@@ -172,6 +181,8 @@ export const MasonryGallery: React.FC<MasonryGalleryProps> = ({
       }
     }
   }
+  
+  console.log('[MASONRY] Built allItems:', allItems.length, 'items. Types:', allItems.slice(0, 5).map(i => i.type));
 
   const hasFailedEntries = history.length > 0 && allItems.length === 0;
 
