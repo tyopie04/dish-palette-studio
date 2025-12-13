@@ -119,7 +119,8 @@ export const useGenerations = () => {
   }, []);
 
   const updateEntryWithImage = useCallback(async (tempId: string, image: string, metadata?: { prompt?: string; ratio?: string; resolution?: string }) => {
-    console.log('[GENERATIONS] Updating entry with image:', tempId, 'Image length:', image?.length);
+    console.log('[GENERATIONS] updateEntryWithImage called:', tempId, 'Image length:', image?.length);
+    console.log('[GENERATIONS] Image type:', image?.startsWith('data:image') ? 'base64' : 'URL');
     
     // Update UI immediately with base64 (shows instantly)
     setGenerations((prev) => {
@@ -140,11 +141,13 @@ export const useGenerations = () => {
         ];
       }
       
-      return prev.map((e) =>
+      const updated = prev.map((e) =>
         e.id === tempId
           ? { ...e, images: [image], isLoading: false, ...metadata }
           : e
       );
+      console.log('[GENERATIONS] State after update:', updated.map(e => ({ id: e.id, hasImages: e.images.length > 0, isLoading: e.isLoading })));
+      return updated;
     });
 
     try {
@@ -155,13 +158,20 @@ export const useGenerations = () => {
       const base64Data = image.replace(/^data:image\/\w+;base64,/, '');
       const binaryData = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
       
-      console.log('[GENERATIONS] Uploading to storage:', fileName);
+      console.log('[GENERATIONS] Uploading to storage:', fileName, 'Size:', binaryData.length);
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('generated-images')
         .upload(fileName, binaryData, {
           contentType: 'image/png',
-          cacheControl: '31536000', // Cache for 1 year
+          cacheControl: '31536000',
         });
+
+      console.log('[GENERATIONS] Storage upload result:', { 
+        uploadData, 
+        uploadError, 
+        fileName,
+        willSaveURL: uploadData ? 'YES' : 'NO'
+      });
 
       if (uploadError) {
         console.error('[GENERATIONS] Storage upload error:', uploadError);
@@ -174,14 +184,14 @@ export const useGenerations = () => {
         .getPublicUrl(fileName);
       
       const publicUrl = urlData.publicUrl;
-      console.log('[GENERATIONS] Got public URL:', publicUrl);
+      console.log('[GENERATIONS] Public URL to save:', publicUrl);
 
       // Save URL (not base64) to database
       const { data, error } = await supabase
         .from('generations')
         .insert({
           user_id: '00000000-0000-0000-0000-000000000000',
-          images: [publicUrl], // Save URL, not base64
+          images: [publicUrl],
           prompt: metadata?.prompt,
           ratio: metadata?.ratio,
           resolution: metadata?.resolution,
@@ -191,6 +201,8 @@ export const useGenerations = () => {
 
       if (error) throw error;
 
+      console.log('[GENERATIONS] Saved to DB with ID:', data.id);
+      
       // Update state with real ID and URL
       setGenerations((prev) =>
         prev.map((e) =>
@@ -207,9 +219,8 @@ export const useGenerations = () => {
             : e
         )
       );
-      console.log('[GENERATIONS] Saved to DB with URL');
     } catch (error) {
-      console.error('Error saving generation:', error);
+      console.error('[GENERATIONS] Error saving generation:', error);
       // Image is already showing (base64), just log the error
     }
   }, []);
