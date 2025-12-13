@@ -146,16 +146,6 @@ export const MasonryGallery: React.FC<MasonryGalleryProps> = ({
     }
   };
 
-  // Debug logging
-  console.log('[MASONRY] Rendering with history:', history.length, 'items');
-  console.log('[MASONRY] History details:', history.map(h => ({ 
-    id: h.id, 
-    imageCount: h.images?.length || 0, 
-    hasImages: (h.images?.length || 0) > 0, 
-    isLoading: h.isLoading,
-    firstImagePreview: h.images?.[0]?.substring(0, 50)
-  })));
-
   const allItems: GalleryItem[] = [];
   for (const entry of history) {
     if (entry.isLoading) {
@@ -166,8 +156,6 @@ export const MasonryGallery: React.FC<MasonryGalleryProps> = ({
         aspectRatio: parseRatio(entry.ratio),
       });
     } else if (entry.images && entry.images.length > 0) {
-      // Only add entries that have images
-      console.log('[MASONRY] Adding image entry:', entry.id, 'with', entry.images.length, 'images');
       for (let idx = 0; idx < entry.images.length; idx++) {
         allItems.push({
           type: 'image',
@@ -182,15 +170,9 @@ export const MasonryGallery: React.FC<MasonryGalleryProps> = ({
           aspectRatio: parseRatio(entry.ratio),
         });
       }
-    } else {
-      console.log('[MASONRY] Skipping entry:', entry.id, '- isLoading:', entry.isLoading, 'images:', entry.images?.length);
     }
-    // Skip entries with isLoading=false and no images (failed loads)
   }
 
-  console.log('[MASONRY] Total allItems:', allItems.length);
-
-  // Check if there are failed entries (history has items but none could load)
   const hasFailedEntries = history.length > 0 && allItems.length === 0;
 
   if (allItems.length === 0) {
