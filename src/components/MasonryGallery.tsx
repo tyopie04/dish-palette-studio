@@ -36,6 +36,7 @@ interface MasonryGalleryProps {
   onToggleSelect?: (imageId: string) => void;
   onDeleteSelected?: () => void;
   onDownloadSelected?: () => void;
+  onLoadImages?: (id: string) => void;
 }
 
 const parseRatio = (ratio?: string): number => {
@@ -64,9 +65,24 @@ export const MasonryGallery: React.FC<MasonryGalleryProps> = ({
   onToggleSelect,
   onDeleteSelected,
   onDownloadSelected,
+  onLoadImages,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
+  const loadingTriggered = useRef<Set<string>>(new Set());
+
+  // Trigger lazy loading for entries that need images
+  useEffect(() => {
+    if (!onLoadImages) return;
+    
+    for (const entry of history) {
+      // Entry has isLoading true, has a real DB id (not temp), and hasn't been triggered yet
+      if (entry.isLoading && !entry.id.startsWith('gen-') && !loadingTriggered.current.has(entry.id)) {
+        loadingTriggered.current.add(entry.id);
+        onLoadImages(entry.id);
+      }
+    }
+  }, [history, onLoadImages]);
 
   // Use ResizeObserver for reliable container width measurement
   useEffect(() => {

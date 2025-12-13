@@ -28,7 +28,7 @@ export const useGenerations = () => {
   const [generations, setGenerations] = useState<GenerationEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Fetch generations from database
+  // Fetch generations metadata only (no images - they timeout)
   const fetchGenerations = useCallback(async () => {
     if (!user?.id) {
       setGenerations([]);
@@ -40,26 +40,25 @@ export const useGenerations = () => {
       setLoading(true);
       const { data, error } = await supabase
         .from('generations')
-        .select('id, images, prompt, ratio, resolution, created_at')
+        .select('id, prompt, ratio, resolution, created_at')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(20);
 
       if (error) {
         console.error('Error fetching generations:', error);
-        toast.error('Failed to load generations');
         setLoading(false);
         return;
       }
 
       const entries: GenerationEntry[] = (data || []).map((g) => ({
         id: g.id,
-        images: g.images || [],
+        images: [],
         timestamp: new Date(g.created_at),
         prompt: g.prompt || undefined,
         ratio: g.ratio || undefined,
         resolution: g.resolution || undefined,
-        isLoading: false,
+        isLoading: true, // Mark as loading since we need to fetch images
       }));
 
       setGenerations(entries);
@@ -69,6 +68,30 @@ export const useGenerations = () => {
       setLoading(false);
     }
   }, [user?.id]);
+
+  // Load images for a single entry (lazy loading)
+  const loadImagesForEntry = useCallback(async (entryId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('generations')
+        .select('images')
+        .eq('id', entryId)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error loading images for entry:', error);
+        return;
+      }
+
+      if (data?.images && data.images.length > 0) {
+        setGenerations(prev => prev.map(e =>
+          e.id === entryId ? { ...e, images: data.images, isLoading: false } : e
+        ));
+      }
+    } catch (err) {
+      console.error('Error loading images:', err);
+    }
+  }, []);
 
   // Initial fetch on mount
   useEffect(() => {
@@ -232,6 +255,7 @@ export const useGenerations = () => {
     generations,
     loading,
     fetchGenerations,
+    loadImagesForEntry,
     addLoadingEntry,
     addLoadingEntries,
     updateEntryWithImage,
