@@ -128,28 +128,13 @@ export default function Auth() {
           </p>
         </div>
 
-        {/* Connection status indicator during login */}
-        {(connectionStatus === 'reconnecting' || connectionStatus === 'error') && !authLoading && (
-          <div className={`p-3 rounded-lg text-center text-sm ${
-            connectionStatus === 'error' 
-              ? 'bg-destructive/10 text-destructive' 
-              : 'bg-amber-500/10 text-amber-700 dark:text-amber-400'
-          }`}>
-            {connectionStatus === 'reconnecting' && (
-              <div className="flex items-center justify-center gap-2">
-                <RefreshCw className="w-4 h-4 animate-spin" />
-                <span>Server is waking up... Retry {retryCount}/5</span>
-              </div>
-            )}
-            {connectionStatus === 'error' && (
-              <div className="flex items-center justify-center gap-2">
-                <WifiOff className="w-4 h-4" />
-                <span>Connection failed. </span>
-                <button onClick={retryConnection} className="underline hover:no-underline">
-                  Retry
-                </button>
-              </div>
-            )}
+        {/* Connection status indicator during login - only show during reconnecting */}
+        {connectionStatus === 'reconnecting' && !authLoading && (
+          <div className="p-3 rounded-lg text-center text-sm bg-amber-500/10 text-amber-700 dark:text-amber-400">
+            <div className="flex items-center justify-center gap-2">
+              <RefreshCw className="w-4 h-4 animate-spin" />
+              <span>Server is waking up... Retry {retryCount}/5</span>
+            </div>
           </div>
         )}
 
@@ -182,7 +167,7 @@ export default function Auth() {
             </div>
           </div>
 
-          <Button type="submit" className="w-full" disabled={loading || connectionStatus === 'error'}>
+          <Button type="submit" className="w-full" disabled={loading}>
             {loading ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
