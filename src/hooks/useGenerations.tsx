@@ -16,14 +16,24 @@ export const useGenerations = () => {
   const [generations, setGenerations] = useState<GenerationEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchGenerations = useCallback(async () => {
+  const fetchGenerations = useCallback(async (retryCount = 0) => {
     try {
+      // Limit to last 50 generations to prevent timeout on cold starts
       const { data, error } = await supabase
         .from('generations')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(50);
 
-      if (error) throw error;
+      if (error) {
+        // Retry on timeout errors
+        if (error.code === '57014' && retryCount < 3) {
+          console.log(`Retrying fetch (attempt ${retryCount + 1}/3)...`);
+          await new Promise(r => setTimeout(r, 1000 * (retryCount + 1)));
+          return fetchGenerations(retryCount + 1);
+        }
+        throw error;
+      }
 
       const mappedGenerations: GenerationEntry[] = (data || []).map((gen) => ({
         id: gen.id,
@@ -38,6 +48,7 @@ export const useGenerations = () => {
       setGenerations(mappedGenerations);
     } catch (error) {
       console.error('Error fetching generations:', error);
+      // Don't block the UI - just show empty and let user generate new ones
     } finally {
       setLoading(false);
     }
@@ -89,8 +100,17 @@ export const useGenerations = () => {
   }, []);
 
   const updateEntryWithImage = useCallback(async (tempId: string, image: string, metadata?: { prompt?: string; ratio?: string; resolution?: string }) => {
+    // Update UI immediately first
+    setGenerations((prev) =>
+      prev.map((e) =>
+        e.id === tempId
+          ? { ...e, images: [image], isLoading: false, ...metadata }
+          : e
+      )
+    );
+
     try {
-      // Save to database with placeholder user_id
+      // Save to database in background
       const { data, error } = await supabase
         .from('generations')
         .insert({
@@ -105,7 +125,7 @@ export const useGenerations = () => {
 
       if (error) throw error;
 
-      // Update local state - replace temp entry with real one
+      // Update with real ID from database
       setGenerations((prev) =>
         prev.map((e) =>
           e.id === tempId
@@ -123,14 +143,7 @@ export const useGenerations = () => {
       );
     } catch (error) {
       console.error('Error saving generation:', error);
-      // Still update UI even if save fails
-      setGenerations((prev) =>
-        prev.map((e) =>
-          e.id === tempId
-            ? { ...e, images: [image], isLoading: false }
-            : e
-        )
-      );
+      // Image is already showing, just log the error
     }
   }, []);
 
@@ -143,6 +156,9 @@ export const useGenerations = () => {
   }, []);
 
   const deleteGeneration = useCallback(async (id: string) => {
+    // Update UI immediately
+    setGenerations((prev) => prev.filter((e) => e.id !== id));
+    
     try {
       const { error } = await supabase
         .from('generations')
@@ -150,8 +166,6 @@ export const useGenerations = () => {
         .eq('id', id);
 
       if (error) throw error;
-
-      setGenerations((prev) => prev.filter((e) => e.id !== id));
     } catch (error) {
       console.error('Error deleting generation:', error);
       toast.error('Failed to delete generation');
@@ -159,6 +173,9 @@ export const useGenerations = () => {
   }, []);
 
   const deleteGenerations = useCallback(async (ids: string[]) => {
+    // Update UI immediately
+    setGenerations((prev) => prev.filter((e) => !ids.includes(e.id)));
+    
     try {
       const { error } = await supabase
         .from('generations')
@@ -166,8 +183,6 @@ export const useGenerations = () => {
         .in('id', ids);
 
       if (error) throw error;
-
-      setGenerations((prev) => prev.filter((e) => !ids.includes(e.id)));
     } catch (error) {
       console.error('Error deleting generations:', error);
       toast.error('Failed to delete generations');
@@ -175,15 +190,16 @@ export const useGenerations = () => {
   }, []);
 
   const clearAllGenerations = useCallback(async () => {
+    // Update UI immediately
+    setGenerations([]);
+    
     try {
       const { error } = await supabase
         .from('generations')
         .delete()
-        .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all
+        .neq('id', '00000000-0000-0000-0000-000000000000');
 
       if (error) throw error;
-
-      setGenerations([]);
       toast.success('All generations cleared');
     } catch (error) {
       console.error('Error clearing generations:', error);
