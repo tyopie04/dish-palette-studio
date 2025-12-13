@@ -1,6 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from './useAuth';
 import { toast } from 'sonner';
 
 export interface GenerationEntry {
@@ -14,22 +13,14 @@ export interface GenerationEntry {
 }
 
 export const useGenerations = () => {
-  const { user } = useAuth();
   const [generations, setGenerations] = useState<GenerationEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchGenerations = useCallback(async () => {
-    if (!user) {
-      setGenerations([]);
-      setLoading(false);
-      return;
-    }
-
     try {
       const { data, error } = await supabase
         .from('generations')
         .select('*')
-        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -50,7 +41,7 @@ export const useGenerations = () => {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, []);
 
   useEffect(() => {
     fetchGenerations();
@@ -98,14 +89,12 @@ export const useGenerations = () => {
   }, []);
 
   const updateEntryWithImage = useCallback(async (tempId: string, image: string, metadata?: { prompt?: string; ratio?: string; resolution?: string }) => {
-    if (!user) return;
-
     try {
-      // Save to database
+      // Save to database with placeholder user_id
       const { data, error } = await supabase
         .from('generations')
         .insert({
-          user_id: user.id,
+          user_id: '00000000-0000-0000-0000-000000000000',
           images: [image],
           prompt: metadata?.prompt,
           ratio: metadata?.ratio,
@@ -143,7 +132,7 @@ export const useGenerations = () => {
         )
       );
     }
-  }, [user]);
+  }, []);
 
   const removeLoadingEntry = useCallback((id: string) => {
     setGenerations((prev) => prev.filter((entry) => entry.id !== id));
@@ -154,14 +143,11 @@ export const useGenerations = () => {
   }, []);
 
   const deleteGeneration = useCallback(async (id: string) => {
-    if (!user) return;
-
     try {
       const { error } = await supabase
         .from('generations')
         .delete()
-        .eq('id', id)
-        .eq('user_id', user.id);
+        .eq('id', id);
 
       if (error) throw error;
 
@@ -170,17 +156,14 @@ export const useGenerations = () => {
       console.error('Error deleting generation:', error);
       toast.error('Failed to delete generation');
     }
-  }, [user]);
+  }, []);
 
   const deleteGenerations = useCallback(async (ids: string[]) => {
-    if (!user) return;
-
     try {
       const { error } = await supabase
         .from('generations')
         .delete()
-        .in('id', ids)
-        .eq('user_id', user.id);
+        .in('id', ids);
 
       if (error) throw error;
 
@@ -189,16 +172,14 @@ export const useGenerations = () => {
       console.error('Error deleting generations:', error);
       toast.error('Failed to delete generations');
     }
-  }, [user]);
+  }, []);
 
   const clearAllGenerations = useCallback(async () => {
-    if (!user) return;
-
     try {
       const { error } = await supabase
         .from('generations')
         .delete()
-        .eq('user_id', user.id);
+        .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all
 
       if (error) throw error;
 
@@ -208,7 +189,7 @@ export const useGenerations = () => {
       console.error('Error clearing generations:', error);
       toast.error('Failed to clear generations');
     }
-  }, [user]);
+  }, []);
 
   return {
     generations,
