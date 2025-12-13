@@ -73,10 +73,9 @@ export const useGenerations = () => {
   }, [hasFetched, isGenerating]);
 
   useEffect(() => {
-    // Skip initial fetch - old base64 data causes timeouts
-    // New generations will use storage URLs and work fine
-    setLoading(false);
-  }, []);
+    // Safe to fetch now - old base64 data cleared, only URL records remain
+    fetchGenerations();
+  }, [fetchGenerations]);
 
   const loadImagesForEntry = useCallback(async (entryId: string) => {
     setGenerations(prev => prev.map(e =>
