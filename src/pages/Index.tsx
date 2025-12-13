@@ -169,12 +169,16 @@ const Index = () => {
   };
 
   const handleGenerate = useCallback(async (prompt: string) => {
+    console.log('[GENERATE] Starting generation with', selectedPhotos.length, 'photos');
     // Create one loading entry per image being generated
     const loadingIds = addLoadingEntries(selectedPhotoAmount, prompt, selectedRatio, selectedResolution);
+    console.log('[GENERATE] Created loading entries:', loadingIds);
     
     try {
+      console.log('[GENERATE] Compressing images...');
       const imagePromises = selectedPhotos.map((p) => compressImageToBase64(p.src));
       const imageUrls = await Promise.all(imagePromises);
+      console.log('[GENERATE] Compressed', imageUrls.length, 'images');
       const photoNames = selectedPhotos.map((p) => p.name);
       
       let styleGuideBase64: string | undefined;
@@ -182,6 +186,7 @@ const Index = () => {
         styleGuideBase64 = await compressImageToBase64(styleGuideUrl);
       }
       
+      console.log('[GENERATE] Calling edge function...');
       const { data, error } = await supabase.functions.invoke('generate-image', {
         body: { 
           prompt, 
@@ -191,21 +196,24 @@ const Index = () => {
           imageUrls, 
           photoNames, 
           styleGuideUrl: styleGuideBase64,
-          
         }
       });
+      console.log('[GENERATE] Edge function response:', { hasData: !!data, hasError: !!error, dataKeys: data ? Object.keys(data) : [] });
 
       if (error) {
+        console.error('[GENERATE] Edge function error:', error);
         toast.error(error.message || 'Failed to generate content');
         removeLoadingEntries(loadingIds);
         return;
       }
 
       const images = extractImagesFromResponse(data);
+      console.log('[GENERATE] Extracted', images.length, 'images from response');
       
       if (images.length > 0) {
         // Update each loading entry with its corresponding image
         images.forEach((image, index) => {
+          console.log('[GENERATE] Updating entry', loadingIds[index], 'with image of length', image?.length);
           if (loadingIds[index]) {
             updateEntryWithImage(loadingIds[index], image, { prompt, ratio: selectedRatio, resolution: selectedResolution });
           }
@@ -219,14 +227,16 @@ const Index = () => {
         
         toast.success(`Generated ${images.length} image${images.length > 1 ? 's' : ''} successfully!`);
       } else if (data?.error) {
+        console.error('[GENERATE] AI error in response:', data.error);
         toast.error(data.error.message || 'AI generation failed');
         removeLoadingEntries(loadingIds);
       } else {
+        console.error('[GENERATE] No images in response. Data:', JSON.stringify(data).slice(0, 500));
         toast.error('No images were generated');
         removeLoadingEntries(loadingIds);
       }
     } catch (err) {
-      console.error('Generation error:', err);
+      console.error('[GENERATE] Exception:', err);
       toast.error('Failed to generate content');
       removeLoadingEntries(loadingIds);
     }
