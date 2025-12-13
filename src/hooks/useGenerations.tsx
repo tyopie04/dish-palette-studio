@@ -18,18 +18,11 @@ export const useGenerations = () => {
   const [hasFetched, setHasFetched] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
 
-  const fetchGenerations = useCallback(async (retryCount = 0) => {
-    // Only fetch once - don't overwrite user-generated content
+  const fetchGenerations = useCallback(async () => {
+    // Only fetch once
     if (hasFetched) return;
-    
-    // Don't fetch if we're actively generating - this prevents race conditions
-    if (isGenerating) {
-      console.log('[GENERATIONS] Skipping fetch - generation in progress');
-      return;
-    }
 
     try {
-      // Limit to last 50 generations to prevent timeout on cold starts
       const { data, error } = await supabase
         .from('generations')
         .select('*')
@@ -38,10 +31,8 @@ export const useGenerations = () => {
 
       if (error) {
         console.error('Error fetching generations:', error);
-        // DON'T set hasFetched on error - allow retries later
-        // DON'T update state on error - preserve any existing entries
         setLoading(false);
-        return; // Return early, don't touch state
+        return;
       }
 
       const mappedGenerations: GenerationEntry[] = (data || []).map((gen) => ({
@@ -58,7 +49,6 @@ export const useGenerations = () => {
       setGenerations((prev) => {
         const loadingEntries = prev.filter(e => e.isLoading || e.id.startsWith('gen-'));
         const fetchedIds = new Set(mappedGenerations.map(g => g.id));
-        // Keep loading entries that aren't in fetched data
         const newLoadingEntries = loadingEntries.filter(e => !fetchedIds.has(e.id));
         return [...newLoadingEntries, ...mappedGenerations];
       });
@@ -67,15 +57,15 @@ export const useGenerations = () => {
       setLoading(false);
     } catch (error) {
       console.error('Error fetching generations:', error);
-      // DON'T update state on error - preserve any existing entries
       setLoading(false);
     }
-  }, [hasFetched, isGenerating]);
+  }, [hasFetched]);
 
+  // Only run once on mount
   useEffect(() => {
-    // Safe to fetch now - old base64 data cleared, only URL records remain
     fetchGenerations();
-  }, [fetchGenerations]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const loadImagesForEntry = useCallback(async (entryId: string) => {
     setGenerations(prev => prev.map(e =>
