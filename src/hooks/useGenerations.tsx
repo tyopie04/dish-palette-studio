@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { toast } from 'sonner';
+import { retryWithBackoff } from '@/lib/retryWithBackoff';
 
 export interface GenerationEntry {
   id: string;
@@ -38,18 +39,27 @@ export const useGenerations = () => {
 
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('generations')
-        .select('id, prompt, ratio, resolution, created_at')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(20);
+      
+      const data = await retryWithBackoff(
+        async () => {
+          const { data, error } = await supabase
+            .from('generations')
+            .select('id, prompt, ratio, resolution, created_at')
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: false })
+            .limit(20);
 
-      if (error) {
-        console.error('Error fetching generations:', error);
-        setLoading(false);
-        return;
-      }
+          if (error) throw error;
+          return data;
+        },
+        {
+          maxRetries: 3,
+          initialDelayMs: 1000,
+          onRetry: (attempt) => {
+            console.log(`Retrying generations fetch (${attempt}/3)...`);
+          },
+        }
+      );
 
       const entries: GenerationEntry[] = (data || []).map((g) => ({
         id: g.id,
@@ -64,6 +74,7 @@ export const useGenerations = () => {
       setGenerations(entries);
     } catch (err) {
       console.error('Error fetching generations:', err);
+      // Don't show error toast on cold start - user will see connection status
     } finally {
       setLoading(false);
     }
