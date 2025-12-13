@@ -65,6 +65,7 @@ export const useGenerations = () => {
   }, []);
 
   const addLoadingEntry = useCallback((id: string, prompt?: string, ratio?: string, resolution?: string) => {
+    console.log('[GENERATIONS] Adding loading entry:', id);
     const newEntry: GenerationEntry = {
       id,
       images: [],
@@ -74,10 +75,14 @@ export const useGenerations = () => {
       ratio,
       resolution,
     };
-    setGenerations((prev) => [newEntry, ...prev]);
+    setGenerations((prev) => {
+      console.log('[GENERATIONS] State update - adding entry. Previous count:', prev.length);
+      return [newEntry, ...prev];
+    });
   }, []);
 
   const addLoadingEntries = useCallback((count: number, prompt?: string, ratio?: string, resolution?: string) => {
+    console.log('[GENERATIONS] Adding', count, 'loading entries');
     const ids: string[] = [];
     const newEntries: GenerationEntry[] = [];
     
@@ -95,19 +100,24 @@ export const useGenerations = () => {
       });
     }
     
-    setGenerations((prev) => [...newEntries, ...prev]);
+    setGenerations((prev) => {
+      console.log('[GENERATIONS] State update - adding entries. Previous count:', prev.length, 'Adding:', newEntries.length);
+      return [...newEntries, ...prev];
+    });
     return ids;
   }, []);
 
   const updateEntryWithImage = useCallback(async (tempId: string, image: string, metadata?: { prompt?: string; ratio?: string; resolution?: string }) => {
+    console.log('[GENERATIONS] Updating entry with image:', tempId, 'Image length:', image?.length);
     // Update UI immediately first
-    setGenerations((prev) =>
-      prev.map((e) =>
+    setGenerations((prev) => {
+      console.log('[GENERATIONS] Updating entry. Found:', prev.some(e => e.id === tempId));
+      return prev.map((e) =>
         e.id === tempId
           ? { ...e, images: [image], isLoading: false, ...metadata }
           : e
-      )
-    );
+      );
+    });
 
     try {
       // Save to database in background
