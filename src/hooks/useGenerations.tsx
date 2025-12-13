@@ -42,7 +42,8 @@ export const useGenerations = () => {
           .from('generations')
           .select('*')
           .eq('user_id', user.id)
-          .order('created_at', { ascending: false });
+          .order('created_at', { ascending: false })
+          .limit(20);
 
         if (error) {
           console.error('Error fetching generations:', error);
