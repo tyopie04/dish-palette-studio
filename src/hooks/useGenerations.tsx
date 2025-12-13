@@ -65,8 +65,10 @@ export const useGenerations = () => {
         }));
 
         setGenerations((prev) => {
-          const loadingEntries = prev.filter(e => e.isLoading && e.id.startsWith('gen-'));
-          return [...loadingEntries, ...entries];
+          // Keep any active generation loading entries (those starting with 'gen-')
+          const activeGenerations = prev.filter(e => e.isLoading && e.id.startsWith('gen-'));
+          // Merge: active generations first, then database entries (with isLoading for images)
+          return [...activeGenerations, ...entries];
         });
         setLoading(false);
 
@@ -74,29 +76,43 @@ export const useGenerations = () => {
         const ids = (metaData || []).map((g) => g.id);
         const BATCH_SIZE = 2;
         
+        const loadBatch = async (batchIds: string[]) => {
+          try {
+            const { data: imageData, error: imageError } = await supabase
+              .from('generations')
+              .select('id, images')
+              .in('id', batchIds);
+
+            if (imageError) {
+              console.error('Error fetching images batch:', imageError);
+              // Mark as not loading even on error so UI doesn't hang
+              setGenerations((prev) =>
+                prev.map((entry) => 
+                  batchIds.includes(entry.id) ? { ...entry, isLoading: false } : entry
+                )
+              );
+              return;
+            }
+
+            // Update entries with loaded images
+            setGenerations((prev) =>
+              prev.map((entry) => {
+                const loaded = imageData?.find((d) => d.id === entry.id);
+                if (loaded) {
+                  return { ...entry, images: loaded.images || [], isLoading: false };
+                }
+                return entry;
+              })
+            );
+          } catch (err) {
+            console.error('Error in batch load:', err);
+          }
+        };
+
+        // Load all batches
         for (let i = 0; i < ids.length; i += BATCH_SIZE) {
           const batchIds = ids.slice(i, i + BATCH_SIZE);
-          
-          const { data: imageData, error: imageError } = await supabase
-            .from('generations')
-            .select('id, images')
-            .in('id', batchIds);
-
-          if (imageError) {
-            console.error('Error fetching images batch:', imageError);
-            continue;
-          }
-
-          // Update entries with loaded images
-          setGenerations((prev) =>
-            prev.map((entry) => {
-              const loaded = imageData?.find((d) => d.id === entry.id);
-              if (loaded) {
-                return { ...entry, images: loaded.images || [], isLoading: false };
-              }
-              return entry;
-            })
-          );
+          await loadBatch(batchIds);
         }
       } catch (err) {
         console.error('Error fetching generations:', err);
