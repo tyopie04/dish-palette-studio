@@ -572,6 +572,11 @@ const Index = () => {
             <ResizablePanel defaultSize={80}>
               <div className="h-full relative">
                 <main className="h-full overflow-y-auto overflow-x-hidden">
+                  {(() => {
+                    console.log('[INDEX] Passing to MasonryGallery:', generationHistory.length, 'generations');
+                    console.log('[INDEX] Generations data:', generationHistory.map(g => ({ id: g.id, images: g.images?.length, isLoading: g.isLoading })));
+                    return null;
+                  })()}
                   <MasonryGallery
                     history={generationHistory}
                     onImageClick={handleImageClick}
