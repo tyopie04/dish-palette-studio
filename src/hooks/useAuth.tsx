@@ -68,9 +68,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const retryConnection = useCallback(() => {
-    setLoading(true);
-    initializeSession();
-  }, [initializeSession]);
+    // Clear stale tokens before retrying
+    clearStaleAuthTokens();
+    setLoading(false);
+    setConnectionStatus('connected');
+    // Don't try to restore session - just show login form
+    setSession(null);
+    setUser(null);
+  }, []);
 
   useEffect(() => {
     // Set up auth state listener FIRST
