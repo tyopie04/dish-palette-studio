@@ -72,6 +72,7 @@ const Index = () => {
     deleteGenerations,
     loadImagesForEntry,
     clearAllGenerations,
+    setIsGenerating,
   } = useGenerations();
   
   const photos = storedPhotos;
@@ -170,6 +171,10 @@ const Index = () => {
 
   const handleGenerate = useCallback(async (prompt: string) => {
     console.log('[GENERATE] Starting generation with', selectedPhotos.length, 'photos');
+    
+    // Set generating flag to prevent fetchGenerations from running
+    setIsGenerating(true);
+    
     // Create one loading entry per image being generated
     const loadingIds = addLoadingEntries(selectedPhotoAmount, prompt, selectedRatio, selectedResolution);
     console.log('[GENERATE] Created loading entries:', loadingIds);
@@ -247,8 +252,11 @@ const Index = () => {
       console.error('[GENERATE] Exception:', err);
       toast.error('Failed to generate content');
       removeLoadingEntries(loadingIds);
+    } finally {
+      // Clear generating flag after completion
+      setIsGenerating(false);
     }
-  }, [selectedPhotos, selectedRatio, selectedResolution, selectedPhotoAmount, styleGuideUrl, addLoadingEntries, updateEntryWithImage, removeLoadingEntries]);
+  }, [selectedPhotos, selectedRatio, selectedResolution, selectedPhotoAmount, styleGuideUrl, addLoadingEntries, updateEntryWithImage, removeLoadingEntries, setIsGenerating]);
 
   const handlePhotosAdded = useCallback((files: File[]) => {
     uploadPhotos(files);
