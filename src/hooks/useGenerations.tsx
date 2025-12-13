@@ -101,7 +101,7 @@ export const useGenerations = () => {
     const newEntries: GenerationEntry[] = [];
     
     for (let i = 0; i < count; i++) {
-      const id = `gen-${Date.now()}-${i}`;
+      const id = `gen-${Date.now()}-${Math.random().toString(36).substr(2, 9)}-${i}`;
       ids.push(id);
       newEntries.push({
         id,
@@ -116,16 +116,37 @@ export const useGenerations = () => {
     
     setGenerations((prev) => {
       console.log('[GENERATIONS] State update - adding entries. Previous count:', prev.length, 'Adding:', newEntries.length);
-      return [...newEntries, ...prev];
+      const updated = [...newEntries, ...prev];
+      console.log('[GENERATIONS] New state will have:', updated.length, 'entries. IDs:', ids);
+      return updated;
     });
     return ids;
   }, []);
 
   const updateEntryWithImage = useCallback(async (tempId: string, image: string, metadata?: { prompt?: string; ratio?: string; resolution?: string }) => {
     console.log('[GENERATIONS] Updating entry with image:', tempId, 'Image length:', image?.length);
+    
     // Update UI immediately first
     setGenerations((prev) => {
-      console.log('[GENERATIONS] Updating entry. Found:', prev.some(e => e.id === tempId));
+      const found = prev.some(e => e.id === tempId);
+      console.log('[GENERATIONS] Updating entry. Found:', found, 'Total entries:', prev.length);
+      
+      if (!found) {
+        // Entry doesn't exist - create it (defensive fix for race conditions)
+        console.warn('[GENERATIONS] Entry not found, creating new entry for:', tempId);
+        return [
+          {
+            id: tempId,
+            images: [image],
+            timestamp: new Date(),
+            isLoading: false,
+            ...metadata
+          },
+          ...prev
+        ];
+      }
+      
+      // Entry exists - update it
       return prev.map((e) =>
         e.id === tempId
           ? { ...e, images: [image], isLoading: false, ...metadata }
