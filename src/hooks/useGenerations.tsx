@@ -22,12 +22,20 @@ export const useGenerations = () => {
     // Only fetch once
     if (hasFetched) return;
 
+    console.log('[GENERATIONS] Fetching generations from database...');
+
     try {
       const { data, error } = await supabase
         .from('generations')
         .select('*')
         .order('created_at', { ascending: false })
         .limit(50);
+
+      console.log('[GENERATIONS] Fetch result:', { 
+        count: data?.length ?? 0, 
+        error: error?.message ?? null,
+        firstItem: data?.[0]?.id ?? 'none'
+      });
 
       if (error) {
         console.error('Error fetching generations:', error);
