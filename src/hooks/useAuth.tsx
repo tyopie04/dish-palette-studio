@@ -53,9 +53,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error('Failed to initialize session after retries:', error);
       
-      // Check if it's a stale token issue
       const errorMessage = error instanceof Error ? error.message : '';
-      if (errorMessage.includes('refresh_token') || errorMessage.includes('invalid')) {
+      
+      // Clear stale tokens on 503 or upstream errors
+      if (errorMessage.includes('503') || errorMessage.includes('upstream') || 
+          errorMessage.includes('refresh_token') || errorMessage.includes('invalid')) {
+        await supabase.auth.signOut();
         clearStaleAuthTokens();
       }
       
