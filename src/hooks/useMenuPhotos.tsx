@@ -131,17 +131,32 @@ export function useMenuPhotos() {
   const deletePhoto = useCallback(async (id: string) => {
     try {
       // Get current user to ensure we're authenticated
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      console.log("[DELETE] Auth user:", user?.id, "Auth error:", authError);
+      
       if (!user) {
         toast.error("You must be logged in to delete photos");
         return;
       }
 
+      // First, check if the photo exists and get its user_id
+      const { data: photoData, error: fetchError } = await supabase
+        .from("menu_photos")
+        .select("id, user_id")
+        .eq("id", id)
+        .single();
+      
+      console.log("[DELETE] Photo data:", photoData, "Fetch error:", fetchError);
+      console.log("[DELETE] Photo user_id:", photoData?.user_id, "Current user_id:", user.id);
+      console.log("[DELETE] IDs match:", photoData?.user_id === user.id);
+
       const { error, count } = await supabase
         .from("menu_photos")
         .delete()
-        .eq("id", id)
-        .eq("user_id", user.id);
+        .eq("id", id);
+
+      console.log("[DELETE] Delete result - error:", error, "count:", count);
 
       if (error) throw error;
 
