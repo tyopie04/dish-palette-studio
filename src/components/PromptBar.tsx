@@ -265,22 +265,48 @@ export const PromptBar: React.FC<PromptBarProps> = ({
                 </Button>
               </div>
 
-              {/* Style Guide (hidden button - upload via + button now) */}
-              {styleGuideUrl && (
-                <div className="relative">
-                  <img
-                    src={styleGuideUrl}
-                    alt="Style guide"
-                    className="w-9 h-9 object-cover rounded-full cursor-pointer border border-border/50"
-                    onClick={() => setStyleGuideLightboxOpen(true)}
-                  />
-                  <button
-                    onClick={() => setStyleGuideUrl(null)}
-                    className="absolute -top-1 -right-1 w-4 h-4 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center"
-                  >
-                    <X className="w-2.5 h-2.5" />
-                  </button>
-                </div>
+              {/* Style Guide Drop Box */}
+              {styleGuideUrl ? (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="relative">
+                        <img
+                          src={styleGuideUrl}
+                          alt="Style guide"
+                          className="w-9 h-9 object-cover rounded-full cursor-pointer border-2 border-primary/50"
+                          onClick={() => setStyleGuideLightboxOpen(true)}
+                        />
+                        <button
+                          onClick={() => setStyleGuideUrl(null)}
+                          className="absolute -top-1 -right-1 w-4 h-4 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center"
+                        >
+                          <X className="w-2.5 h-2.5" />
+                        </button>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="text-xs">Style guide (lighting, colors, composition)</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              ) : (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={() => fileInputRef.current?.click()}
+                        className="h-9 px-3 gap-1.5 rounded-full border border-dashed border-border/50 bg-muted/30 hover:bg-muted/50 hover:border-primary/50 flex items-center text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        <Image className="w-4 h-4" />
+                        <span className="text-xs font-medium">Style</span>
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="text-xs">Add a style reference image for lighting, colors & composition</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               )}
 
               <input
