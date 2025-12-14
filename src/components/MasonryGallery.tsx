@@ -241,10 +241,19 @@ export const MasonryGallery: React.FC<MasonryGalleryProps> = ({
         <div className="flex flex-col w-full" style={{ gap: `${GAP}px` }}>
           {rows.map((row, rowIndex) => {
             // === JUSTIFIED ROW LAYOUT ===
-            // Use measured width or fallback to 100% of available space
-            const effectiveWidth = containerWidth > 0 ? containerWidth : 800; // Reasonable fallback
+            // Skip rendering row layout if we don't have a valid width yet
+            if (containerWidth <= 0) {
+              return (
+                <div key={rowIndex} className="flex w-full gap-2">
+                  {row.map((item) => (
+                    <div key={item.id} className="flex-1 aspect-square bg-muted/30 rounded-md animate-pulse" />
+                  ))}
+                </div>
+              );
+            }
+            
             const gapSpace = GAP * (row.length - 1);
-            const rowAvailableWidth = effectiveWidth - gapSpace;
+            const rowAvailableWidth = containerWidth - gapSpace;
             const totalAspectRatio = row.reduce((sum, item) => sum + item.aspectRatio, 0);
             
             // Height that makes all items fit exactly in the row width
