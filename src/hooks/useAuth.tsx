@@ -84,6 +84,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
+        console.log('[AUTH] State change:', event);
+        
+        if (event === 'TOKEN_REFRESHED') {
+          console.log('[AUTH] Token refreshed successfully');
+        }
+        
+        if (event === 'SIGNED_OUT' || !session) {
+          clearStaleAuthTokens();
+        }
+        
         setSession(session);
         setUser(session?.user ?? null);
         setConnectionStatus('connected');
@@ -96,6 +106,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     return () => subscription.unsubscribe();
   }, [initializeSession]);
+
+  // Session recovery when app becomes visible
+  useEffect(() => {
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState === 'visible') {
+        console.log('[AUTH] App became visible, checking session...');
+        try {
+          const { data: { session: currentSession }, error } = await supabase.auth.getSession();
+          
+          if (error || !currentSession) {
+            console.log('[AUTH] Session invalid or expired, clearing state');
+            await supabase.auth.signOut();
+            clearStaleAuthTokens();
+            setSession(null);
+            setUser(null);
+          } else {
+            console.log('[AUTH] Session still valid');
+            setSession(currentSession);
+            setUser(currentSession.user);
+          }
+        } catch (err) {
+          console.error('[AUTH] Visibility check failed:', err);
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, []);
 
   const signIn = async (email: string, password: string) => {
     setConnectionStatus('connecting');
