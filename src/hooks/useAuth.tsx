@@ -107,34 +107,54 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, [initializeSession]);
 
-  // Session recovery when app becomes visible
+  // Session recovery when app becomes visible - only check if user WAS logged in
   useEffect(() => {
     const handleVisibilityChange = async () => {
       if (document.visibilityState === 'visible') {
         console.log('[AUTH] App became visible, checking session...');
+        
+        // Only validate session if we think user is logged in
+        // Don't clear state for users who were never logged in
+        if (!session && !user) {
+          console.log('[AUTH] No existing session, skipping validation');
+          return;
+        }
+        
         try {
           const { data: { session: currentSession }, error } = await supabase.auth.getSession();
           
-          if (error || !currentSession) {
-            console.log('[AUTH] Session invalid or expired, clearing state');
+          if (error) {
+            console.log('[AUTH] Session error:', error.message);
+            // Only sign out on actual auth errors, not network errors
+            if (error.message.includes('JWT') || error.message.includes('expired') || error.message.includes('invalid')) {
+              console.log('[AUTH] Auth error detected, signing out');
+              await supabase.auth.signOut();
+              clearStaleAuthTokens();
+              setSession(null);
+              setUser(null);
+            }
+          } else if (!currentSession && session) {
+            // Had a session before but now it's gone
+            console.log('[AUTH] Session expired, clearing state');
             await supabase.auth.signOut();
             clearStaleAuthTokens();
             setSession(null);
             setUser(null);
-          } else {
+          } else if (currentSession) {
             console.log('[AUTH] Session still valid');
             setSession(currentSession);
             setUser(currentSession.user);
           }
         } catch (err) {
           console.error('[AUTH] Visibility check failed:', err);
+          // Don't clear session on network errors - let user continue working
         }
       }
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, []);
+  }, [session, user]);
 
   const signIn = async (email: string, password: string) => {
     setConnectionStatus('connecting');
