@@ -221,30 +221,16 @@ export const MasonryGallery: React.FC<MasonryGalleryProps> = ({
     rows.push(allItems.slice(i, i + ITEMS_PER_ROW));
   }
 
-  console.log('[MASONRY] Rendering with containerWidth:', containerWidth, 'rows:', rows.length);
-
   return (
     <>
       <div 
-        className="min-h-[500px] h-auto overflow-y-auto overflow-x-hidden p-2 pb-24 w-full" 
+        className="min-h-[400px] h-auto overflow-y-auto overflow-x-hidden p-2 pb-24 w-full" 
         ref={containerRef}
-        style={{ minHeight: '500px', background: 'rgba(255,0,0,0.03)' }}
       >
-        {/* DEBUG: Force visibility check */}
-        <div style={{ 
-          background: 'lime', 
-          padding: '10px', 
-          marginBottom: '10px',
-          color: 'black',
-          fontWeight: 'bold'
-        }}>
-          🔍 DEBUG: {allItems.length} items, containerWidth: {containerWidth}px, rows: {rows.length}
-        </div>
-        
         {containerWidth <= 0 ? (
-          <div className="h-32 bg-yellow-500/20">Waiting for container width measurement...</div>
+          <div className="h-32" /> /* Placeholder to allow measurement */
         ) : (
-        <div className="flex flex-col w-full" style={{ gap: `${GAP}px`, minHeight: '400px' }}>
+        <div className="flex flex-col w-full" style={{ gap: `${GAP}px` }}>
           {rows.map((row, rowIndex) => {
             // === JUSTIFIED ROW LAYOUT ===
             // Calculate gap space for THIS row (not assuming 4 items)
