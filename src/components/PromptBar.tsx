@@ -298,11 +298,18 @@ export const PromptBar: React.FC<PromptBarProps> = ({
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <div className="relative">
+                      <div 
+                        className={`relative transition-transform ${isStyleDragOver ? 'scale-110' : ''}`}
+                        onDrop={handleStyleDrop}
+                        onDragOver={handleStyleDragOver}
+                        onDragLeave={handleStyleDragLeave}
+                      >
                         <img
                           src={styleGuideUrl}
                           alt="Style guide"
-                          className="w-9 h-9 object-cover rounded-full cursor-pointer border-2 border-primary/50"
+                          className={`w-9 h-9 object-cover rounded-full cursor-pointer border-2 transition-colors ${
+                            isStyleDragOver ? 'border-primary' : 'border-primary/50'
+                          }`}
                           onClick={() => setStyleGuideLightboxOpen(true)}
                         />
                         <button
@@ -314,7 +321,7 @@ export const PromptBar: React.FC<PromptBarProps> = ({
                       </div>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p className="text-xs">Style guide (lighting, colors, composition)</p>
+                      <p className="text-xs">Drop to replace or click to view</p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
