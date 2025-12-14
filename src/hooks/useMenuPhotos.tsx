@@ -81,11 +81,14 @@ export function useMenuPhotos() {
 
       const maxOrder = maxOrderData?.[0]?.display_order ?? -1;
 
-      // Insert into database - use a placeholder user_id since we're not using auth
+      // Get current user for user_id
+      const { data: { user } } = await supabase.auth.getUser();
+      const userId = user?.id || "00000000-0000-0000-0000-000000000000";
+
       const { data: insertedPhoto, error: insertError } = await supabase
         .from("menu_photos")
         .insert({
-          user_id: "00000000-0000-0000-0000-000000000000",
+          user_id: userId,
           name: file.name.replace(/\.[^/.]+$/, ""),
           original_url: urlData.publicUrl,
           thumbnail_url: thumbUrlData.publicUrl,
@@ -136,9 +139,12 @@ export function useMenuPhotos() {
     setPhotos(newPhotos);
 
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const userId = user?.id || "00000000-0000-0000-0000-000000000000";
+
       const updates = newPhotos.map((photo, index) => ({
         id: photo.id,
-        user_id: "00000000-0000-0000-0000-000000000000",
+        user_id: userId,
         name: photo.name,
         original_url: photo.src,
         thumbnail_url: photo.thumbnailSrc,
