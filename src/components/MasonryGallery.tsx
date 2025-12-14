@@ -70,7 +70,15 @@ export const MasonryGallery: React.FC<MasonryGalleryProps> = ({
   onClearAll,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [containerWidth, setContainerWidth] = useState(0);
+  // Initialize with a reasonable default so images render immediately on first paint
+  // This prevents the "grey boxes" issue when returning to the app after being away
+  const [containerWidth, setContainerWidth] = useState(() => {
+    // Use window width minus approximate sidebar (300px) as initial estimate
+    if (typeof window !== 'undefined') {
+      return Math.max(400, window.innerWidth - 340);
+    }
+    return 800;
+  });
   const loadingTriggered = useRef<Set<string>>(new Set());
 
   // Trigger lazy loading for entries that need images
