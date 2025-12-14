@@ -120,6 +120,16 @@ export const MasonryGallery: React.FC<MasonryGalleryProps> = ({
     };
   }, []);
 
+  // Re-measure when history changes and we have items but no width yet
+  useEffect(() => {
+    if (history.length > 0 && containerWidth === 0 && containerRef.current) {
+      const width = containerRef.current.offsetWidth;
+      if (width > 0) {
+        setContainerWidth(width);
+      }
+    }
+  }, [history.length, containerWidth]);
+
   const handleDownload = async (imageUrl: string, index: number) => {
     try {
       if (imageUrl.startsWith('data:')) {
