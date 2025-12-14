@@ -131,6 +131,26 @@ export const MasonryGallery: React.FC<MasonryGalleryProps> = ({
     };
   }, []);
 
+  // Re-measure when user returns to tab after being away
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible' && containerRef.current) {
+        const width = containerRef.current.offsetWidth;
+        if (width > 0) setContainerWidth(width);
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, []);
+
+  // Re-measure when data loads
+  useEffect(() => {
+    if (history.length > 0 && containerRef.current) {
+      const width = containerRef.current.offsetWidth;
+      if (width > 0) setContainerWidth(width);
+    }
+  }, [history.length]);
+
   const handleDownload = async (imageUrl: string, index: number) => {
     try {
       if (imageUrl.startsWith('data:')) {
@@ -241,17 +261,46 @@ export const MasonryGallery: React.FC<MasonryGalleryProps> = ({
         <div className="flex flex-col w-full" style={{ gap: `${GAP}px` }}>
           {rows.map((row, rowIndex) => {
             // === JUSTIFIED ROW LAYOUT ===
-            // Skip rendering row layout if we don't have a valid width yet
-            if (containerWidth <= 0) {
+            // Use CSS flex fallback when width not measured yet - show REAL images, not grey boxes
+            const useFallback = containerWidth <= 0;
+            
+            // Fallback: use flex layout with auto heights
+            if (useFallback) {
               return (
-                <div key={rowIndex} className="flex w-full gap-2">
+                <div key={rowIndex} className="flex w-full gap-2" style={{ height: '200px' }}>
                   {row.map((item) => (
-                    <div key={item.id} className="flex-1 aspect-square bg-muted/30 rounded-md animate-pulse" />
+                    item.type === 'loading' ? (
+                      <div
+                        key={item.id}
+                        className="flex-1 bg-muted/30 rounded-md overflow-hidden"
+                      >
+                        <LoadingCardContent ratio={item.ratio} />
+                      </div>
+                    ) : (
+                      <div
+                        key={item.id}
+                        className="flex-1 rounded-md overflow-hidden cursor-pointer"
+                        onClick={() => onImageClick(item.imageUrl, {
+                          prompt: item.prompt,
+                          ratio: item.ratio,
+                          resolution: item.resolution,
+                          timestamp: item.timestamp,
+                          entryId: item.entryId,
+                        })}
+                      >
+                        <img
+                          src={item.imageUrl}
+                          alt="Generated content"
+                          className="w-full h-full object-cover"
+                          loading="lazy"
+                        />
+                      </div>
+                    )
                   ))}
                 </div>
               );
             }
-            
+
             const gapSpace = GAP * (row.length - 1);
             const rowAvailableWidth = containerWidth - gapSpace;
             const totalAspectRatio = row.reduce((sum, item) => sum + item.aspectRatio, 0);
