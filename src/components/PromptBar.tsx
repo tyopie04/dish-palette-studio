@@ -79,9 +79,37 @@ export const PromptBar: React.FC<PromptBarProps> = ({
   const [ratioOpen, setRatioOpen] = useState(false);
   const [resolutionOpen, setResolutionOpen] = useState(false);
   const [styleGuideOpen, setStyleGuideOpen] = useState(false);
+  const [isStyleDragOver, setIsStyleDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { setNodeRef, isOver } = useDroppable({ id: 'prompt-bar-drop' });
+
+  const handleStyleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsStyleDragOver(false);
+    
+    const files = e.dataTransfer.files;
+    if (files && files[0] && files[0].type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setStyleGuideUrl(event.target?.result as string);
+      };
+      reader.readAsDataURL(files[0]);
+    }
+  };
+
+  const handleStyleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsStyleDragOver(true);
+  };
+
+  const handleStyleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsStyleDragOver(false);
+  };
 
   const handleGenerate = () => {
     if (prompt.trim() || selectedPhotos.length > 0) {
@@ -296,14 +324,21 @@ export const PromptBar: React.FC<PromptBarProps> = ({
                     <TooltipTrigger asChild>
                       <button
                         onClick={() => fileInputRef.current?.click()}
-                        className="h-9 px-3 gap-1.5 rounded-full border border-dashed border-border/50 bg-muted/30 hover:bg-muted/50 hover:border-primary/50 flex items-center text-muted-foreground hover:text-foreground transition-colors"
+                        onDrop={handleStyleDrop}
+                        onDragOver={handleStyleDragOver}
+                        onDragLeave={handleStyleDragLeave}
+                        className={`h-9 px-3 gap-1.5 rounded-full border border-dashed bg-muted/30 flex items-center transition-colors ${
+                          isStyleDragOver 
+                            ? 'border-primary bg-primary/10 text-primary scale-105' 
+                            : 'border-border/50 hover:bg-muted/50 hover:border-primary/50 text-muted-foreground hover:text-foreground'
+                        }`}
                       >
                         <Image className="w-4 h-4" />
                         <span className="text-xs font-medium">Style</span>
                       </button>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p className="text-xs">Add a style reference image for lighting, colors & composition</p>
+                      <p className="text-xs">Drop or click to add a style reference image</p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
