@@ -109,46 +109,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Session recovery when app becomes visible - only check if user WAS logged in
   useEffect(() => {
+    let isChecking = false;
+    
     const handleVisibilityChange = async () => {
-      if (document.visibilityState === 'visible') {
-        console.log('[AUTH] App became visible, checking session...');
+      if (document.visibilityState !== 'visible' || isChecking) return;
+      if (!session && !user) {
+        console.log('[AUTH] No existing session, skipping validation');
+        return;
+      }
+      
+      isChecking = true;
+      console.log('[AUTH] App became visible, checking session...');
+      
+      try {
+        const { data: { session: currentSession }, error } = await supabase.auth.getSession();
         
-        // Only validate session if we think user is logged in
-        // Don't clear state for users who were never logged in
-        if (!session && !user) {
-          console.log('[AUTH] No existing session, skipping validation');
-          return;
-        }
-        
-        try {
-          const { data: { session: currentSession }, error } = await supabase.auth.getSession();
-          
-          if (error) {
-            console.log('[AUTH] Session error:', error.message);
-            // Only sign out on actual auth errors, not network errors
-            if (error.message.includes('JWT') || error.message.includes('expired') || error.message.includes('invalid')) {
-              console.log('[AUTH] Auth error detected, signing out');
-              await supabase.auth.signOut();
-              clearStaleAuthTokens();
-              setSession(null);
-              setUser(null);
-            }
-          } else if (!currentSession && session) {
-            // Had a session before but now it's gone
-            console.log('[AUTH] Session expired, clearing state');
+        if (error) {
+          const isAuthError = error.message.includes('JWT') || 
+                             error.message.includes('expired') || 
+                             error.message.includes('invalid');
+          if (isAuthError) {
+            console.log('[AUTH] Auth error, signing out');
             await supabase.auth.signOut();
             clearStaleAuthTokens();
             setSession(null);
             setUser(null);
-          } else if (currentSession) {
-            console.log('[AUTH] Session still valid');
-            setSession(currentSession);
-            setUser(currentSession.user);
           }
-        } catch (err) {
-          console.error('[AUTH] Visibility check failed:', err);
-          // Don't clear session on network errors - let user continue working
+        } else if (currentSession) {
+          setSession(currentSession);
+          setUser(currentSession.user);
         }
+      } catch (err) {
+        console.error('[AUTH] Visibility check failed:', err);
+      } finally {
+        isChecking = false;
       }
     };
 
