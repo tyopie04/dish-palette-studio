@@ -26,6 +26,18 @@ serve(async (req) => {
     console.log(`[EDIT] Editing image with prompt: "${editPrompt}"`);
     console.log(`[EDIT] Target resolution: ${resolution}, aspectRatio: ${aspectRatio} -> validated: ${validatedRatio}`);
 
+    // Helper function to convert ArrayBuffer to base64 without stack overflow
+    function arrayBufferToBase64(buffer: ArrayBuffer): string {
+      const bytes = new Uint8Array(buffer);
+      const CHUNK_SIZE = 32768; // Process in 32KB chunks to avoid stack overflow
+      let binary = '';
+      for (let i = 0; i < bytes.length; i += CHUNK_SIZE) {
+        const chunk = bytes.subarray(i, Math.min(i + CHUNK_SIZE, bytes.length));
+        binary += String.fromCharCode.apply(null, Array.from(chunk));
+      }
+      return btoa(binary);
+    }
+
     // Process the source image
     let imageData: { mimeType: string; data: string };
     
@@ -45,10 +57,11 @@ serve(async (req) => {
         throw new Error(`Failed to fetch source image: ${imgResponse.status}`);
       }
       const arrayBuffer = await imgResponse.arrayBuffer();
-      const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+      // Use chunked conversion to avoid stack overflow with large images
+      const base64 = arrayBufferToBase64(arrayBuffer);
       const contentType = imgResponse.headers.get('content-type') || 'image/png';
       imageData = { mimeType: contentType, data: base64 };
-      console.log('[EDIT] Source image fetched successfully');
+      console.log(`[EDIT] Source image fetched successfully (${Math.round(arrayBuffer.byteLength / 1024)}KB)`);
     }
 
     // Build the prompt for editing
