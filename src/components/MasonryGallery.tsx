@@ -11,7 +11,7 @@
  * the row-based layout logic without explicit user approval.
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { Download, Trash2, Pencil, Loader2, MoreHorizontal, Heart, Copy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -86,6 +86,16 @@ export const MasonryGallery: React.FC<MasonryGalleryProps> = ({
     }
   }, [history, onLoadImages]);
 
+  // Immediate synchronous measurement before first paint
+  useLayoutEffect(() => {
+    if (containerRef.current) {
+      const width = containerRef.current.offsetWidth;
+      if (width > 0) {
+        setContainerWidth(width);
+      }
+    }
+  }, []);
+
   // Use ResizeObserver for reliable container width measurement
   useEffect(() => {
     const container = containerRef.current;
@@ -98,11 +108,11 @@ export const MasonryGallery: React.FC<MasonryGalleryProps> = ({
       }
     };
 
-    // Initial measurement with a small delay to ensure DOM is ready
-    updateWidth();
-    const timeoutId = setTimeout(updateWidth, 50);
+    // Multiple delayed measurements for HMR/hot-reload robustness
+    const timeoutId1 = setTimeout(updateWidth, 50);
+    const timeoutId2 = setTimeout(updateWidth, 200);
 
-    // Use ResizeObserver for more reliable updates
+    // Use ResizeObserver for resize updates
     const resizeObserver = new ResizeObserver((entries) => {
       for (const entry of entries) {
         const width = entry.contentRect.width;
@@ -115,20 +125,11 @@ export const MasonryGallery: React.FC<MasonryGalleryProps> = ({
     resizeObserver.observe(container);
 
     return () => {
-      clearTimeout(timeoutId);
+      clearTimeout(timeoutId1);
+      clearTimeout(timeoutId2);
       resizeObserver.disconnect();
     };
   }, []);
-
-  // Re-measure when history changes and we have items but no width yet
-  useEffect(() => {
-    if (history.length > 0 && containerWidth === 0 && containerRef.current) {
-      const width = containerRef.current.offsetWidth;
-      if (width > 0) {
-        setContainerWidth(width);
-      }
-    }
-  }, [history.length, containerWidth]);
 
   const handleDownload = async (imageUrl: string, index: number) => {
     try {
@@ -237,15 +238,13 @@ export const MasonryGallery: React.FC<MasonryGalleryProps> = ({
         className="min-h-[400px] h-auto overflow-y-auto overflow-x-hidden p-2 pb-24 w-full" 
         ref={containerRef}
       >
-        {containerWidth <= 0 ? (
-          <div className="h-32" /> /* Placeholder to allow measurement */
-        ) : (
         <div className="flex flex-col w-full" style={{ gap: `${GAP}px` }}>
           {rows.map((row, rowIndex) => {
             // === JUSTIFIED ROW LAYOUT ===
-            // Calculate gap space for THIS row (not assuming 4 items)
+            // Use measured width or fallback to 100% of available space
+            const effectiveWidth = containerWidth > 0 ? containerWidth : 800; // Reasonable fallback
             const gapSpace = GAP * (row.length - 1);
-            const rowAvailableWidth = containerWidth - gapSpace;
+            const rowAvailableWidth = effectiveWidth - gapSpace;
             const totalAspectRatio = row.reduce((sum, item) => sum + item.aspectRatio, 0);
             
             // Height that makes all items fit exactly in the row width
@@ -396,7 +395,6 @@ export const MasonryGallery: React.FC<MasonryGalleryProps> = ({
             );
           })}
         </div>
-        )}
       </div>
 
       {/* Selection bar at bottom */}
