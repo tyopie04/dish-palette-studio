@@ -37,6 +37,16 @@ export const useGenerations = () => {
         firstItem: data?.[0]?.id ?? 'none'
       });
 
+      // Handle auth errors gracefully - redirect to login
+      if (error?.code === 'PGRST301' || 
+          error?.message?.includes('JWT') ||
+          error?.message?.includes('401')) {
+        console.log('[GENERATIONS] Auth error detected, session may be expired');
+        await supabase.auth.signOut();
+        window.location.href = '/auth';
+        return;
+      }
+
       if (error) {
         console.error('Error fetching generations:', error);
         setLoading(false);

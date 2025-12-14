@@ -21,6 +21,16 @@ export function useMenuPhotos() {
         .select("*")
         .order("display_order", { ascending: true });
 
+      // Handle auth errors gracefully - redirect to login
+      if (error?.code === 'PGRST301' || 
+          error?.message?.includes('JWT') ||
+          error?.message?.includes('401')) {
+        console.log('[MENU_PHOTOS] Auth error detected, session may be expired');
+        await supabase.auth.signOut();
+        window.location.href = '/auth';
+        return;
+      }
+
       if (error) throw error;
 
       const mappedPhotos: MenuPhoto[] = (data || []).map((photo) => ({
