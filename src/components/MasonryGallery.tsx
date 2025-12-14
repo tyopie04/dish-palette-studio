@@ -223,7 +223,7 @@ export const MasonryGallery: React.FC<MasonryGalleryProps> = ({
 
   return (
     <>
-      <div className="flex-1 overflow-y-auto overflow-x-hidden p-2 pb-24 w-full" ref={containerRef}>
+      <div className="min-h-[400px] h-auto overflow-y-auto overflow-x-hidden p-2 pb-24 w-full" ref={containerRef}>
         {containerWidth <= 0 ? (
           <div className="h-32" /> /* Placeholder to allow measurement */
         ) : (
