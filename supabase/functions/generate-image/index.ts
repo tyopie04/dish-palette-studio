@@ -761,7 +761,30 @@ serve(async (req) => {
   }
 
   try {
-    const { prompt, ratio, resolution, photoAmount = 1, imageUrls: providedImageUrls, photoNames: providedPhotoNames, styleGuideUrl, autoSelectPhotos = false, userId } = await req.json();
+    // Extract and validate authenticated user from JWT
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      throw new Error('Authentication required');
+    }
+
+    // Create a Supabase client with the user's JWT to get authenticated user
+    const supabaseAuth = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_ANON_KEY')!,
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    const { data: { user }, error: authError } = await supabaseAuth.auth.getUser();
+    if (authError || !user) {
+      console.error('[AUTH] Authentication failed:', authError?.message);
+      throw new Error('Invalid authentication');
+    }
+
+    const authenticatedUserId = user.id;
+    console.log('[AUTH] Authenticated user:', authenticatedUserId);
+
+    // Parse request body - DO NOT trust userId from client, use authenticatedUserId instead
+    const { prompt, ratio, resolution, photoAmount = 1, imageUrls: providedImageUrls, photoNames: providedPhotoNames, styleGuideUrl, autoSelectPhotos = false } = await req.json();
     
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
@@ -780,9 +803,10 @@ serve(async (req) => {
     console.log('[AUTO-SELECT] Auto-select enabled:', autoSelectPhotos);
     
     // Auto-select photos if: explicitly enabled OR (no photos provided AND prompt has category keywords)
-    if ((autoSelectPhotos || !hasProvidedPhotos) && promptCategories.length > 0 && userId) {
+    // Use authenticatedUserId from JWT, not client-supplied userId
+    if ((autoSelectPhotos || !hasProvidedPhotos) && promptCategories.length > 0) {
       console.log('[AUTO-SELECT] Fetching photos for categories:', promptCategories);
-      const autoPhotos = await fetchPhotosByCategories(promptCategories, userId);
+      const autoPhotos = await fetchPhotosByCategories(promptCategories, authenticatedUserId);
       
       if (autoPhotos.urls.length > 0) {
         // If photos were already provided, merge them
