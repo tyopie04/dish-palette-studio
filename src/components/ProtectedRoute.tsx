@@ -8,7 +8,6 @@ interface ProtectedRouteProps {
 
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const { user, loading } = useAuth();
-  const skipAuth = localStorage.getItem('skipAuth') === 'true';
 
   if (loading) {
     return (
@@ -18,7 +17,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     );
   }
 
-  if (!user && !skipAuth) {
+  if (!user) {
     return <Navigate to="/auth" replace />;
   }
 

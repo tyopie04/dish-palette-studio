@@ -189,7 +189,7 @@ export default function Auth() {
           </Button>
         </form>
 
-        <div className="text-center space-y-3">
+        <div className="text-center">
           <button
             type="button"
             onClick={() => setIsLogin(!isLogin)}
@@ -199,19 +199,6 @@ export default function Auth() {
               ? "Don't have an account? Sign up" 
               : "Already have an account? Sign in"}
           </button>
-          
-          <div className="pt-4 border-t border-border/50">
-            <button
-              type="button"
-              onClick={() => {
-                localStorage.setItem('skipAuth', 'true');
-                navigate('/');
-              }}
-              className="text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors"
-            >
-              Continue Without Login (Testing Mode)
-            </button>
-          </div>
         </div>
       </div>
     </div>
