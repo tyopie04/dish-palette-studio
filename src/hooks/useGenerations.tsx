@@ -220,10 +220,18 @@ export const useGenerations = () => {
 
       // Save URL (not base64) to database
       console.log('[GENERATIONS] Step 4: Saving to database...');
+      
+      // Get the current user's ID
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        console.error('[GENERATIONS] Step 4: No authenticated user found');
+        throw new Error('User must be authenticated to save generations');
+      }
+      
       const { data, error } = await supabase
         .from('generations')
         .insert({
-          user_id: '00000000-0000-0000-0000-000000000000',
+          user_id: user.id,
           images: [publicUrl],
           prompt: metadata?.prompt,
           ratio: metadata?.ratio,
