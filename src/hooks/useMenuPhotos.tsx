@@ -16,9 +16,10 @@ export function useMenuPhotos() {
 
   const fetchPhotos = useCallback(async () => {
     try {
+      // Select only necessary fields, excluding user_id for privacy
       const { data, error } = await supabase
         .from("menu_photos")
-        .select("*")
+        .select("id, name, original_url, thumbnail_url, category, display_order")
         .order("display_order", { ascending: true });
 
       // Handle auth errors gracefully - redirect to login
@@ -93,7 +94,10 @@ export function useMenuPhotos() {
 
       // Get current user for user_id
       const { data: { user } } = await supabase.auth.getUser();
-      const userId = user?.id || "00000000-0000-0000-0000-000000000000";
+      if (!user?.id) {
+        throw new Error('User must be authenticated to upload photos');
+      }
+      const userId = user.id;
 
       const { data: insertedPhoto, error: insertError } = await supabase
         .from("menu_photos")
@@ -174,7 +178,10 @@ export function useMenuPhotos() {
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      const userId = user?.id || "00000000-0000-0000-0000-000000000000";
+      if (!user?.id) {
+        throw new Error('User must be authenticated to reorder photos');
+      }
+      const userId = user.id;
 
       const updates = newPhotos.map((photo, index) => ({
         id: photo.id,

@@ -1,5 +1,6 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.86.2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,6 +13,27 @@ serve(async (req) => {
   }
 
   try {
+    // Extract and validate authenticated user from JWT
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      throw new Error('Authentication required');
+    }
+
+    // Create a Supabase client with the user's JWT to verify authentication
+    const supabaseAuth = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_ANON_KEY')!,
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    const { data: { user }, error: authError } = await supabaseAuth.auth.getUser();
+    if (authError || !user) {
+      console.error('[AUTH] Authentication failed:', authError?.message);
+      throw new Error('Invalid authentication');
+    }
+
+    console.log('[AUTH] Authenticated user:', user.id);
+
     const { imageUrl, editPrompt, resolution = "1K", aspectRatio = "1:1" } = await req.json();
     
     const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
