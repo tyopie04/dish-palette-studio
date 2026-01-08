@@ -647,16 +647,12 @@ ${styleSection}
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "google/gemini-2.5-pro",
+          model: "google/gemini-2.5-flash",
           messages: [
             { role: "system", content: systemPrompt },
             { role: "user", content: brainContent }
           ],
-          generationConfig: {
-            thinkingConfig: {
-              thinkingBudget: 24576  // High thinking budget for detailed analysis
-            }
-          }
+          max_tokens: 4096
         }),
       });
 
