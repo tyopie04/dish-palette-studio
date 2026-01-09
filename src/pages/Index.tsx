@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import {
   DndContext,
   DragEndEvent,
@@ -18,6 +18,7 @@ import { ImageEditDialog } from "@/components/ImageEditDialog";
 import { MenuPhoto } from "@/components/PhotoCard";
 import { useMenuPhotos, MenuPhoto as StoredMenuPhoto } from "@/hooks/useMenuPhotos";
 import { useGenerations, GenerationEntry } from "@/hooks/useGenerations";
+import { useDefaultSettings } from "@/hooks/useDefaultSettings";
 
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -91,11 +92,21 @@ const Index = () => {
   }>({});
   const [editingImage, setEditingImage] = useState<string | null>(null);
   
+  const { data: defaultSettings } = useDefaultSettings();
+  
   const [selectedRatio, setSelectedRatio] = useState("1:1");
   const [selectedResolution, setSelectedResolution] = useState("2K");
   const [selectedPhotoAmount, setSelectedPhotoAmount] = useState(1);
   const [styleGuideUrl, setStyleGuideUrl] = useState<string | null>(null);
   const [photoSize, setPhotoSize] = useState<"small" | "medium" | "large">("medium");
+
+  // Apply admin default settings when loaded
+  useEffect(() => {
+    if (defaultSettings) {
+      setSelectedRatio(defaultSettings.default_ratio);
+      setSelectedResolution(defaultSettings.default_resolution);
+    }
+  }, [defaultSettings]);
 
   const mouseSensor = useSensor(MouseSensor, {
     activationConstraint: { distance: 8 },
