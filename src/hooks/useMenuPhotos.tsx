@@ -135,38 +135,27 @@ export function useMenuPhotos() {
   const deletePhoto = useCallback(async (id: string) => {
     try {
       // Get current user to ensure we're authenticated
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
-      
-      console.log("[DELETE] Auth user:", user?.id, "Auth error:", authError);
+      const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
         toast.error("You must be logged in to delete photos");
         return;
       }
 
-      // First, check if the photo exists and get its user_id
-      const { data: photoData, error: fetchError } = await supabase
+      // Soft delete: set deleted_at and deleted_by instead of actual DELETE
+      const { error } = await supabase
         .from("menu_photos")
-        .select("id, user_id")
-        .eq("id", id)
-        .single();
-      
-      console.log("[DELETE] Photo data:", photoData, "Fetch error:", fetchError);
-      console.log("[DELETE] Photo user_id:", photoData?.user_id, "Current user_id:", user.id);
-      console.log("[DELETE] IDs match:", photoData?.user_id === user.id);
-
-      const { error, count } = await supabase
-        .from("menu_photos")
-        .delete()
+        .update({ 
+          deleted_at: new Date().toISOString(),
+          deleted_by: user.id 
+        })
         .eq("id", id);
-
-      console.log("[DELETE] Delete result - error:", error, "count:", count);
 
       if (error) throw error;
 
-      // Update local state only after successful delete
+      // Update local state only after successful soft delete
       setPhotos((prev) => prev.filter((p) => p.id !== id));
-      toast.success("Photo deleted");
+      toast.success("Photo moved to trash");
     } catch (error) {
       console.error("Delete error:", error);
       toast.error("Failed to delete photo");
