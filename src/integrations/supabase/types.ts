@@ -59,6 +59,8 @@ export type Database = {
         Row: {
           category: string
           created_at: string
+          deleted_at: string | null
+          deleted_by: string | null
           display_order: number
           id: string
           name: string
@@ -70,6 +72,8 @@ export type Database = {
         Insert: {
           category?: string
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
           display_order?: number
           id?: string
           name: string
@@ -81,6 +85,8 @@ export type Database = {
         Update: {
           category?: string
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
           display_order?: number
           id?: string
           name?: string
