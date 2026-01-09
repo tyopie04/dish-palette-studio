@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_settings: {
+        Row: {
+          created_at: string
+          default_ratio: string
+          default_resolution: string
+          id: string
+          master_prompt: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          default_ratio?: string
+          default_resolution?: string
+          id?: string
+          master_prompt?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          default_ratio?: string
+          default_resolution?: string
+          id?: string
+          master_prompt?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       generations: {
         Row: {
           created_at: string
@@ -169,6 +196,47 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "profiles_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      styles: {
+        Row: {
+          created_at: string
+          has_color_picker: boolean
+          id: string
+          name: string
+          organization_id: string | null
+          prompt_modifier: string
+          thumbnail_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          has_color_picker?: boolean
+          id?: string
+          name: string
+          organization_id?: string | null
+          prompt_modifier: string
+          thumbnail_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          has_color_picker?: boolean
+          id?: string
+          name?: string
+          organization_id?: string | null
+          prompt_modifier?: string
+          thumbnail_url?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "styles_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
