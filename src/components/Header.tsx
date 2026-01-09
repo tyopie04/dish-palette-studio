@@ -11,14 +11,8 @@ export function Header() {
   return (
     <header className="border-b border-border/50 bg-card/30 backdrop-blur-xl sticky top-0 z-50">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center">
           <img src={staxLogo} alt="Stax Burger Co." className="h-12 w-auto" />
-          <div>
-            <h1 className="text-lg font-display font-semibold text-foreground">
-              Stax
-            </h1>
-            <p className="text-xs text-muted-foreground">AI Content Creator</p>
-          </div>
         </div>
         
         <div className="flex items-center gap-4">
