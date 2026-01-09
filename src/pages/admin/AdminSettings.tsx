@@ -188,6 +188,9 @@ export default function AdminSettings() {
               </Select>
             </div>
           </div>
+          <p className="text-xs text-muted-foreground">
+            ✓ Connected — These defaults are applied to all new client sessions
+          </p>
         </div>
 
         {/* API Usage Placeholder */}
