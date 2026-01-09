@@ -1,13 +1,12 @@
 import { Users, Sparkles, CalendarDays, Image } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { StatsCard } from "@/components/admin/StatsCard";
-import { RecentActivityTable } from "@/components/admin/RecentActivityTable";
+import { AlertsSection } from "@/components/admin/AlertsSection";
+import { ClientActivityTable } from "@/components/admin/ClientActivityTable";
 import { useAdminStats } from "@/hooks/useAdminStats";
-import { useRecentActivity } from "@/hooks/useRecentActivity";
 
 export default function AdminDashboard() {
   const { data: stats, isLoading: statsLoading } = useAdminStats();
-  const { data: recentActivity, isLoading: activityLoading } = useRecentActivity();
 
   return (
     <AdminLayout>
@@ -26,6 +25,7 @@ export default function AdminDashboard() {
             label="Total Clients"
             icon={Users}
             loading={statsLoading}
+            href="/admin/clients"
           />
           <StatsCard
             value={stats?.totalGenerations ?? 0}
@@ -47,14 +47,17 @@ export default function AdminDashboard() {
           />
         </div>
 
-        {/* Recent Activity */}
+        {/* Alerts Section */}
+        <div className="space-y-3">
+          <h2 className="text-lg font-semibold text-foreground">Attention Needed</h2>
+          <AlertsSection />
+        </div>
+
+        {/* Client Activity Summary */}
         <div className="space-y-4">
-          <h2 className="text-xl font-semibold text-foreground">Recent Activity</h2>
+          <h2 className="text-xl font-semibold text-foreground">Client Activity (Last 7 Days)</h2>
           <div className="rounded-lg border border-border/50 bg-card overflow-hidden">
-            <RecentActivityTable
-              generations={recentActivity ?? []}
-              loading={activityLoading}
-            />
+            <ClientActivityTable />
           </div>
         </div>
       </div>
