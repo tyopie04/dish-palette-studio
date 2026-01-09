@@ -29,15 +29,15 @@ export function Header() {
         
         <div className="flex items-center gap-4">
           <nav className="hidden sm:flex items-center gap-6">
-            <a href="/" className="text-sm text-foreground hover:text-primary transition-colors">
+            <Link to="/" className="text-sm text-foreground hover:text-primary transition-colors">
               Create
-            </a>
-            <a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+            </Link>
+            <Link to="/promos" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
               One-click promos
-            </a>
-            <a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+            </Link>
+            <Link to="/analytics" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
               Analytics
-            </a>
+            </Link>
           </nav>
 
           {user && (
