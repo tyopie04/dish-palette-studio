@@ -35,13 +35,20 @@ export function useOrganizations() {
   return useQuery({
     queryKey: ["admin-organizations"],
     queryFn: async (): Promise<Organization[]> => {
+      console.log("[useOrganizations] Starting fetch...");
+      
       // Fetch organizations
       const { data: orgs, error: orgsError } = await supabase
         .from("organizations")
         .select("*")
         .order("created_at", { ascending: false });
 
-      if (orgsError) throw orgsError;
+      console.log("[useOrganizations] Query result:", { orgs, orgsError });
+
+      if (orgsError) {
+        console.error("[useOrganizations] Error:", orgsError);
+        throw orgsError;
+      }
       if (!orgs) return [];
 
       // Fetch owner emails

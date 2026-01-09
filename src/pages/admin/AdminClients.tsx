@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Plus } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Plus, RefreshCw } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { ClientsTable } from "@/components/admin/ClientsTable";
 import { AddClientModal } from "@/components/admin/AddClientModal";
@@ -9,11 +9,18 @@ import { Button } from "@/components/ui/button";
 import { useOrganizations, Organization } from "@/hooks/useOrganizations";
 
 export default function AdminClients() {
-  const { data: organizations, isLoading } = useOrganizations();
+  const { data: organizations, isLoading, error, refetch } = useOrganizations();
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [selectedOrg, setSelectedOrg] = useState<Organization | null>(null);
   const [detailOrgId, setDetailOrgId] = useState<string | null>(null);
+
+  useEffect(() => {
+    console.log("[AdminClients] Component mounted");
+    console.log("[AdminClients] isLoading:", isLoading);
+    console.log("[AdminClients] organizations:", organizations);
+    console.log("[AdminClients] error:", error);
+  }, [isLoading, organizations, error]);
 
   const handleEdit = (org: Organization) => {
     setSelectedOrg(org);
@@ -34,10 +41,22 @@ export default function AdminClients() {
               Manage client organizations
             </p>
           </div>
-          <Button onClick={() => setAddModalOpen(true)} className="gap-2">
-            <Plus className="h-4 w-4" />
-            Add New Client
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="outline" 
+              size="icon"
+              onClick={() => {
+                console.log("[AdminClients] Manual refetch triggered");
+                refetch();
+              }}
+            >
+              <RefreshCw className="h-4 w-4" />
+            </Button>
+            <Button onClick={() => setAddModalOpen(true)} className="gap-2">
+              <Plus className="h-4 w-4" />
+              Add New Client
+            </Button>
+          </div>
         </div>
 
         <div className="rounded-lg border border-border/50 bg-card overflow-hidden">
