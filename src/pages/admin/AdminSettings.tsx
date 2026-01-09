@@ -130,7 +130,7 @@ export default function AdminSettings() {
               className="resize-none"
             />
             <p className="text-xs text-muted-foreground">
-              This prompt is automatically included in every generation request as a base style
+              ✓ Connected — This prompt is actively applied to all image generations as the base style directive
             </p>
           </div>
         </div>

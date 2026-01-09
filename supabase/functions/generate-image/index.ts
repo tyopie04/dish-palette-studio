@@ -496,6 +496,7 @@ async function createImageBlueprint(
   photoNames: string[],
   hasStyleGuide: boolean,
   selectedStyle: typeof stylePresets[0] | null,
+  masterPrompt: string,
   imageUrls?: string[],
   styleGuideUrl?: string
 ): Promise<{ blueprint: string; reasoning: string; styleName: string }> {
@@ -526,6 +527,11 @@ Style Name: ${selectedStyle.name}
   }
   
   const systemPrompt = `You are an expert food photography art director. Your PRIMARY TASK is to execute the USER'S CREATIVE DIRECTION while photographing real menu items.
+
+=== MASTER STYLE DIRECTIVE ===
+${masterPrompt}
+
+Apply this master style as the foundation for all images while following the specific instructions below.
 
 === 🎯 PRIORITY #1: USER'S CREATIVE DIRECTION ===
 The user's prompt is your MAIN INSTRUCTION. Execute it precisely:
@@ -786,6 +792,22 @@ serve(async (req) => {
     if (!LOVABLE_API_KEY) {
       throw new Error('LOVABLE_API_KEY is not configured');
     }
+
+    // Create admin client for fetching settings
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    );
+
+    // Fetch master prompt from admin settings
+    const { data: adminSettings } = await supabaseAdmin
+      .from("admin_settings")
+      .select("master_prompt")
+      .limit(1)
+      .maybeSingle();
+
+    const masterPrompt = adminSettings?.master_prompt || "Professional food photography. High-end commercial quality. Appetizing presentation with perfect lighting and composition.";
+    console.log('[SETTINGS] Using master prompt:', masterPrompt.substring(0, 80) + '...');
     
     // Smart photo selection: if autoSelectPhotos is enabled OR no photos provided but prompt has category keywords
     let imageUrls = providedImageUrls || [];
@@ -870,6 +892,7 @@ serve(async (req) => {
       photoNames || [],
       !!styleGuideUrl,
       selectedStyle,
+      masterPrompt,
       imageUrls,
       styleGuideUrl
     );
@@ -951,6 +974,9 @@ MANDATORY STYLE: "${selectedStyle.name}"
       
       // Build the final prompt for THIS image with unique seed
       const handPrompt = `🎯 YOUR PRIMARY TASK: Execute the user's creative direction while photographing real menu items.
+
+=== MASTER STYLE ===
+${masterPrompt}
 
 === STEP 1: EXECUTE USER'S CREATIVE DIRECTION ===
 The user requested: "${prompt || 'Professional food photography'}"
