@@ -154,6 +154,18 @@ export default function Chat() {
                       )}
                     >
                       <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
+                      {message.images && message.images.length > 0 && (
+                        <div className="mt-3 space-y-2">
+                          {message.images.map((img, imgIndex) => (
+                            <img 
+                              key={imgIndex} 
+                              src={img} 
+                              alt="Generated image" 
+                              className="rounded-xl max-w-full w-full shadow-lg"
+                            />
+                          ))}
+                        </div>
+                      )}
                     </div>
                     {message.role === "user" && (
                       <div className="h-8 w-8 rounded-full bg-white/30 backdrop-blur flex items-center justify-center flex-shrink-0 mt-1">
