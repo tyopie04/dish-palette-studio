@@ -1,6 +1,11 @@
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Badge } from "@/components/ui/badge";
+import { TrendingDown, Clock } from "lucide-react";
+import { cn } from "@/lib/utils";
 import {
   AreaChart,
   Area,
@@ -11,9 +16,11 @@ import {
   ResponsiveContainer,
   BarChart,
   Bar,
+  Cell,
+  ReferenceLine,
 } from "recharts";
 
-// Placeholder data
+// Placeholder data - By Day
 const salesOverTimeData = [
   { date: "Mon", sales: 4200 },
   { date: "Tue", sales: 3800 },
@@ -22,6 +29,45 @@ const salesOverTimeData = [
   { date: "Fri", sales: 6800 },
   { date: "Sat", sales: 7200 },
   { date: "Sun", sales: 5400 },
+];
+
+// Placeholder data - By Hour with daypart groupings
+const salesByHourData = [
+  // Breakfast (6am - 10am)
+  { hour: "6am", sales: 320, prevWeek: 340, daypart: "Breakfast" },
+  { hour: "7am", sales: 580, prevWeek: 520, daypart: "Breakfast" },
+  { hour: "8am", sales: 920, prevWeek: 880, daypart: "Breakfast" },
+  { hour: "9am", sales: 1100, prevWeek: 1050, daypart: "Breakfast" },
+  { hour: "10am", sales: 780, prevWeek: 820, daypart: "Breakfast" },
+  // Lunch (11am - 2pm)
+  { hour: "11am", sales: 1450, prevWeek: 1380, daypart: "Lunch" },
+  { hour: "12pm", sales: 2100, prevWeek: 2050, daypart: "Lunch" },
+  { hour: "1pm", sales: 1980, prevWeek: 1920, daypart: "Lunch" },
+  { hour: "2pm", sales: 1200, prevWeek: 1450, daypart: "Lunch" },
+  // Dinner (5pm - 9pm)
+  { hour: "5pm", sales: 1650, prevWeek: 1580, daypart: "Dinner" },
+  { hour: "6pm", sales: 2400, prevWeek: 2350, daypart: "Dinner" },
+  { hour: "7pm", sales: 2680, prevWeek: 2520, daypart: "Dinner" },
+  { hour: "8pm", sales: 2100, prevWeek: 2180, daypart: "Dinner" },
+  { hour: "9pm", sales: 1200, prevWeek: 1250, daypart: "Dinner" },
+  // Late Night (10pm - 12am)
+  { hour: "10pm", sales: 680, prevWeek: 720, daypart: "Late Night" },
+  { hour: "11pm", sales: 420, prevWeek: 380, daypart: "Late Night" },
+];
+
+// Calculate peak hour and low performers
+const peakHour = salesByHourData.reduce((max, item) => item.sales > max.sales ? item : max, salesByHourData[0]);
+const lowPerformers = salesByHourData.filter(item => {
+  const changePercent = ((item.sales - item.prevWeek) / item.prevWeek) * 100;
+  return changePercent < -10; // Flag if down more than 10%
+});
+
+// Daypart summary
+const daypartSummary = [
+  { name: "Breakfast", hours: "6am–10am", sales: 3700, prevWeek: 3610, orders: 142 },
+  { name: "Lunch", hours: "11am–2pm", sales: 6730, prevWeek: 6800, orders: 245 },
+  { name: "Dinner", hours: "5pm–9pm", sales: 10030, prevWeek: 9880, orders: 312 },
+  { name: "Late Night", hours: "10pm–12am", sales: 1100, prevWeek: 1100, orders: 48 },
 ];
 
 const salesByCategoryData = [
@@ -47,13 +93,34 @@ const salesByServerData = [
   { server: "Casey R.", orders: 31, sales: 942, avgCheck: "$30.39" },
 ];
 
+// Colors for dayparts
+const daypartColors: Record<string, string> = {
+  Breakfast: "hsl(45, 93%, 47%)",
+  Lunch: "hsl(var(--primary))",
+  Dinner: "hsl(262, 83%, 58%)",
+  "Late Night": "hsl(220, 70%, 50%)",
+};
+
 export function SalesOverview() {
+  const [timeView, setTimeView] = useState<"hour" | "day">("hour");
+
+  const getBarColor = (entry: typeof salesByHourData[0]) => {
+    const isPeak = entry.hour === peakHour.hour;
+    const isLow = lowPerformers.some(lp => lp.hour === entry.hour);
+    
+    if (isPeak) return "hsl(142, 76%, 36%)"; // Green for peak
+    if (isLow) return "hsl(var(--destructive))"; // Red for low performers
+    return daypartColors[entry.daypart];
+  };
+
   return (
     <Card>
       <CardHeader className="pb-2">
-        <CardTitle className="text-lg font-semibold flex items-center gap-2">
-          💰 Sales Insights
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-lg font-semibold flex items-center gap-2">
+            💰 Sales Insights
+          </CardTitle>
+        </div>
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="overview" className="w-full">
@@ -66,37 +133,183 @@ export function SalesOverview() {
           </TabsList>
 
           <TabsContent value="overview">
-            <div className="h-[280px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={salesOverTimeData}>
-                  <defs>
-                    <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                  <XAxis dataKey="date" tick={{ fontSize: 12 }} className="text-muted-foreground" />
-                  <YAxis tick={{ fontSize: 12 }} tickFormatter={(v) => `$${v}`} className="text-muted-foreground" />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "hsl(var(--card))",
-                      border: "1px solid hsl(var(--border))",
-                      borderRadius: "8px",
-                    }}
-                    formatter={(value: number) => [`$${value.toLocaleString()}`, "Sales"]}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="sales"
-                    stroke="hsl(var(--primary))"
-                    strokeWidth={2}
-                    fillOpacity={1}
-                    fill="url(#colorSales)"
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
+            {/* Time View Toggle */}
+            <div className="flex items-center justify-between mb-4">
+              <ToggleGroup
+                type="single"
+                value={timeView}
+                onValueChange={(value) => value && setTimeView(value as "hour" | "day")}
+                className="bg-muted p-1 rounded-lg"
+              >
+                <ToggleGroupItem value="hour" className="text-xs px-3 data-[state=on]:bg-background">
+                  By Hour
+                </ToggleGroupItem>
+                <ToggleGroupItem value="day" className="text-xs px-3 data-[state=on]:bg-background">
+                  By Day
+                </ToggleGroupItem>
+              </ToggleGroup>
+
+              {timeView === "hour" && (
+                <div className="flex items-center gap-3 text-xs">
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                    Peak Hour
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-destructive" />
+                    Down vs LW
+                  </span>
+                </div>
+              )}
             </div>
+
+            {timeView === "hour" ? (
+              <>
+                {/* Daypart Summary Cards */}
+                <div className="grid grid-cols-4 gap-2 mb-4">
+                  {daypartSummary.map((dp) => {
+                    const change = ((dp.sales - dp.prevWeek) / dp.prevWeek) * 100;
+                    const isDown = change < 0;
+                    return (
+                      <div
+                        key={dp.name}
+                        className="p-2.5 rounded-lg border bg-card/50"
+                        style={{ borderLeftColor: daypartColors[dp.name], borderLeftWidth: 3 }}
+                      >
+                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium">
+                          {dp.name}
+                        </p>
+                        <p className="text-sm font-semibold">${dp.sales.toLocaleString()}</p>
+                        <p className={cn(
+                          "text-[10px]",
+                          isDown ? "text-destructive" : "text-emerald-600 dark:text-emerald-400"
+                        )}>
+                          {change >= 0 ? "+" : ""}{change.toFixed(1)}% vs LW
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Hourly Bar Chart */}
+                <div className="h-[200px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={salesByHourData} barCategoryGap="15%">
+                      <CartesianGrid strokeDasharray="3 3" className="stroke-border" vertical={false} />
+                      <XAxis 
+                        dataKey="hour" 
+                        tick={{ fontSize: 10 }} 
+                        className="text-muted-foreground"
+                        interval={0}
+                      />
+                      <YAxis 
+                        tick={{ fontSize: 10 }} 
+                        tickFormatter={(v) => `$${v}`} 
+                        className="text-muted-foreground"
+                        width={45}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: "hsl(var(--card))",
+                          border: "1px solid hsl(var(--border))",
+                          borderRadius: "8px",
+                          fontSize: "12px",
+                        }}
+                        content={({ active, payload }) => {
+                          if (active && payload && payload.length) {
+                            const data = payload[0].payload;
+                            const change = ((data.sales - data.prevWeek) / data.prevWeek) * 100;
+                            const isPeak = data.hour === peakHour.hour;
+                            return (
+                              <div className="bg-card border border-border rounded-lg p-2 shadow-lg">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <span className="font-semibold">{data.hour}</span>
+                                  <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                                    {data.daypart}
+                                  </Badge>
+                                  {isPeak && (
+                                    <Badge className="text-[10px] px-1.5 py-0 bg-emerald-500">
+                                      Peak
+                                    </Badge>
+                                  )}
+                                </div>
+                                <p className="text-sm">${data.sales.toLocaleString()}</p>
+                                <p className={cn(
+                                  "text-xs",
+                                  change < 0 ? "text-destructive" : "text-muted-foreground"
+                                )}>
+                                  {change >= 0 ? "+" : ""}{change.toFixed(1)}% vs last week
+                                </p>
+                              </div>
+                            );
+                          }
+                          return null;
+                        }}
+                      />
+                      <Bar dataKey="sales" radius={[3, 3, 0, 0]}>
+                        {salesByHourData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={getBarColor(entry)} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* Low Performer Alerts */}
+                {lowPerformers.length > 0 && (
+                  <div className="mt-3 p-2.5 rounded-lg bg-destructive/5 border border-destructive/20">
+                    <div className="flex items-center gap-2 text-sm text-destructive mb-1">
+                      <TrendingDown className="h-4 w-4" />
+                      <span className="font-medium">Hours needing attention</span>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {lowPerformers.map((lp) => {
+                        const change = ((lp.sales - lp.prevWeek) / lp.prevWeek) * 100;
+                        return (
+                          <Badge key={lp.hour} variant="outline" className="text-destructive border-destructive/30">
+                            <Clock className="h-3 w-3 mr-1" />
+                            {lp.hour}: {change.toFixed(0)}%
+                          </Badge>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : (
+              /* By Day View - Original Chart */
+              <div className="h-[280px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={salesOverTimeData}>
+                    <defs>
+                      <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                    <XAxis dataKey="date" tick={{ fontSize: 12 }} className="text-muted-foreground" />
+                    <YAxis tick={{ fontSize: 12 }} tickFormatter={(v) => `$${v}`} className="text-muted-foreground" />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "hsl(var(--card))",
+                        border: "1px solid hsl(var(--border))",
+                        borderRadius: "8px",
+                      }}
+                      formatter={(value: number) => [`$${value.toLocaleString()}`, "Sales"]}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="sales"
+                      stroke="hsl(var(--primary))"
+                      strokeWidth={2}
+                      fillOpacity={1}
+                      fill="url(#colorSales)"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="by-item">
@@ -185,7 +398,7 @@ export function SalesOverview() {
                     <TableRow key={row.item}>
                       <TableCell className="font-medium">{row.item}</TableCell>
                       <TableCell className="text-right">${row.revenue.toLocaleString()}</TableCell>
-                      <TableCell className="text-right text-green-500">{row.margin}</TableCell>
+                      <TableCell className="text-right text-emerald-600 dark:text-emerald-400">{row.margin}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
