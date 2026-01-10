@@ -24,15 +24,8 @@ export function Header() {
   return (
     <header className="border-b border-border/50 bg-card/30 backdrop-blur-xl sticky top-0 z-50">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-        {/* Logo - centered */}
-        <div className="absolute left-1/2 -translate-x-1/2">
-          <img src={staxLogo} alt="Stax Burger Co." className="h-12 w-auto" />
-        </div>
-        
-        {/* Left spacer for balance */}
-        <div className="w-24" />
-        
-        <div className="flex items-center gap-4">
+        {/* Left side - Navigation */}
+        <div className="flex items-center gap-6">
           <nav className="hidden sm:flex items-center gap-6">
             <Link 
               to="/" 
@@ -53,6 +46,15 @@ export function Header() {
               Analytics
             </Link>
           </nav>
+        </div>
+
+        {/* Center - Logo */}
+        <div className="absolute left-1/2 -translate-x-1/2">
+          <img src={staxLogo} alt="Stax Burger Co." className="h-12 w-auto" />
+        </div>
+        
+        {/* Right side - User menu and theme toggle */}
+        <div className="flex items-center gap-4">
 
           {user && (
             <DropdownMenu>
