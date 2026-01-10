@@ -30,10 +30,10 @@ export default function Analytics() {
   const [selectedLocation, setSelectedLocation] = useState("all");
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="h-screen bg-background flex flex-col overflow-hidden">
       <Header />
       
-      <main className="flex-1 overflow-auto">
+      <main className="flex-1 overflow-y-auto">
         <div className="container max-w-6xl mx-auto px-4 sm:px-6 py-4 sm:py-6">
           {/* Minimal Header */}
           <div className="flex items-center justify-between mb-5">
@@ -102,7 +102,7 @@ export default function Analytics() {
           </section>
 
           {/* 5. Who's Working */}
-          <section id="employee-performance">
+          <section id="employee-performance" className="pb-8">
             <h2 className="text-sm font-medium text-muted-foreground mb-3">Team</h2>
             <EmployeePerformance />
           </section>
