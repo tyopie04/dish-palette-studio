@@ -109,69 +109,58 @@ export default function OneClickPromos() {
         </aside>
 
         {/* Main Content Area */}
-        <main className="flex-1 overflow-auto">
-          <div className="container max-w-5xl mx-auto px-6 py-8">
-            <div className="mb-8">
-              <h1 className="text-3xl font-bold text-foreground mb-2">
-                One-Click Campaign Generator
-              </h1>
-              <p className="text-muted-foreground">
-                Choose a campaign type to get started
-              </p>
-            </div>
-
-            {/* Campaign Type Cards - 2x2 Grid */}
-            <div className="grid grid-cols-2 gap-4">
-              {campaignTypes.map((type) => (
-                <div
-                  key={type.id}
-                  className={cn(
-                    "relative aspect-square rounded-xl border transition-all duration-300 overflow-hidden",
-                    expandedCard === type.id
-                      ? "border-primary bg-card"
-                      : "border-border bg-card/50 hover:border-primary/50 hover:bg-card cursor-pointer"
-                  )}
-                  onMouseEnter={() => setHoveredCard(type.id)}
-                  onMouseLeave={() => setHoveredCard(null)}
-                  onClick={() => !expandedCard && handleCardClick(type.id)}
-                >
-                  {expandedCard === type.id ? (
-                    // Expanded Form View
-                    <div className="absolute inset-0">
-                      {renderForm(type.id)}
+        <main className="flex-1 overflow-hidden p-4">
+          {/* Campaign Type Cards - 2x2 Grid */}
+          <div className="grid grid-cols-2 grid-rows-2 gap-4 h-full">
+            {campaignTypes.map((type) => (
+              <div
+                key={type.id}
+                className={cn(
+                  "relative rounded-xl border transition-all duration-300 overflow-hidden",
+                  expandedCard === type.id
+                    ? "border-primary bg-card"
+                    : "border-border bg-card/50 hover:border-primary/50 hover:bg-card cursor-pointer"
+                )}
+                onMouseEnter={() => setHoveredCard(type.id)}
+                onMouseLeave={() => setHoveredCard(null)}
+                onClick={() => !expandedCard && handleCardClick(type.id)}
+              >
+                {expandedCard === type.id ? (
+                  // Expanded Form View
+                  <div className="absolute inset-0">
+                    {renderForm(type.id)}
+                  </div>
+                ) : (
+                  // Card Preview View
+                  <>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center">
+                      <div className="p-4 rounded-2xl bg-primary/10 text-primary mb-4">
+                        {type.icon}
+                      </div>
+                      <h3 className="text-xl font-semibold text-foreground mb-2">
+                        {type.title}
+                      </h3>
+                      <p className="text-sm text-muted-foreground">
+                        {type.description}
+                      </p>
                     </div>
-                  ) : (
-                    // Card Preview View
-                    <>
-                      <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center">
-                        <div className="p-4 rounded-2xl bg-primary/10 text-primary mb-4">
-                          {type.icon}
-                        </div>
-                        <h3 className="text-xl font-semibold text-foreground mb-2">
-                          {type.title}
-                        </h3>
-                        <p className="text-sm text-muted-foreground">
-                          {type.description}
-                        </p>
-                      </div>
 
-                      {/* Hover Build Button */}
-                      <div
-                        className={cn(
-                          "absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm transition-opacity duration-200",
-                          hoveredCard === type.id ? "opacity-100" : "opacity-0 pointer-events-none"
-                        )}
-                      >
-                        <Button size="lg" className="gap-2">
-                          <Sparkles className="h-5 w-5" />
-                          Build
-                        </Button>
-                      </div>
-                    </>
-                  )}
-                </div>
-              ))}
-            </div>
+                    {/* Hover Build Button */}
+                    <div
+                      className={cn(
+                        "absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm transition-opacity duration-200",
+                        hoveredCard === type.id ? "opacity-100" : "opacity-0 pointer-events-none"
+                      )}
+                    >
+                      <Button size="lg" className="gap-2">
+                        <Sparkles className="h-5 w-5" />
+                        Build
+                      </Button>
+                    </div>
+                  </>
+                )}
+              </div>
+            ))}
           </div>
         </main>
       </div>
