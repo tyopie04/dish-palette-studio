@@ -24,9 +24,13 @@ export function Header() {
   return (
     <header className="border-b border-border/50 bg-card/30 backdrop-blur-xl sticky top-0 z-50">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-        <div className="flex items-center">
+        {/* Logo - centered */}
+        <div className="absolute left-1/2 -translate-x-1/2">
           <img src={staxLogo} alt="Stax Burger Co." className="h-12 w-auto" />
         </div>
+        
+        {/* Left spacer for balance */}
+        <div className="w-24" />
         
         <div className="flex items-center gap-4">
           <nav className="hidden sm:flex items-center gap-6">
@@ -37,16 +41,16 @@ export function Header() {
               Create
             </Link>
             <Link 
-              to="/analytics"
-              className={`text-sm transition-colors ${location.pathname === "/analytics" ? "text-foreground font-medium" : "text-muted-foreground hover:text-foreground"}`}
-            >
-              Analytics
-            </Link>
-            <Link 
               to="/chat" 
               className={`text-sm transition-colors ${location.pathname === "/chat" ? "text-foreground font-medium" : "text-muted-foreground hover:text-foreground"}`}
             >
               Chat
+            </Link>
+            <Link 
+              to="/analytics" 
+              className={`text-sm transition-colors ${location.pathname === "/analytics" ? "text-foreground font-medium" : "text-muted-foreground hover:text-foreground"}`}
+            >
+              Analytics
             </Link>
           </nav>
 
