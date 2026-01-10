@@ -19,10 +19,12 @@ import { MenuPhoto } from "@/components/PhotoCard";
 import { useMenuPhotos, MenuPhoto as StoredMenuPhoto } from "@/hooks/useMenuPhotos";
 import { useGenerations, GenerationEntry } from "@/hooks/useGenerations";
 import { useDefaultSettings } from "@/hooks/useDefaultSettings";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 
 // Higher quality image processing for AI generation (max 4096px for better quality)
 const compressImageToBase64 = async (url: string): Promise<string> => {
@@ -99,6 +101,7 @@ const Index = () => {
   const [selectedPhotoAmount, setSelectedPhotoAmount] = useState(1);
   const [styleGuideUrl, setStyleGuideUrl] = useState<string | null>(null);
   const [photoSize, setPhotoSize] = useState<"small" | "medium" | "large">("medium");
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   // Apply admin default settings when loaded
   useEffect(() => {
@@ -567,10 +570,15 @@ const Index = () => {
         <div className="h-screen w-full bg-background flex flex-col overflow-hidden">
           <Header />
           
-          <ResizablePanelGroup direction="horizontal" className="flex-1 min-h-0 w-full">
-            {/* Left Sidebar - Menu Photos - Independent scroll */}
-            <ResizablePanel defaultSize={20} minSize={15} maxSize={40}>
-              <aside className="h-full border-r border-border/50 bg-card/30 overflow-y-auto overflow-x-hidden">
+          <div className="flex-1 min-h-0 w-full flex">
+            {/* Left Sidebar - Menu Photos - Collapsible */}
+            <aside 
+              className={cn(
+                "h-full border-r border-border/50 bg-card/30 overflow-y-auto overflow-x-hidden transition-all duration-300 relative flex-shrink-0",
+                sidebarCollapsed ? "w-0" : "w-72"
+              )}
+            >
+              {!sidebarCollapsed && (
                 <div className="p-4">
                   <PhotoGallery 
                     photos={photos} 
@@ -584,63 +592,76 @@ const Index = () => {
                     onPhotoSizeChange={setPhotoSize}
                   />
                 </div>
-              </aside>
-            </ResizablePanel>
+              )}
+            </aside>
 
-            <ResizableHandle withHandle />
+            {/* Collapse Toggle Button */}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+              className={cn(
+                "absolute top-20 h-6 w-6 rounded-full border border-border bg-background shadow-sm hover:bg-muted z-50 transition-all duration-300",
+                sidebarCollapsed ? "left-1" : "left-[276px]"
+              )}
+            >
+              {sidebarCollapsed ? (
+                <ChevronRight className="h-3 w-3" />
+              ) : (
+                <ChevronLeft className="h-3 w-3" />
+              )}
+            </Button>
 
             {/* Main Content - Generated Images - Independent scroll */}
-            <ResizablePanel defaultSize={80}>
-              <div className="h-full relative">
-                <main className="h-full overflow-y-auto overflow-x-hidden">
-                  {(() => {
-                    console.log('[INDEX] Rendering Gallery. generationHistory:', generationHistory?.length, 'entries');
-                    console.log('[INDEX] generationHistory data:', generationHistory?.slice(0, 3).map(g => ({ 
-                      id: g.id, 
-                      images: g.images?.length,
-                      isLoading: g.isLoading,
-                      firstImageType: g.images?.[0]?.substring(0, 50) 
-                    })));
-                    return null;
-                  })()}
-                  <MasonryGallery
-                    history={generationHistory}
-                    onImageClick={handleImageClick}
-                    onDelete={handleDeleteEntry}
-                    onEdit={handleEditImage}
-                    onRerun={handleRerun}
-                    selectedImages={selectedImages}
-                    onToggleSelect={handleToggleSelect}
-                    onDeleteSelected={handleDeleteSelected}
-                    onDownloadSelected={handleDownloadSelected}
-                    onLoadImages={loadImagesForEntry}
-                    onClearAll={clearAllGenerations}
+            <div className="flex-1 h-full relative">
+              <main className="h-full overflow-y-auto overflow-x-hidden">
+                {(() => {
+                  console.log('[INDEX] Rendering Gallery. generationHistory:', generationHistory?.length, 'entries');
+                  console.log('[INDEX] generationHistory data:', generationHistory?.slice(0, 3).map(g => ({ 
+                    id: g.id, 
+                    images: g.images?.length,
+                    isLoading: g.isLoading,
+                    firstImageType: g.images?.[0]?.substring(0, 50) 
+                  })));
+                  return null;
+                })()}
+                <MasonryGallery
+                  history={generationHistory}
+                  onImageClick={handleImageClick}
+                  onDelete={handleDeleteEntry}
+                  onEdit={handleEditImage}
+                  onRerun={handleRerun}
+                  selectedImages={selectedImages}
+                  onToggleSelect={handleToggleSelect}
+                  onDeleteSelected={handleDeleteSelected}
+                  onDownloadSelected={handleDownloadSelected}
+                  onLoadImages={loadImagesForEntry}
+                  onClearAll={clearAllGenerations}
+                />
+              </main>
+              
+              {/* Floating Prompt Bar - absolute positioned at bottom of panel */}
+              <div className="absolute bottom-6 left-0 right-0 flex justify-center pointer-events-none z-50 px-4">
+                <div className="pointer-events-auto w-full max-w-6xl">
+                  <PromptBar
+                    selectedPhotos={selectedPhotos}
+                    onRemovePhoto={handleRemovePhoto}
+                    onGenerate={handleGenerate}
+                    isGenerating={isGenerating}
+                    ratio={selectedRatio}
+                    setRatio={setSelectedRatio}
+                    resolution={selectedResolution}
+                    setResolution={setSelectedResolution}
+                    photoAmount={selectedPhotoAmount}
+                    setPhotoAmount={setSelectedPhotoAmount}
+                    styleGuideUrl={styleGuideUrl}
+                    setStyleGuideUrl={setStyleGuideUrl}
+                    loadingCount={activeGenerations}
                   />
-                </main>
-                
-                {/* Floating Prompt Bar - absolute positioned at bottom of panel */}
-                <div className="absolute bottom-6 left-0 right-0 flex justify-center pointer-events-none z-50 px-4">
-                  <div className="pointer-events-auto w-full max-w-6xl">
-                    <PromptBar
-                      selectedPhotos={selectedPhotos}
-                      onRemovePhoto={handleRemovePhoto}
-                      onGenerate={handleGenerate}
-                      isGenerating={isGenerating}
-                      ratio={selectedRatio}
-                      setRatio={setSelectedRatio}
-                      resolution={selectedResolution}
-                      setResolution={setSelectedResolution}
-                      photoAmount={selectedPhotoAmount}
-                      setPhotoAmount={setSelectedPhotoAmount}
-                      styleGuideUrl={styleGuideUrl}
-                      setStyleGuideUrl={setStyleGuideUrl}
-                      loadingCount={activeGenerations}
-                    />
-                  </div>
                 </div>
               </div>
-            </ResizablePanel>
-          </ResizablePanelGroup>
+            </div>
+          </div>
         </div>
 
         <DragOverlay>{dragOverlayContent}</DragOverlay>
