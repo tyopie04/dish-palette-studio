@@ -7,7 +7,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Send, Bot, User, Megaphone, PenLine, Target, X } from "lucide-react";
+import { Send, Bot, User, Megaphone, PenLine, Target, X, Plus, Paperclip, MessageSquare, BarChart3, ArrowUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type QuickAction = "promotion" | "content" | "ads" | null;
@@ -117,7 +117,7 @@ export default function Chat() {
   const hasMessages = messages.length > 0;
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-[hsl(250,60%,45%)] via-[hsl(270,50%,50%)] to-[hsl(330,60%,55%)]">
       <Header />
       
       <main className="flex-1 flex flex-col">
@@ -134,36 +134,36 @@ export default function Chat() {
                     )}
                   >
                     {message.role === "assistant" && (
-                      <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-1">
-                        <Bot className="h-4 w-4 text-primary" />
+                      <div className="h-8 w-8 rounded-full bg-white/20 backdrop-blur flex items-center justify-center flex-shrink-0 mt-1">
+                        <Bot className="h-4 w-4 text-white" />
                       </div>
                     )}
                     <div
                       className={cn(
                         "max-w-[75%]",
                         message.role === "user"
-                          ? "bg-primary text-primary-foreground rounded-3xl px-5 py-3"
-                          : "text-foreground"
+                          ? "bg-white/20 backdrop-blur text-white rounded-3xl px-5 py-3"
+                          : "text-white/90"
                       )}
                     >
                       <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
                     </div>
                     {message.role === "user" && (
-                      <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center flex-shrink-0 mt-1">
-                        <User className="h-4 w-4 text-primary-foreground" />
+                      <div className="h-8 w-8 rounded-full bg-white/30 backdrop-blur flex items-center justify-center flex-shrink-0 mt-1">
+                        <User className="h-4 w-4 text-white" />
                       </div>
                     )}
                   </div>
                 ))}
                 {isLoading && messages[messages.length - 1]?.role === "user" && (
                   <div className="flex gap-4 justify-start">
-                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-1">
-                      <Bot className="h-4 w-4 text-primary" />
+                    <div className="h-8 w-8 rounded-full bg-white/20 backdrop-blur flex items-center justify-center flex-shrink-0 mt-1">
+                      <Bot className="h-4 w-4 text-white" />
                     </div>
                     <div className="flex items-center gap-1 py-3">
-                      <span className="h-2 w-2 bg-muted-foreground/40 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
-                      <span className="h-2 w-2 bg-muted-foreground/40 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
-                      <span className="h-2 w-2 bg-muted-foreground/40 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+                      <span className="h-2 w-2 bg-white/40 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
+                      <span className="h-2 w-2 bg-white/40 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
+                      <span className="h-2 w-2 bg-white/40 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
                     </div>
                   </div>
                 )}
@@ -172,53 +172,96 @@ export default function Chat() {
 
             <div className="p-4 pb-8">
               <form onSubmit={handleSubmit} className="relative">
-                <div className="relative bg-muted/50 rounded-2xl border border-border/50 overflow-hidden">
+                <div className="bg-[hsl(220,20%,18%)] rounded-3xl overflow-hidden shadow-2xl">
                   <Textarea
                     ref={textareaRef}
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     onKeyDown={handleKeyDown}
                     placeholder="How can I help you today?"
-                    className="min-h-[52px] max-h-40 resize-none border-0 bg-transparent pr-14 text-sm focus-visible:ring-0 focus-visible:ring-offset-0"
+                    className="min-h-[52px] max-h-40 resize-none border-0 bg-transparent text-white/80 placeholder:text-white/40 pr-4 pl-4 pt-4 pb-2 text-sm focus-visible:ring-0 focus-visible:ring-offset-0"
                     rows={1}
                     disabled={isLoading}
                   />
-                  <Button 
-                    type="submit" 
-                    size="icon" 
-                    disabled={!input.trim() || isLoading}
-                    className="absolute right-2 bottom-2 h-9 w-9 rounded-xl"
-                  >
-                    <Send className="h-4 w-4" />
-                  </Button>
+                  <div className="flex items-center justify-between px-3 pb-3">
+                    <div className="flex items-center gap-2">
+                      <button type="button" className="h-9 w-9 rounded-xl bg-white/10 hover:bg-white/15 transition-colors flex items-center justify-center">
+                        <Plus className="h-4 w-4 text-white/60" />
+                      </button>
+                      <button type="button" className="h-9 px-4 rounded-full border border-white/20 hover:bg-white/10 transition-colors flex items-center gap-2">
+                        <Paperclip className="h-4 w-4 text-white/60" />
+                        <span className="text-sm text-white/60">Attach</span>
+                      </button>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button type="button" className="h-9 px-4 rounded-full border border-white/20 hover:bg-white/10 transition-colors flex items-center gap-2">
+                        <MessageSquare className="h-4 w-4 text-white/60" />
+                        <span className="text-sm text-white/60">Chat</span>
+                      </button>
+                      <button type="button" className="h-9 w-9 rounded-xl bg-white/10 hover:bg-white/15 transition-colors flex items-center justify-center">
+                        <BarChart3 className="h-4 w-4 text-white/60" />
+                      </button>
+                      <button 
+                        type="submit" 
+                        disabled={!input.trim() || isLoading}
+                        className="h-9 w-9 rounded-full bg-white/10 hover:bg-white/20 disabled:opacity-30 disabled:hover:bg-white/10 transition-colors flex items-center justify-center border border-white/20"
+                      >
+                        <ArrowUp className="h-4 w-4 text-white/80" />
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </form>
             </div>
           </div>
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center px-4 pb-20">
-            <div className="w-full max-w-2xl space-y-6">
-              {/* Main input */}
+            <div className="w-full max-w-2xl space-y-8">
+              {/* Greeting */}
+              <h1 className="text-4xl md:text-5xl font-bold text-center text-white">
+                What's on your mind?
+              </h1>
+
+              {/* Main input - Lovable style */}
               <form onSubmit={handleSubmit}>
-                <div className="relative bg-muted/50 rounded-2xl border border-border/50 overflow-hidden animate-glow-border">
+                <div className="bg-[hsl(220,20%,18%)] rounded-3xl overflow-hidden shadow-2xl">
                   <Textarea
                     ref={textareaRef}
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     onKeyDown={handleKeyDown}
-                    placeholder="How can I help you today?"
-                    className="min-h-[56px] max-h-40 resize-none border-0 bg-transparent pr-14 text-base focus-visible:ring-0 focus-visible:ring-offset-0 flex items-center py-4"
+                    placeholder="Ask Stax to help you create content..."
+                    className="min-h-[56px] max-h-40 resize-none border-0 bg-transparent text-white/80 placeholder:text-white/40 pr-4 pl-4 pt-4 pb-2 text-base focus-visible:ring-0 focus-visible:ring-offset-0"
                     rows={1}
                     disabled={isLoading}
                   />
-                  <Button 
-                    type="submit" 
-                    size="icon" 
-                    disabled={!input.trim() || isLoading}
-                    className="absolute right-2.5 bottom-2.5 h-10 w-10 rounded-xl"
-                  >
-                    <Send className="h-4 w-4" />
-                  </Button>
+                  <div className="flex items-center justify-between px-3 pb-3">
+                    <div className="flex items-center gap-2">
+                      <button type="button" className="h-9 w-9 rounded-xl bg-white/10 hover:bg-white/15 transition-colors flex items-center justify-center">
+                        <Plus className="h-4 w-4 text-white/60" />
+                      </button>
+                      <button type="button" className="h-9 px-4 rounded-full border border-white/20 hover:bg-white/10 transition-colors flex items-center gap-2">
+                        <Paperclip className="h-4 w-4 text-white/60" />
+                        <span className="text-sm text-white/60">Attach</span>
+                      </button>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button type="button" className="h-9 px-4 rounded-full border border-white/20 hover:bg-white/10 transition-colors flex items-center gap-2">
+                        <MessageSquare className="h-4 w-4 text-white/60" />
+                        <span className="text-sm text-white/60">Chat</span>
+                      </button>
+                      <button type="button" className="h-9 w-9 rounded-xl bg-white/10 hover:bg-white/15 transition-colors flex items-center justify-center">
+                        <BarChart3 className="h-4 w-4 text-white/60" />
+                      </button>
+                      <button 
+                        type="submit" 
+                        disabled={!input.trim() || isLoading}
+                        className="h-9 w-9 rounded-full bg-white/10 hover:bg-white/20 disabled:opacity-30 disabled:hover:bg-white/10 transition-colors flex items-center justify-center border border-white/20"
+                      >
+                        <ArrowUp className="h-4 w-4 text-white/80" />
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </form>
 
@@ -232,7 +275,7 @@ export default function Chat() {
                         key={key}
                         variant="outline"
                         size="sm"
-                        className="rounded-full gap-2 animate-glow-border"
+                        className="rounded-full gap-2 bg-white/10 border-white/20 text-white/80 hover:bg-white/20 hover:text-white"
                         onClick={() => handleQuickAction(key)}
                       >
                         {action.icon}
@@ -242,16 +285,16 @@ export default function Chat() {
                   })}
                 </div>
               ) : (
-                <div ref={formRef} className="bg-card border border-border rounded-2xl p-5 space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-200">
+                <div ref={formRef} className="bg-[hsl(220,20%,18%)] border border-white/10 rounded-2xl p-5 space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-200">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-sm font-medium">
+                    <div className="flex items-center gap-2 text-sm font-medium text-white">
                       {quickActions[activeAction].icon}
                       {quickActions[activeAction].label}
                     </div>
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8 rounded-full"
+                      className="h-8 w-8 rounded-full text-white/60 hover:text-white hover:bg-white/10"
                       onClick={() => setActiveAction(null)}
                     >
                       <X className="h-4 w-4" />
@@ -261,20 +304,20 @@ export default function Chat() {
                   <div className="grid gap-4 sm:grid-cols-3">
                     {quickActions[activeAction].fields.map((field) => (
                       <div key={field.name} className="space-y-1.5">
-                        <Label className="text-xs text-muted-foreground">{field.label}</Label>
+                        <Label className="text-xs text-white/50">{field.label}</Label>
                         {field.type === "input" ? (
                           <Input
                             placeholder={field.placeholder}
                             value={formValues[field.name] || ""}
                             onChange={(e) => setFormValues(v => ({ ...v, [field.name]: e.target.value }))}
-                            className="h-9 text-sm"
+                            className="h-9 text-sm bg-white/5 border-white/10 text-white placeholder:text-white/30"
                           />
                         ) : (
                           <Select
                             value={formValues[field.name] || ""}
                             onValueChange={(val) => setFormValues(v => ({ ...v, [field.name]: val }))}
                           >
-                            <SelectTrigger className="h-9 text-sm">
+                            <SelectTrigger className="h-9 text-sm bg-white/5 border-white/10 text-white">
                               <SelectValue placeholder="Select..." />
                             </SelectTrigger>
                             <SelectContent>
@@ -291,7 +334,7 @@ export default function Chat() {
                   <Button 
                     onClick={handleFormSubmit}
                     disabled={!quickActions[activeAction].fields.every(f => formValues[f.name]?.trim())}
-                    className="w-full rounded-xl"
+                    className="w-full rounded-xl bg-white/20 hover:bg-white/30 text-white"
                   >
                     <Send className="h-4 w-4 mr-2" />
                     Generate
