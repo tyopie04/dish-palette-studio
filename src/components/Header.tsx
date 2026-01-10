@@ -37,13 +37,7 @@ export function Header() {
               Create
             </Link>
             <Link 
-              to="/promos" 
-              className={`text-sm transition-colors ${location.pathname === "/promos" ? "text-foreground font-medium" : "text-muted-foreground hover:text-foreground"}`}
-            >
-              One-click promos
-            </Link>
-            <Link 
-              to="/analytics" 
+              to="/analytics"
               className={`text-sm transition-colors ${location.pathname === "/analytics" ? "text-foreground font-medium" : "text-muted-foreground hover:text-foreground"}`}
             >
               Analytics
