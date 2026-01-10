@@ -15,7 +15,6 @@ import AdminClients from "./pages/admin/AdminClients";
 import AdminTrash from "./pages/admin/AdminTrash";
 import AdminStyles from "./pages/admin/AdminStyles";
 import AdminSettings from "./pages/admin/AdminSettings";
-import OneClickPromos from "./pages/OneClickPromos";
 import Analytics from "./pages/Analytics";
 import Chat from "./pages/Chat";
 
@@ -34,11 +33,6 @@ const App = () => (
               <Route path="/" element={
                 <ProtectedRoute>
                   <Index />
-                </ProtectedRoute>
-              } />
-              <Route path="/promos" element={
-                <ProtectedRoute>
-                  <OneClickPromos />
                 </ProtectedRoute>
               } />
               <Route path="/analytics" element={
