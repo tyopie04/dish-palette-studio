@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, Trash2, Palette, Settings } from "lucide-react";
+import { LayoutDashboard, Users, Trash2, Palette, Settings, Cable } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
   Sidebar,
@@ -16,6 +16,7 @@ const navItems = [
   { title: "Clients", url: "/admin/clients", icon: Users },
   { title: "Trash", url: "/admin/trash", icon: Trash2 },
   { title: "Styles", url: "/admin/styles", icon: Palette },
+  { title: "Integrations", url: "/admin/integrations", icon: Cable },
   { title: "Settings", url: "/admin/settings", icon: Settings },
 ];
 
