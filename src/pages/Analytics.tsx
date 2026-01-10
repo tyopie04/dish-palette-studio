@@ -3,7 +3,6 @@ import { Header } from "@/components/Header";
 import { WeeklyInsights } from "@/components/analytics/WeeklyInsights";
 import { MetricCard } from "@/components/analytics/MetricCard";
 import { SalesOverview } from "@/components/analytics/SalesOverview";
-import { EmployeePerformance } from "@/components/analytics/EmployeePerformance";
 import { 
   DollarSign, 
   ShoppingBag, 
@@ -101,11 +100,6 @@ export default function Analytics() {
             <SalesOverview />
           </section>
 
-          {/* 5. Who's Working */}
-          <section id="employee-performance" className="pb-8">
-            <h2 className="text-sm font-medium text-muted-foreground mb-3">Team</h2>
-            <EmployeePerformance />
-          </section>
         </div>
       </main>
     </div>
