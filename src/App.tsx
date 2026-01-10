@@ -17,6 +17,7 @@ import AdminStyles from "./pages/admin/AdminStyles";
 import AdminSettings from "./pages/admin/AdminSettings";
 import OneClickPromos from "./pages/OneClickPromos";
 import Analytics from "./pages/Analytics";
+import Chat from "./pages/Chat";
 
 const queryClient = new QueryClient();
 
@@ -43,6 +44,11 @@ const App = () => (
               <Route path="/analytics" element={
                 <ProtectedRoute>
                   <Analytics />
+                </ProtectedRoute>
+              } />
+              <Route path="/chat" element={
+                <ProtectedRoute>
+                  <Chat />
                 </ProtectedRoute>
               } />
               <Route path="/admin" element={

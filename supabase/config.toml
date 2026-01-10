@@ -36,3 +36,6 @@ verify_jwt = true
 
 [functions.edit-image]
 verify_jwt = true
+
+[functions.chat]
+verify_jwt = true
