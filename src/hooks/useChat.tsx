@@ -54,11 +54,17 @@ export function useChat() {
   // Generate image using the image generation endpoint
   const generateImage = useCallback(async (prompt: string): Promise<string | null> => {
     try {
+      // Get the user's session for authentication
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        throw new Error("Please log in to generate images");
+      }
+
       const response = await fetch(IMAGE_GEN_URL, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          Authorization: `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({ prompt }),
       });
@@ -104,6 +110,12 @@ export function useChat() {
     };
 
     try {
+      // Get the user's session for authentication
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        throw new Error("Please log in to use chat");
+      }
+
       // Refresh analytics before sending
       const freshAnalytics = await fetchAnalyticsContext();
       setAnalyticsContext(freshAnalytics);
@@ -113,7 +125,7 @@ export function useChat() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          Authorization: `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({ 
           messages: [...messages, userMessage],
