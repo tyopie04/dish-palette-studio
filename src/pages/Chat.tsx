@@ -57,6 +57,7 @@ export default function Chat() {
   const [input, setInput] = useState("");
   const [activeAction, setActiveAction] = useState<QuickAction>(null);
   const [formValues, setFormValues] = useState<Record<string, string>>({});
+  const formRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -65,6 +66,21 @@ export default function Chat() {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages]);
+
+  // Close form when clicking outside
+  useEffect(() => {
+    if (!activeAction) return;
+    
+    const handleClickOutside = (e: MouseEvent) => {
+      if (formRef.current && !formRef.current.contains(e.target as Node)) {
+        setActiveAction(null);
+        setFormValues({});
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [activeAction]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -226,7 +242,7 @@ export default function Chat() {
                   })}
                 </div>
               ) : (
-                <div className="bg-card border border-border rounded-2xl p-5 space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-200">
+                <div ref={formRef} className="bg-card border border-border rounded-2xl p-5 space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-200">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 text-sm font-medium">
                       {quickActions[activeAction].icon}
