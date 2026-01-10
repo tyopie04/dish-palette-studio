@@ -4,7 +4,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/hooks/useAuth";
 import { useSuperAdmin } from "@/hooks/useSuperAdmin";
 import staxLogo from "@/assets/stax-logo.png";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,6 +19,7 @@ export function Header() {
   const { theme, toggleTheme } = useTheme();
   const { user, signOut } = useAuth();
   const { isSuperAdmin } = useSuperAdmin();
+  const location = useLocation();
 
   return (
     <header className="border-b border-border/50 bg-card/30 backdrop-blur-xl sticky top-0 z-50">
@@ -29,13 +30,22 @@ export function Header() {
         
         <div className="flex items-center gap-4">
           <nav className="hidden sm:flex items-center gap-6">
-            <Link to="/" className="text-sm text-foreground hover:text-primary transition-colors">
+            <Link 
+              to="/" 
+              className={`text-sm transition-colors ${location.pathname === "/" ? "text-foreground font-medium" : "text-muted-foreground hover:text-foreground"}`}
+            >
               Create
             </Link>
-            <Link to="/promos" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+            <Link 
+              to="/promos" 
+              className={`text-sm transition-colors ${location.pathname === "/promos" ? "text-foreground font-medium" : "text-muted-foreground hover:text-foreground"}`}
+            >
               One-click promos
             </Link>
-            <Link to="/analytics" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+            <Link 
+              to="/analytics" 
+              className={`text-sm transition-colors ${location.pathname === "/analytics" ? "text-foreground font-medium" : "text-muted-foreground hover:text-foreground"}`}
+            >
               Analytics
             </Link>
           </nav>
