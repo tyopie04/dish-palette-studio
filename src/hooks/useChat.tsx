@@ -6,9 +6,11 @@ import { supabase } from "@/integrations/supabase/client";
 export type Message = {
   role: "user" | "assistant";
   content: string;
+  images?: string[];
 };
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
+const IMAGE_GEN_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-menu-image`;
 
 export function useChat() {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -49,6 +51,36 @@ export function useChat() {
     };
   }, []);
 
+  // Generate image using the image generation endpoint
+  const generateImage = useCallback(async (prompt: string): Promise<string | null> => {
+    try {
+      const response = await fetch(IMAGE_GEN_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify({ prompt }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "Image generation failed");
+      }
+
+      const data = await response.json();
+      return data.imageUrl || null;
+    } catch (error) {
+      console.error("Image generation error:", error);
+      toast({
+        title: "Image Generation Failed",
+        description: error instanceof Error ? error.message : "Failed to generate image",
+        variant: "destructive",
+      });
+      return null;
+    }
+  }, [toast]);
+
   const sendMessage = useCallback(async (input: string) => {
     if (!input.trim() || isLoading) return;
 
@@ -58,16 +90,16 @@ export function useChat() {
 
     let assistantContent = "";
 
-    const updateAssistant = (chunk: string) => {
+    const updateAssistant = (chunk: string, images?: string[]) => {
       assistantContent += chunk;
       setMessages(prev => {
         const last = prev[prev.length - 1];
         if (last?.role === "assistant") {
           return prev.map((m, i) => 
-            i === prev.length - 1 ? { ...m, content: assistantContent } : m
+            i === prev.length - 1 ? { ...m, content: assistantContent, images: images || m.images } : m
           );
         }
-        return [...prev, { role: "assistant", content: assistantContent }];
+        return [...prev, { role: "assistant", content: assistantContent, images }];
       });
     };
 
@@ -144,6 +176,40 @@ export function useChat() {
           } catch { /* ignore */ }
         }
       }
+
+      // Check if the response contains an image generation command
+      const imageMatch = assistantContent.match(/\[GENERATE_IMAGE:\s*(.+?)\]/);
+      if (imageMatch) {
+        const imagePrompt = imageMatch[1].trim();
+        // Update the message to show we're generating an image
+        const cleanedContent = assistantContent.replace(/\[GENERATE_IMAGE:\s*(.+?)\]/, "🎨 Generating image...");
+        setMessages(prev => prev.map((m, i) => 
+          i === prev.length - 1 && m.role === "assistant" 
+            ? { ...m, content: cleanedContent }
+            : m
+        ));
+
+        // Generate the image
+        const imageUrl = await generateImage(imagePrompt);
+        
+        if (imageUrl) {
+          // Update with the generated image
+          const finalContent = assistantContent.replace(/\[GENERATE_IMAGE:\s*(.+?)\]/, "Here's the image I created for you:");
+          setMessages(prev => prev.map((m, i) => 
+            i === prev.length - 1 && m.role === "assistant" 
+              ? { ...m, content: finalContent, images: [imageUrl] }
+              : m
+          ));
+        } else {
+          // Failed to generate
+          const failedContent = assistantContent.replace(/\[GENERATE_IMAGE:\s*(.+?)\]/, "Sorry, I couldn't generate the image. Please try again.");
+          setMessages(prev => prev.map((m, i) => 
+            i === prev.length - 1 && m.role === "assistant" 
+              ? { ...m, content: failedContent }
+              : m
+          ));
+        }
+      }
     } catch (error) {
       console.error("Chat error:", error);
       toast({
@@ -155,7 +221,7 @@ export function useChat() {
     } finally {
       setIsLoading(false);
     }
-  }, [messages, isLoading, toast]);
+  }, [messages, isLoading, toast, generateImage]);
 
   const clearMessages = useCallback(() => {
     setMessages([]);

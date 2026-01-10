@@ -1,0 +1,135 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const { prompt, menuItem, style } = await req.json();
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+
+    if (!LOVABLE_API_KEY) {
+      throw new Error("LOVABLE_API_KEY is not configured");
+    }
+
+    // Build the image generation prompt
+    let imagePrompt = prompt;
+    if (menuItem) {
+      imagePrompt = `Professional food photography of ${menuItem}. ${prompt || ''}. High quality, appetizing, restaurant-style presentation.`;
+    }
+
+    console.log("Generating image with prompt:", imagePrompt);
+
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-3-pro-image-preview",
+        messages: [
+          {
+            role: "user",
+            content: imagePrompt,
+          },
+        ],
+        modalities: ["image", "text"],
+      }),
+    });
+
+    if (!response.ok) {
+      if (response.status === 429) {
+        return new Response(
+          JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      if (response.status === 402) {
+        return new Response(
+          JSON.stringify({ error: "AI credits depleted. Please add credits to continue." }),
+          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      const errorText = await response.text();
+      console.error("Image generation error:", response.status, errorText);
+      return new Response(
+        JSON.stringify({ error: "Image generation failed" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const data = await response.json();
+    console.log("Image generation response received");
+
+    // Extract the image from the response
+    const imageData = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+    const textContent = data.choices?.[0]?.message?.content || "";
+
+    if (!imageData) {
+      console.error("No image in response:", JSON.stringify(data));
+      return new Response(
+        JSON.stringify({ error: "No image generated", textContent }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // If we have Supabase credentials, upload the image to storage
+    let publicUrl = imageData;
+    if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
+      try {
+        const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+        
+        // Convert base64 to blob
+        const base64Data = imageData.replace(/^data:image\/\w+;base64,/, "");
+        const imageBuffer = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
+        
+        const fileName = `generated/${Date.now()}-${Math.random().toString(36).substring(7)}.png`;
+        
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from("menu-photos")
+          .upload(fileName, imageBuffer, {
+            contentType: "image/png",
+            upsert: false,
+          });
+
+        if (uploadError) {
+          console.error("Upload error:", uploadError);
+        } else {
+          const { data: urlData } = supabase.storage
+            .from("menu-photos")
+            .getPublicUrl(fileName);
+          publicUrl = urlData.publicUrl;
+          console.log("Image uploaded to:", publicUrl);
+        }
+      } catch (uploadErr) {
+        console.error("Storage upload failed:", uploadErr);
+        // Fall back to base64 data
+      }
+    }
+
+    return new Response(
+      JSON.stringify({ 
+        imageUrl: publicUrl,
+        textContent,
+        prompt: imagePrompt 
+      }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  } catch (error) {
+    console.error("Generate menu image error:", error);
+    return new Response(
+      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+});

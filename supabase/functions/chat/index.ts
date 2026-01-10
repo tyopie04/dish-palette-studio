@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -11,16 +12,38 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, analyticsContext } = await req.json();
+    const { messages, analyticsContext, menuContext } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    const systemPrompt = `You are a helpful AI marketing assistant for restaurant owners. You have access to LIVE analytics data from their business.
+    // Fetch menu photos if we have Supabase access
+    let menuItems = menuContext || "";
+    if (!menuContext && SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
+      try {
+        const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+        const { data: photos } = await supabase
+          .from("menu_photos")
+          .select("name, category")
+          .is("deleted_at", null)
+          .order("name");
+        
+        if (photos && photos.length > 0) {
+          menuItems = `\n\nMENU ITEMS AVAILABLE:\n${photos.map(p => `- ${p.name} (${p.category})`).join("\n")}`;
+        }
+      } catch (e) {
+        console.error("Failed to fetch menu:", e);
+      }
+    }
+
+    const systemPrompt = `You are a helpful AI marketing assistant for Stax Burger Co., a restaurant. You have access to LIVE analytics data and their menu items.
 
 ${analyticsContext || "No analytics data available."}
+${menuItems}
 
 You help with:
 - Creating engaging social media content and captions
@@ -29,12 +52,16 @@ You help with:
 - Suggesting menu photography tips
 - Writing email marketing copy
 - Brainstorming seasonal promotions
+- GENERATING IMAGES of menu items when requested
 
-When discussing analytics or performance:
-- Reference the specific numbers from the live data above
-- Identify trends (week-over-week changes)
-- Make data-driven recommendations
-- Be specific about what's working and what could improve
+IMPORTANT - IMAGE GENERATION:
+When a user asks you to create, generate, or make an image of a menu item, you MUST respond with a special command format:
+[GENERATE_IMAGE: <detailed description of what to generate>]
+
+For example, if someone says "I want the dirty chicken and chips on a black background", respond with:
+[GENERATE_IMAGE: Professional food photography of Dirty Chicken and Chips on a sleek black background, dramatic lighting, appetizing presentation, high quality restaurant marketing photo]
+
+Always include detailed styling instructions in the image prompt for best results. Reference the actual menu items from the list above when users mention them.
 
 Be friendly, concise, and actionable in your responses. When suggesting content, provide ready-to-use examples.`;
 
