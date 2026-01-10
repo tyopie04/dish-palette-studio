@@ -200,7 +200,7 @@ export default function Chat() {
             <div className="w-full max-w-2xl space-y-6">
               {/* Main input */}
               <form onSubmit={handleSubmit}>
-                <div className="relative bg-muted/50 rounded-2xl border border-border/50 overflow-hidden">
+                <div className="relative bg-muted/50 rounded-2xl border border-border/50 overflow-hidden animate-glow-border">
                   <Textarea
                     ref={textareaRef}
                     value={input}
