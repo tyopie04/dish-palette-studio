@@ -6,6 +6,7 @@ import { SalesOverview } from "@/components/analytics/SalesOverview";
 import { OperationalMetrics } from "@/components/analytics/OperationalMetrics";
 import { CustomerInsights } from "@/components/analytics/CustomerInsights";
 import { EmployeePerformance } from "@/components/analytics/EmployeePerformance";
+import { WeeklyInsights } from "@/components/analytics/WeeklyInsights";
 import { 
   DollarSign, 
   ShoppingBag, 
@@ -40,6 +41,11 @@ export default function Analytics() {
             dateRange={dateRange}
             onDateRangeChange={setDateRange}
           />
+
+          {/* Weekly Insights Panel */}
+          <div className="mb-6">
+            <WeeklyInsights />
+          </div>
 
           {/* Top KPI Cards */}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
@@ -81,20 +87,26 @@ export default function Analytics() {
           </div>
 
           {/* Main Content Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          <div id="sales-overview" className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
             {/* Sales Overview Section */}
             <SalesOverview />
 
             {/* Operational Metrics Section */}
-            <OperationalMetrics />
+            <div id="operational-metrics">
+              <OperationalMetrics />
+            </div>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Customer Insights Section */}
-            <CustomerInsights />
+            <div id="customer-insights">
+              <CustomerInsights />
+            </div>
 
             {/* Employee Performance Section */}
-            <EmployeePerformance />
+            <div id="employee-performance">
+              <EmployeePerformance />
+            </div>
           </div>
         </div>
       </main>
