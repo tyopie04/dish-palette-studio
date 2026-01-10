@@ -209,6 +209,6 @@
 
   .animate-glow-border {
     box-shadow: 0 0 8px hsl(48 96% 53% / 0.3), 0 0 2px hsl(48 96% 53% / 0.2);
-    border-color: hsl(48 96% 53% / 0.4);
+    border-color: hsl(48 96% 53% / 0.4) !important;
   }
 }
