@@ -16,6 +16,7 @@ import AdminTrash from "./pages/admin/AdminTrash";
 import AdminStyles from "./pages/admin/AdminStyles";
 import AdminSettings from "./pages/admin/AdminSettings";
 import OneClickPromos from "./pages/OneClickPromos";
+import Analytics from "./pages/Analytics";
 
 const queryClient = new QueryClient();
 
@@ -37,6 +38,11 @@ const App = () => (
               <Route path="/promos" element={
                 <ProtectedRoute>
                   <OneClickPromos />
+                </ProtectedRoute>
+              } />
+              <Route path="/analytics" element={
+                <ProtectedRoute>
+                  <Analytics />
                 </ProtectedRoute>
               } />
               <Route path="/admin" element={
