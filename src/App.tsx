@@ -15,6 +15,7 @@ import AdminClients from "./pages/admin/AdminClients";
 import AdminTrash from "./pages/admin/AdminTrash";
 import AdminStyles from "./pages/admin/AdminStyles";
 import AdminSettings from "./pages/admin/AdminSettings";
+import AdminIntegrations from "./pages/admin/AdminIntegrations";
 import Analytics from "./pages/Analytics";
 import Chat from "./pages/Chat";
 
@@ -63,6 +64,11 @@ const App = () => (
               <Route path="/admin/styles" element={
                 <AdminProtectedRoute>
                   <AdminStyles />
+                </AdminProtectedRoute>
+              } />
+              <Route path="/admin/integrations" element={
+                <AdminProtectedRoute>
+                  <AdminIntegrations />
                 </AdminProtectedRoute>
               } />
               <Route path="/admin/settings" element={
