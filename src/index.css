@@ -232,13 +232,16 @@
     background: conic-gradient(
       from var(--angle),
       transparent 0deg,
-      transparent 270deg,
-      hsl(48 96% 53% / 0.8) 300deg,
-      hsl(48 96% 60% / 1) 330deg,
-      hsl(48 96% 53% / 0.8) 360deg
+      transparent 250deg,
+      hsl(48 96% 53% / 0.5) 280deg,
+      hsl(48 96% 55% / 0.9) 310deg,
+      hsl(48 100% 65% / 1) 340deg,
+      hsl(48 96% 55% / 0.9) 350deg,
+      hsl(48 96% 53% / 0.5) 360deg
     );
     z-index: -1;
-    animation: rotateBorder 2s linear infinite;
+    animation: rotateBorder 4s linear infinite;
+    filter: blur(1px);
   }
 
   .animate-glow-border::after {
