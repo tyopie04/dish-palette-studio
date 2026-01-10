@@ -117,10 +117,17 @@ export default function Chat() {
   const hasMessages = messages.length > 0;
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-[hsl(250,60%,45%)] via-[hsl(270,50%,50%)] to-[hsl(330,60%,55%)]">
+    <div className="min-h-screen flex flex-col relative overflow-hidden">
+      {/* Animated gradient background */}
+      <div className="absolute inset-0 bg-gradient-to-br from-[hsl(250,60%,45%)] via-[hsl(270,50%,50%)] to-[hsl(330,60%,55%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,hsl(280,60%,50%,0.3),transparent)]" />
+      <div className="absolute w-[600px] h-[600px] rounded-full bg-[hsl(330,70%,55%,0.4)] blur-[120px] animate-float-slow top-1/4 -right-48" />
+      <div className="absolute w-[500px] h-[500px] rounded-full bg-[hsl(280,60%,50%,0.3)] blur-[100px] animate-float-reverse bottom-0 left-1/4" />
+      <div className="absolute w-[400px] h-[400px] rounded-full bg-[hsl(320,65%,55%,0.35)] blur-[80px] animate-float-diagonal top-1/2 left-1/3" />
+      
       <Header />
       
-      <main className="flex-1 flex flex-col">
+      <main className="flex-1 flex flex-col relative z-10">
         {hasMessages ? (
           <div className="flex-1 flex flex-col max-w-3xl mx-auto w-full">
             <ScrollArea className="flex-1 px-4 py-6" ref={scrollRef}>
@@ -172,7 +179,10 @@ export default function Chat() {
 
             <div className="p-4 pb-8">
               <form onSubmit={handleSubmit} className="relative">
-                <div className="bg-[hsl(220,20%,18%)] rounded-3xl overflow-hidden shadow-2xl">
+                <div className="bg-[hsl(220,20%,18%)] rounded-3xl overflow-hidden shadow-2xl relative">
+                  {/* 3D edge highlight */}
+                  <div className="absolute inset-x-0 bottom-0 h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+                  <div className="absolute inset-y-0 right-0 w-[1px] bg-gradient-to-b from-white/10 via-white/5 to-transparent" />
                   <Textarea
                     ref={textareaRef}
                     value={input}
@@ -219,12 +229,15 @@ export default function Chat() {
             <div className="w-full max-w-2xl space-y-8">
               {/* Greeting */}
               <h1 className="text-4xl md:text-5xl font-bold text-center text-white">
-                What's on your mind?
+                What should we create?
               </h1>
 
               {/* Main input - Lovable style */}
               <form onSubmit={handleSubmit}>
-                <div className="bg-[hsl(220,20%,18%)] rounded-3xl overflow-hidden shadow-2xl">
+                <div className="bg-[hsl(220,20%,18%)] rounded-3xl overflow-hidden shadow-2xl relative">
+                  {/* 3D edge highlight */}
+                  <div className="absolute inset-x-0 bottom-0 h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+                  <div className="absolute inset-y-0 right-0 w-[1px] bg-gradient-to-b from-white/10 via-white/5 to-transparent" />
                   <Textarea
                     ref={textareaRef}
                     value={input}
