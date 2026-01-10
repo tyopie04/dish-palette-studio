@@ -121,9 +121,9 @@ export default function Chat() {
       {/* Animated gradient background */}
       <div className="absolute inset-0 bg-gradient-to-br from-[hsl(250,60%,45%)] via-[hsl(270,50%,50%)] to-[hsl(330,60%,55%)]" />
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,hsl(280,60%,50%,0.3),transparent)]" />
-      <div className="absolute w-[600px] h-[600px] rounded-full bg-[hsl(330,70%,55%,0.4)] blur-[120px] animate-float-slow top-1/4 -right-48" />
-      <div className="absolute w-[500px] h-[500px] rounded-full bg-[hsl(280,60%,50%,0.3)] blur-[100px] animate-float-reverse bottom-0 left-1/4" />
-      <div className="absolute w-[400px] h-[400px] rounded-full bg-[hsl(320,65%,55%,0.35)] blur-[80px] animate-float-diagonal top-1/2 left-1/3" />
+      <div className="absolute w-[800px] h-[800px] rounded-full bg-[hsl(330,70%,60%)] opacity-40 blur-[150px] animate-float-slow top-0 right-0" />
+      <div className="absolute w-[600px] h-[600px] rounded-full bg-[hsl(280,60%,55%)] opacity-35 blur-[120px] animate-float-reverse bottom-0 left-0" />
+      <div className="absolute w-[500px] h-[500px] rounded-full bg-[hsl(320,65%,60%)] opacity-40 blur-[100px] animate-float-diagonal top-1/3 left-1/2" />
       
       <Header />
       
@@ -179,10 +179,12 @@ export default function Chat() {
 
             <div className="p-4 pb-8">
               <form onSubmit={handleSubmit} className="relative">
-                <div className="bg-[hsl(220,20%,18%)] rounded-3xl overflow-hidden shadow-2xl relative">
+                <div className="bg-[hsl(220,20%,18%)] rounded-3xl overflow-hidden shadow-2xl relative border border-white/5">
                   {/* 3D edge highlight */}
-                  <div className="absolute inset-x-0 bottom-0 h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-                  <div className="absolute inset-y-0 right-0 w-[1px] bg-gradient-to-b from-white/10 via-white/5 to-transparent" />
+                  <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent pointer-events-none" />
+                  <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent pointer-events-none" />
+                  <div className="absolute inset-y-0 right-0 w-px bg-gradient-to-b from-white/15 via-white/5 to-transparent pointer-events-none" />
+                  <div className="absolute inset-y-0 left-0 w-px bg-gradient-to-b from-white/10 via-white/5 to-transparent pointer-events-none" />
                   <Textarea
                     ref={textareaRef}
                     value={input}
@@ -234,10 +236,12 @@ export default function Chat() {
 
               {/* Main input - Lovable style */}
               <form onSubmit={handleSubmit}>
-                <div className="bg-[hsl(220,20%,18%)] rounded-3xl overflow-hidden shadow-2xl relative">
+                <div className="bg-[hsl(220,20%,18%)] rounded-3xl overflow-hidden shadow-2xl relative border border-white/5">
                   {/* 3D edge highlight */}
-                  <div className="absolute inset-x-0 bottom-0 h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-                  <div className="absolute inset-y-0 right-0 w-[1px] bg-gradient-to-b from-white/10 via-white/5 to-transparent" />
+                  <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent pointer-events-none" />
+                  <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent pointer-events-none" />
+                  <div className="absolute inset-y-0 right-0 w-px bg-gradient-to-b from-white/15 via-white/5 to-transparent pointer-events-none" />
+                  <div className="absolute inset-y-0 left-0 w-px bg-gradient-to-b from-white/10 via-white/5 to-transparent pointer-events-none" />
                   <Textarea
                     ref={textareaRef}
                     value={input}
