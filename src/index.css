@@ -206,4 +206,19 @@
   .animate-shimmer {
     animation: shimmer 2s ease-in-out infinite;
   }
+
+  @keyframes glowBorder {
+    0%, 100% { 
+      box-shadow: 0 0 8px hsl(48 96% 53% / 0.4), 0 0 16px hsl(48 96% 53% / 0.2);
+      border-color: hsl(48 96% 53% / 0.6);
+    }
+    50% { 
+      box-shadow: 0 0 16px hsl(48 96% 53% / 0.6), 0 0 32px hsl(48 96% 53% / 0.3);
+      border-color: hsl(48 96% 53% / 0.9);
+    }
+  }
+
+  .animate-glow-border {
+    animation: glowBorder 2s ease-in-out infinite;
+  }
 }
