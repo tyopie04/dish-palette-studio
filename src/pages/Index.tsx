@@ -570,16 +570,18 @@ const Index = () => {
         <div className="h-screen w-full bg-background flex flex-col overflow-hidden">
           <Header />
           
-          <div className="flex-1 min-h-0 w-full flex">
+          <div className="flex-1 min-h-0 w-full flex relative">
             {/* Left Sidebar - Menu Photos - Collapsible */}
             <aside 
               className={cn(
-                "h-full border-r border-border/50 bg-card/30 overflow-y-auto overflow-x-hidden transition-all duration-300 relative flex-shrink-0",
-                sidebarCollapsed ? "w-0" : "w-72"
+                "h-full border-r border-border/50 bg-card/30 overflow-hidden transition-all duration-300 flex-shrink-0",
+                sidebarCollapsed ? "w-0 border-r-0" : "w-72"
               )}
             >
-              {!sidebarCollapsed && (
-                <div className="p-4">
+              <div className={cn(
+                "w-72 h-full overflow-y-auto overflow-x-hidden p-4 transition-opacity duration-200",
+                sidebarCollapsed ? "opacity-0" : "opacity-100"
+              )}>
                   <PhotoGallery 
                     photos={photos} 
                     onPhotosAdded={handlePhotosAdded} 
@@ -591,8 +593,7 @@ const Index = () => {
                     photoSize={photoSize}
                     onPhotoSizeChange={setPhotoSize}
                   />
-                </div>
-              )}
+              </div>
             </aside>
 
             {/* Collapse Toggle Button */}
