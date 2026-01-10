@@ -48,6 +48,12 @@ export function Header() {
             >
               Analytics
             </Link>
+            <Link 
+              to="/chat" 
+              className={`text-sm transition-colors ${location.pathname === "/chat" ? "text-foreground font-medium" : "text-muted-foreground hover:text-foreground"}`}
+            >
+              Chat
+            </Link>
           </nav>
 
           {user && (
