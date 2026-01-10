@@ -1,10 +1,14 @@
 import { useState } from "react";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Plus, Tag, Camera, Megaphone, Clock } from "lucide-react";
+import { Plus, Tag, Camera, Megaphone, Mail, Clock, Sparkles } from "lucide-react";
 import staxLogo from "@/assets/stax-logo.png";
+import { PromotionsForm } from "@/components/campaigns/PromotionsForm";
+import { ContentForm } from "@/components/campaigns/ContentForm";
+import { AdsForm } from "@/components/campaigns/AdsForm";
+import { EmailForm } from "@/components/campaigns/EmailForm";
+import { cn } from "@/lib/utils";
 
 interface CampaignType {
   id: string;
@@ -32,10 +36,40 @@ const campaignTypes: CampaignType[] = [
     description: "Launch advertising campaigns with one click",
     icon: <Megaphone className="h-8 w-8" />,
   },
+  {
+    id: "email",
+    title: "One-Click Email",
+    description: "Create email marketing campaigns instantly",
+    icon: <Mail className="h-8 w-8" />,
+  },
 ];
 
 export default function OneClickPromos() {
-  const [selectedType, setSelectedType] = useState<string | null>(null);
+  const [expandedCard, setExpandedCard] = useState<string | null>(null);
+  const [hoveredCard, setHoveredCard] = useState<string | null>(null);
+
+  const handleCardClick = (id: string) => {
+    setExpandedCard(id);
+  };
+
+  const handleClose = () => {
+    setExpandedCard(null);
+  };
+
+  const renderForm = (typeId: string) => {
+    switch (typeId) {
+      case "promotions":
+        return <PromotionsForm onClose={handleClose} />;
+      case "content":
+        return <ContentForm onClose={handleClose} />;
+      case "ads":
+        return <AdsForm onClose={handleClose} />;
+      case "email":
+        return <EmailForm onClose={handleClose} />;
+      default:
+        return null;
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -76,7 +110,7 @@ export default function OneClickPromos() {
 
         {/* Main Content Area */}
         <main className="flex-1 overflow-auto">
-          <div className="container max-w-4xl mx-auto px-6 py-8">
+          <div className="container max-w-5xl mx-auto px-6 py-8">
             <div className="mb-8">
               <h1 className="text-3xl font-bold text-foreground mb-2">
                 One-Click Campaign Generator
@@ -86,40 +120,56 @@ export default function OneClickPromos() {
               </p>
             </div>
 
-            {/* Campaign Type Cards */}
-            <div className="grid gap-4">
+            {/* Campaign Type Cards - 2x2 Grid */}
+            <div className="grid grid-cols-2 gap-4">
               {campaignTypes.map((type) => (
-                <Card
+                <div
                   key={type.id}
-                  className={`cursor-pointer transition-all duration-200 hover:shadow-lg hover:border-primary/50 ${
-                    selectedType === type.id
-                      ? "border-primary ring-2 ring-primary/20"
-                      : "border-border"
-                  }`}
-                  onClick={() => setSelectedType(type.id)}
+                  className={cn(
+                    "relative aspect-square rounded-xl border transition-all duration-300 overflow-hidden",
+                    expandedCard === type.id
+                      ? "border-primary bg-card"
+                      : "border-border bg-card/50 hover:border-primary/50 hover:bg-card cursor-pointer"
+                  )}
+                  onMouseEnter={() => setHoveredCard(type.id)}
+                  onMouseLeave={() => setHoveredCard(null)}
+                  onClick={() => !expandedCard && handleCardClick(type.id)}
                 >
-                  <CardHeader className="flex flex-row items-center gap-4 pb-2">
-                    <div className="p-3 rounded-lg bg-primary/10 text-primary">
-                      {type.icon}
+                  {expandedCard === type.id ? (
+                    // Expanded Form View
+                    <div className="absolute inset-0">
+                      {renderForm(type.id)}
                     </div>
-                    <div className="flex-1">
-                      <CardTitle className="text-xl">{type.title}</CardTitle>
-                      <CardDescription className="mt-1">
-                        {type.description}
-                      </CardDescription>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex justify-end">
-                      <Button
-                        variant={selectedType === type.id ? "default" : "outline"}
-                        size="sm"
+                  ) : (
+                    // Card Preview View
+                    <>
+                      <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center">
+                        <div className="p-4 rounded-2xl bg-primary/10 text-primary mb-4">
+                          {type.icon}
+                        </div>
+                        <h3 className="text-xl font-semibold text-foreground mb-2">
+                          {type.title}
+                        </h3>
+                        <p className="text-sm text-muted-foreground">
+                          {type.description}
+                        </p>
+                      </div>
+
+                      {/* Hover Build Button */}
+                      <div
+                        className={cn(
+                          "absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm transition-opacity duration-200",
+                          hoveredCard === type.id ? "opacity-100" : "opacity-0 pointer-events-none"
+                        )}
                       >
-                        {selectedType === type.id ? "Selected" : "Select"}
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
+                        <Button size="lg" className="gap-2">
+                          <Sparkles className="h-5 w-5" />
+                          Build
+                        </Button>
+                      </div>
+                    </>
+                  )}
+                </div>
               ))}
             </div>
           </div>
