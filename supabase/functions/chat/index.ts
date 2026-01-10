@@ -11,12 +11,32 @@ serve(async (req) => {
   }
 
   try {
-    const { messages } = await req.json();
+    const { messages, analyticsContext } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
+
+    const systemPrompt = `You are a helpful AI marketing assistant for restaurant owners. You have access to LIVE analytics data from their business.
+
+${analyticsContext || "No analytics data available."}
+
+You help with:
+- Creating engaging social media content and captions
+- Developing promotional campaign ideas based on their data
+- Analyzing trends from their analytics and providing actionable insights
+- Suggesting menu photography tips
+- Writing email marketing copy
+- Brainstorming seasonal promotions
+
+When discussing analytics or performance:
+- Reference the specific numbers from the live data above
+- Identify trends (week-over-week changes)
+- Make data-driven recommendations
+- Be specific about what's working and what could improve
+
+Be friendly, concise, and actionable in your responses. When suggesting content, provide ready-to-use examples.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -27,18 +47,7 @@ serve(async (req) => {
       body: JSON.stringify({
         model: "google/gemini-3-flash-preview",
         messages: [
-          { 
-            role: "system", 
-            content: `You are a helpful AI marketing assistant for restaurant owners. You help with:
-- Creating engaging social media content and captions
-- Developing promotional campaign ideas
-- Analyzing customer trends and providing insights
-- Suggesting menu photography tips
-- Writing email marketing copy
-- Brainstorming seasonal promotions
-
-Be friendly, concise, and actionable in your responses. When suggesting content, provide ready-to-use examples.`
-          },
+          { role: "system", content: systemPrompt },
           ...messages,
         ],
         stream: true,

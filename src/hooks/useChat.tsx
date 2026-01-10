@@ -1,5 +1,7 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { fetchAnalyticsContext, formatAnalyticsForAI, AnalyticsContext } from "@/lib/analyticsContext";
+import { supabase } from "@/integrations/supabase/client";
 
 export type Message = {
   role: "user" | "assistant";
@@ -11,7 +13,41 @@ const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
 export function useChat() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [analyticsContext, setAnalyticsContext] = useState<AnalyticsContext | null>(null);
   const { toast } = useToast();
+
+  // Fetch analytics on mount and set up realtime subscription
+  useEffect(() => {
+    const loadAnalytics = async () => {
+      try {
+        const ctx = await fetchAnalyticsContext();
+        setAnalyticsContext(ctx);
+      } catch (error) {
+        console.error("Failed to fetch analytics:", error);
+      }
+    };
+
+    loadAnalytics();
+
+    // Subscribe to realtime updates for generations and menu_photos
+    const channel = supabase
+      .channel("analytics-updates")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "generations" },
+        () => loadAnalytics()
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "menu_photos" },
+        () => loadAnalytics()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   const sendMessage = useCallback(async (input: string) => {
     if (!input.trim() || isLoading) return;
@@ -36,13 +72,21 @@ export function useChat() {
     };
 
     try {
+      // Refresh analytics before sending
+      const freshAnalytics = await fetchAnalyticsContext();
+      setAnalyticsContext(freshAnalytics);
+      const analyticsText = formatAnalyticsForAI(freshAnalytics);
+
       const response = await fetch(CHAT_URL, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
         },
-        body: JSON.stringify({ messages: [...messages, userMessage] }),
+        body: JSON.stringify({ 
+          messages: [...messages, userMessage],
+          analyticsContext: analyticsText
+        }),
       });
 
       if (!response.ok) {
@@ -107,7 +151,6 @@ export function useChat() {
         description: error instanceof Error ? error.message : "Failed to send message",
         variant: "destructive",
       });
-      // Remove the user message if we failed
       setMessages(prev => prev.slice(0, -1));
     } finally {
       setIsLoading(false);
@@ -118,5 +161,5 @@ export function useChat() {
     setMessages([]);
   }, []);
 
-  return { messages, isLoading, sendMessage, clearMessages };
+  return { messages, isLoading, sendMessage, clearMessages, analyticsContext };
 }
