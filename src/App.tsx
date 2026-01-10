@@ -18,6 +18,8 @@ import AdminSettings from "./pages/admin/AdminSettings";
 import AdminIntegrations from "./pages/admin/AdminIntegrations";
 import Analytics from "./pages/Analytics";
 import Chat from "./pages/Chat";
+import Settings from "./pages/settings/Settings";
+import SettingsIntegrations from "./pages/settings/SettingsIntegrations";
 
 const queryClient = new QueryClient();
 
@@ -44,6 +46,16 @@ const App = () => (
               <Route path="/chat" element={
                 <ProtectedRoute>
                   <Chat />
+                </ProtectedRoute>
+              } />
+              <Route path="/settings" element={
+                <ProtectedRoute>
+                  <Settings />
+                </ProtectedRoute>
+              } />
+              <Route path="/settings/integrations" element={
+                <ProtectedRoute>
+                  <SettingsIntegrations />
                 </ProtectedRoute>
               } />
               <Route path="/admin" element={
