@@ -289,25 +289,6 @@ export function SalesOverview() {
                   </ResponsiveContainer>
                 </div>
 
-                {lowPerformers.length > 0 && (
-                  <div className="mt-3 p-2.5 rounded-lg bg-destructive/5 border border-destructive/20">
-                    <div className="flex items-center gap-2 text-sm text-destructive mb-1">
-                      <TrendingDown className="h-4 w-4" />
-                      <span className="font-medium">Hours needing attention</span>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {lowPerformers.map((lp) => {
-                        const change = ((lp.sales - lp.prevWeek) / lp.prevWeek) * 100;
-                        return (
-                          <Badge key={lp.hour} variant="outline" className="text-destructive border-destructive/30">
-                            <Clock className="h-3 w-3 mr-1" />
-                            {lp.hour}: {change.toFixed(0)}%
-                          </Badge>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
               </>
             ) : (
               <div className="h-[280px]">
