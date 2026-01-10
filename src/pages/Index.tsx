@@ -575,11 +575,11 @@ const Index = () => {
             <aside 
               className={cn(
                 "h-full border-r border-border/50 bg-card/30 overflow-hidden transition-all duration-300 flex-shrink-0",
-                sidebarCollapsed ? "w-0 border-r-0" : "w-72"
+                sidebarCollapsed ? "w-0 border-r-0" : "w-96"
               )}
             >
               <div className={cn(
-                "w-72 h-full overflow-y-auto overflow-x-hidden p-4 transition-opacity duration-200",
+                "w-96 h-full overflow-y-auto overflow-x-hidden p-4 transition-opacity duration-200",
                 sidebarCollapsed ? "opacity-0" : "opacity-100"
               )}>
                   <PhotoGallery 
@@ -603,7 +603,7 @@ const Index = () => {
               onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
               className={cn(
                 "absolute top-20 h-6 w-6 rounded-full border border-border bg-background shadow-sm hover:bg-muted z-50 transition-all duration-300",
-                sidebarCollapsed ? "left-1" : "left-[276px]"
+                sidebarCollapsed ? "left-1" : "left-[380px]"
               )}
             >
               {sidebarCollapsed ? (
