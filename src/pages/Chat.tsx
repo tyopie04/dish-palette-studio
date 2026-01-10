@@ -207,7 +207,7 @@ export default function Chat() {
                     onChange={(e) => setInput(e.target.value)}
                     onKeyDown={handleKeyDown}
                     placeholder="How can I help you today?"
-                    className="min-h-[56px] max-h-40 resize-none border-0 bg-transparent pr-14 text-base focus-visible:ring-0 focus-visible:ring-offset-0"
+                    className="min-h-[56px] max-h-40 resize-none border-0 bg-transparent pr-14 text-base focus-visible:ring-0 focus-visible:ring-offset-0 flex items-center py-4"
                     rows={1}
                     disabled={isLoading}
                   />
@@ -232,7 +232,7 @@ export default function Chat() {
                         key={key}
                         variant="outline"
                         size="sm"
-                        className="rounded-full gap-2"
+                        className="rounded-full gap-2 animate-glow-border"
                         onClick={() => handleQuickAction(key)}
                       >
                         {action.icon}
