@@ -23,7 +23,7 @@ export function Header() {
 
   return (
     <header className="border-b border-border/50 bg-card/30 backdrop-blur-xl sticky top-0 z-50">
-      <div className="relative w-full px-4 h-16 flex items-center">
+      <div className="container mx-auto px-4 h-16 flex items-center relative">
         {/* Left side - Navigation, User menu, Theme toggle */}
         <div className="flex items-center gap-4">
           <nav className="hidden sm:flex items-center gap-6">
