@@ -1,113 +1,111 @@
 import { useState } from "react";
 import { Header } from "@/components/Header";
-import { AnalyticsHeader } from "@/components/analytics/AnalyticsHeader";
+import { WeeklyInsights } from "@/components/analytics/WeeklyInsights";
 import { MetricCard } from "@/components/analytics/MetricCard";
 import { SalesOverview } from "@/components/analytics/SalesOverview";
-import { OperationalMetrics } from "@/components/analytics/OperationalMetrics";
-import { CustomerInsights } from "@/components/analytics/CustomerInsights";
 import { EmployeePerformance } from "@/components/analytics/EmployeePerformance";
-import { WeeklyInsights } from "@/components/analytics/WeeklyInsights";
 import { 
   DollarSign, 
   ShoppingBag, 
-  Users, 
+  Receipt,
   TrendingUp,
-  Receipt
+  ChevronDown
 } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
-// Placeholder data
+// Simplified location data
 const locations = [
-  { id: "all", name: "All Locations", connected: true },
-  { id: "downtown", name: "Downtown Location", connected: true },
-  { id: "midtown", name: "Midtown Location", connected: true },
-  { id: "uptown", name: "Uptown Location", connected: false },
+  { id: "all", name: "All Locations" },
+  { id: "downtown", name: "Downtown" },
+  { id: "midtown", name: "Midtown" },
 ];
 
 export default function Analytics() {
   const [selectedLocation, setSelectedLocation] = useState("all");
-  const [dateRange, setDateRange] = useState("7days");
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Header />
       
       <main className="flex-1 overflow-auto">
-        <div className="container max-w-7xl mx-auto px-6 py-6">
-          {/* Header with Filters */}
-          <AnalyticsHeader
-            locations={locations}
-            selectedLocation={selectedLocation}
-            onLocationChange={setSelectedLocation}
-            dateRange={dateRange}
-            onDateRangeChange={setDateRange}
-          />
+        <div className="container max-w-6xl mx-auto px-4 sm:px-6 py-4 sm:py-6">
+          {/* Minimal Header */}
+          <div className="flex items-center justify-between mb-5">
+            <div>
+              <h1 className="text-xl font-semibold">Daily Dashboard</h1>
+              <p className="text-sm text-muted-foreground">Last 7 days • Updated just now</p>
+            </div>
+            <Select value={selectedLocation} onValueChange={setSelectedLocation}>
+              <SelectTrigger className="w-[140px] h-9">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {locations.map((loc) => (
+                  <SelectItem key={loc.id} value={loc.id}>
+                    {loc.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-          {/* Weekly Insights Panel */}
-          <div className="mb-6">
+          {/* 1. What Changed This Week */}
+          <section className="mb-6">
             <WeeklyInsights />
-          </div>
+          </section>
 
-          {/* Top KPI Cards */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
-            <MetricCard
-              title="Total Sales"
-              value="$37,100"
-              change="+12.5% vs last week"
-              changeType="positive"
-              icon={<DollarSign className="h-5 w-5" />}
-            />
-            <MetricCard
-              title="Orders"
-              value="1,156"
-              change="+8.2% vs last week"
-              changeType="positive"
-              icon={<ShoppingBag className="h-5 w-5" />}
-            />
-            <MetricCard
-              title="Avg Check"
-              value="$32.10"
-              change="+4.3% vs last week"
-              changeType="positive"
-              icon={<Receipt className="h-5 w-5" />}
-            />
-            <MetricCard
-              title="Customers"
-              value="892"
-              change="-2.1% vs last week"
-              changeType="negative"
-              icon={<Users className="h-5 w-5" />}
-            />
-            <MetricCard
-              title="Top Margin"
-              value="65%"
-              change="Milkshake"
-              changeType="neutral"
-              icon={<TrendingUp className="h-5 w-5" />}
-            />
-          </div>
+          {/* 2. Core KPIs */}
+          <section id="sales-overview" className="mb-6">
+            <h2 className="text-sm font-medium text-muted-foreground mb-3">Core Metrics</h2>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <MetricCard
+                title="Total Sales"
+                value="$37,100"
+                change="+12.5% vs last week"
+                changeType="positive"
+                icon={<DollarSign className="h-4 w-4" />}
+              />
+              <MetricCard
+                title="Orders"
+                value="1,156"
+                change="+8.2% vs last week"
+                changeType="positive"
+                icon={<ShoppingBag className="h-4 w-4" />}
+              />
+              <MetricCard
+                title="Avg Check"
+                value="$32.10"
+                change="+4.3% vs last week"
+                changeType="positive"
+                icon={<Receipt className="h-4 w-4" />}
+              />
+              <MetricCard
+                title="Top Margin"
+                value="65%"
+                change="Milkshake"
+                changeType="neutral"
+                icon={<TrendingUp className="h-4 w-4" />}
+              />
+            </div>
+          </section>
 
-          {/* Main Content Grid */}
-          <div id="sales-overview" className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-            {/* Sales Overview Section */}
+          {/* 3 & 4. When We're Busy + What We Sell (combined in SalesOverview) */}
+          <section id="operational-metrics" className="mb-6">
+            <h2 className="text-sm font-medium text-muted-foreground mb-3">Sales Insights</h2>
             <SalesOverview />
+          </section>
 
-            {/* Operational Metrics Section */}
-            <div id="operational-metrics">
-              <OperationalMetrics />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Customer Insights Section */}
-            <div id="customer-insights">
-              <CustomerInsights />
-            </div>
-
-            {/* Employee Performance Section */}
-            <div id="employee-performance">
-              <EmployeePerformance />
-            </div>
-          </div>
+          {/* 5. Who's Working */}
+          <section id="employee-performance">
+            <h2 className="text-sm font-medium text-muted-foreground mb-3">Team</h2>
+            <EmployeePerformance />
+          </section>
         </div>
       </main>
     </div>
