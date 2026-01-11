@@ -21,6 +21,7 @@ import { useCreateStyle, useUpdateStyle, Style } from "@/hooks/useStyles";
 import { useOrganizations } from "@/hooks/useOrganizations";
 import { useStyleGlobalChangeDetection } from "@/hooks/useGlobalChangeDetection";
 import { GlobalChangeWarning } from "./GlobalChangeWarning";
+import { GlobalChangeConfirmModal } from "./GlobalChangeConfirmModal";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Upload, X, Loader2 } from "lucide-react";
@@ -52,6 +53,7 @@ export function StyleModal({ open, onOpenChange, style }: StyleModalProps) {
   const [isDefault, setIsDefault] = useState(false);
   const [hasColorPicker, setHasColorPicker] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [showGlobalConfirm, setShowGlobalConfirm] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -114,6 +116,16 @@ export function StyleModal({ open, onOpenChange, style }: StyleModalProps) {
       return;
     }
 
+    // Check if this is a global change and show confirmation
+    if (globalChangeInfo.isGlobalChange) {
+      setShowGlobalConfirm(true);
+      return;
+    }
+
+    await performSave();
+  };
+
+  const performSave = async () => {
     try {
       const orgId = organizationId === "global" ? null : organizationId;
 
@@ -143,14 +155,20 @@ export function StyleModal({ open, onOpenChange, style }: StyleModalProps) {
           is_default: isDefault,
           has_color_picker: hasColorPicker,
         });
-        toast.success("Style created successfully");
-      }
-
-      onOpenChange(false);
-    } catch (error) {
-      toast.error(isEditing ? "Failed to update style" : "Failed to create style");
+      toast.success("Style created successfully");
     }
-  };
+
+    setShowGlobalConfirm(false);
+    onOpenChange(false);
+  } catch (error) {
+    toast.error(isEditing ? "Failed to update style" : "Failed to create style");
+    setShowGlobalConfirm(false);
+  }
+};
+
+const handleGlobalConfirm = async () => {
+  await performSave();
+};
 
   const isPending = createStyle.isPending || updateStyle.isPending;
 
@@ -401,6 +419,14 @@ export function StyleModal({ open, onOpenChange, style }: StyleModalProps) {
           </div>
         </form>
       </DialogContent>
+
+      {/* Global Change Confirmation Modal */}
+      <GlobalChangeConfirmModal
+        open={showGlobalConfirm}
+        onOpenChange={setShowGlobalConfirm}
+        onConfirm={handleGlobalConfirm}
+        isPending={isPending}
+      />
     </Dialog>
   );
 }

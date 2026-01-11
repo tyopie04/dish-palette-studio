@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Plus, Edit, Trash2, Palette, Globe, Star, EyeOff, Tag, AlertTriangle } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { StyleModal } from "@/components/admin/StyleModal";
+import { GlobalChangeConfirmModal } from "@/components/admin/GlobalChangeConfirmModal";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -33,6 +34,10 @@ export default function AdminStyles() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingStyle, setEditingStyle] = useState<Style | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [pendingGlobalAction, setPendingGlobalAction] = useState<{
+    type: 'status' | 'default';
+    style: Style;
+  } | null>(null);
 
   const { data: styles, isLoading } = useStyles(filterOrgId);
   const { data: organizations } = useOrganizations();
@@ -78,6 +83,18 @@ export default function AdminStyles() {
     : null;
 
   const handleToggleStatus = async (style: Style) => {
+    // Check if this is a global style
+    const isGlobalStyle = !style.organization_id;
+    
+    if (isGlobalStyle) {
+      setPendingGlobalAction({ type: 'status', style });
+      return;
+    }
+    
+    await performToggleStatus(style);
+  };
+
+  const performToggleStatus = async (style: Style) => {
     try {
       await updateStyle.mutateAsync({
         id: style.id,
@@ -92,6 +109,18 @@ export default function AdminStyles() {
   };
 
   const handleToggleDefault = async (style: Style) => {
+    // Check if this is a global style or will affect global defaults
+    const isGlobalStyle = !style.organization_id;
+    
+    if (isGlobalStyle) {
+      setPendingGlobalAction({ type: 'default', style });
+      return;
+    }
+    
+    await performToggleDefault(style);
+  };
+
+  const performToggleDefault = async (style: Style) => {
     try {
       await updateStyle.mutateAsync({
         id: style.id,
@@ -103,6 +132,17 @@ export default function AdminStyles() {
     } catch (error) {
       toast.error("Failed to update default status");
     }
+  };
+
+  const handleGlobalActionConfirm = async () => {
+    if (!pendingGlobalAction) return;
+    
+    if (pendingGlobalAction.type === 'status') {
+      await performToggleStatus(pendingGlobalAction.style);
+    } else {
+      await performToggleDefault(pendingGlobalAction.style);
+    }
+    setPendingGlobalAction(null);
   };
 
   return (
@@ -350,6 +390,14 @@ export default function AdminStyles() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Global Change Confirmation for toggle actions */}
+      <GlobalChangeConfirmModal
+        open={!!pendingGlobalAction}
+        onOpenChange={(open) => !open && setPendingGlobalAction(null)}
+        onConfirm={handleGlobalActionConfirm}
+        isPending={updateStyle.isPending}
+      />
     </AdminLayout>
   );
 }

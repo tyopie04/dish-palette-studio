@@ -14,6 +14,7 @@ import {
 import { useAdminSettings, useUpdateAdminSettings } from "@/hooks/useAdminSettings";
 import { useSettingsGlobalChangeDetection } from "@/hooks/useGlobalChangeDetection";
 import { GlobalChangeWarning } from "@/components/admin/GlobalChangeWarning";
+import { GlobalChangeConfirmModal } from "@/components/admin/GlobalChangeConfirmModal";
 import { toast } from "sonner";
 
 const RESOLUTIONS = [
@@ -37,6 +38,7 @@ export default function AdminSettings() {
   const [defaultResolution, setDefaultResolution] = useState("1K");
   const [defaultRatio, setDefaultRatio] = useState("1:1");
   const [hasChanges, setHasChanges] = useState(false);
+  const [showGlobalConfirm, setShowGlobalConfirm] = useState(false);
 
   useEffect(() => {
     if (settings) {
@@ -61,6 +63,15 @@ export default function AdminSettings() {
   const hasCriticalChanges = globalChanges.some(c => c.severity === 'critical');
 
   const handleSave = async () => {
+    // Show confirmation modal for global changes
+    if (hasGlobalChanges) {
+      setShowGlobalConfirm(true);
+      return;
+    }
+    await performSave();
+  };
+
+  const performSave = async () => {
     try {
       await updateSettings.mutateAsync({
         master_prompt: masterPrompt,
@@ -69,9 +80,15 @@ export default function AdminSettings() {
       });
       toast.success("Settings saved successfully");
       setHasChanges(false);
+      setShowGlobalConfirm(false);
     } catch (error) {
       toast.error("Failed to save settings");
+      setShowGlobalConfirm(false);
     }
+  };
+
+  const handleGlobalConfirm = async () => {
+    await performSave();
   };
 
   const handleChange = <T,>(setter: React.Dispatch<React.SetStateAction<T>>, value: T) => {
@@ -243,6 +260,14 @@ export default function AdminSettings() {
           </div>
         </div>
       </div>
+
+      {/* Global Change Confirmation Modal */}
+      <GlobalChangeConfirmModal
+        open={showGlobalConfirm}
+        onOpenChange={setShowGlobalConfirm}
+        onConfirm={handleGlobalConfirm}
+        isPending={updateSettings.isPending}
+      />
     </AdminLayout>
   );
 }
