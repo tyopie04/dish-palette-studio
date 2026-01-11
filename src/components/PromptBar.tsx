@@ -498,38 +498,39 @@ export const PromptBar: React.FC<PromptBarProps> = ({
                     <ChevronDown className="w-3 h-3 opacity-50" />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-72 p-2 bg-popover max-h-80 overflow-y-auto" align="start">
+                <PopoverContent className="w-[340px] p-3 bg-popover max-h-96 overflow-y-auto" align="start">
                   {stylesLoading ? (
                     <div className="p-4 text-center text-sm text-muted-foreground">Loading styles...</div>
                   ) : styles.length === 0 ? (
                     <div className="p-4 text-center text-sm text-muted-foreground">No styles available</div>
                   ) : (
-                    <div className="space-y-3">
-                      {/* None option */}
-                      <button
-                        onClick={() => {
-                          setSelectedStyleId(null);
-                          setStyleOpen(false);
-                        }}
-                        className={cn(
-                          "w-full flex items-center gap-3 p-2 rounded-lg transition-colors text-left",
-                          !selectedStyleId ? "bg-primary text-primary-foreground" : "hover:bg-muted"
-                        )}
-                      >
-                        <div className="w-8 h-8 rounded-md bg-muted/50 flex items-center justify-center">
-                          <X className="w-4 h-4" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium">No Style</p>
-                          <p className="text-xs opacity-70">Use default generation</p>
-                        </div>
-                      </button>
+                    <div className="space-y-4">
+                      {/* None option + first category grid */}
+                      <div className="grid grid-cols-3 gap-2">
+                        {/* No Style tile */}
+                        <button
+                          onClick={() => {
+                            setSelectedStyleId(null);
+                            setStyleOpen(false);
+                          }}
+                          className={cn(
+                            "flex flex-col items-center gap-1.5 p-2 rounded-xl transition-all",
+                            "hover:bg-muted/50 focus:outline-none",
+                            !selectedStyleId && "ring-2 ring-primary bg-primary/10"
+                          )}
+                        >
+                          <div className="w-20 h-20 rounded-lg bg-muted/50 border-2 border-dashed border-border flex items-center justify-center">
+                            <X className="w-6 h-6 text-muted-foreground" />
+                          </div>
+                          <span className="text-xs font-medium text-center truncate w-full">No Style</span>
+                        </button>
+                      </div>
                       
                       {/* Styles grouped by category */}
                       {Object.entries(stylesByCategory).map(([category, categoryStyles]) => (
                         <div key={category}>
-                          <p className="text-xs font-medium text-muted-foreground px-2 py-1">{category}</p>
-                          <div className="space-y-0.5">
+                          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-1 mb-2">{category}</p>
+                          <div className="grid grid-cols-3 gap-2">
                             {categoryStyles.map((style) => (
                               <button
                                 key={style.id}
@@ -538,36 +539,32 @@ export const PromptBar: React.FC<PromptBarProps> = ({
                                   setStyleOpen(false);
                                 }}
                                 className={cn(
-                                  "w-full flex items-center gap-3 p-2 rounded-lg transition-colors text-left",
-                                  selectedStyleId === style.id 
-                                    ? "bg-primary text-primary-foreground" 
-                                    : "hover:bg-muted"
+                                  "flex flex-col items-center gap-1.5 p-2 rounded-xl transition-all relative",
+                                  "hover:bg-muted/50 focus:outline-none",
+                                  selectedStyleId === style.id && "ring-2 ring-primary bg-primary/10"
                                 )}
                               >
                                 {style.thumbnail_url ? (
                                   <img 
                                     src={style.thumbnail_url} 
                                     alt={style.name} 
-                                    className="w-8 h-8 rounded-md object-cover"
+                                    className="w-20 h-20 rounded-lg object-cover"
                                   />
                                 ) : (
-                                  <div className="w-8 h-8 rounded-md bg-muted/50 flex items-center justify-center">
-                                    <Palette className="w-4 h-4" />
+                                  <div className="w-20 h-20 rounded-lg bg-muted/50 flex items-center justify-center">
+                                    <Palette className="w-6 h-6 text-muted-foreground" />
                                   </div>
                                 )}
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-1.5">
-                                    <p className="text-sm font-medium truncate">{style.name}</p>
-                                    {style.is_default && (
-                                      <span className="text-[10px] bg-primary/20 text-primary px-1 rounded">Default</span>
-                                    )}
-                                  </div>
-                                  {style.description && (
-                                    <p className="text-xs opacity-70 truncate">{style.description}</p>
-                                  )}
-                                </div>
+                                <span className="text-xs font-medium text-center truncate w-full">{style.name}</span>
+                                {style.is_default && (
+                                  <span className="absolute top-1 right-1 text-[9px] bg-primary text-primary-foreground px-1.5 py-0.5 rounded-full">
+                                    Default
+                                  </span>
+                                )}
                                 {selectedStyleId === style.id && (
-                                  <Check className="w-4 h-4 flex-shrink-0" />
+                                  <div className="absolute top-1 left-1 w-5 h-5 bg-primary rounded-full flex items-center justify-center">
+                                    <Check className="w-3 h-3 text-primary-foreground" />
+                                  </div>
                                 )}
                               </button>
                             ))}
