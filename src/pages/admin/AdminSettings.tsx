@@ -14,7 +14,7 @@ import {
 import { useAdminSettings, useUpdateAdminSettings } from "@/hooks/useAdminSettings";
 import { useSettingsGlobalChangeDetection } from "@/hooks/useGlobalChangeDetection";
 import { GlobalChangeWarning } from "@/components/admin/GlobalChangeWarning";
-import { GlobalChangeConfirmModal } from "@/components/admin/GlobalChangeConfirmModal";
+import { GlobalChangeConfirmModal, GlobalChangeSummary } from "@/components/admin/GlobalChangeConfirmModal";
 import { toast } from "sonner";
 
 const RESOLUTIONS = [
@@ -267,7 +267,25 @@ export default function AdminSettings() {
         onOpenChange={setShowGlobalConfirm}
         onConfirm={handleGlobalConfirm}
         isPending={updateSettings.isPending}
+        summary={getSettingsSummary()}
       />
     </AdminLayout>
   );
+
+  function getSettingsSummary(): GlobalChangeSummary {
+    const fieldsChanged: string[] = [];
+    
+    if (settings) {
+      if (masterPrompt !== settings.master_prompt) fieldsChanged.push('Master Prompt');
+      if (defaultResolution !== settings.default_resolution) fieldsChanged.push('Default Resolution');
+      if (defaultRatio !== settings.default_ratio) fieldsChanged.push('Default Aspect Ratio');
+    }
+    
+    return {
+      itemType: 'Settings',
+      itemName: 'Global Generation Settings',
+      fieldsChanged,
+      scope: 'all_clients',
+    };
+  }
 }
