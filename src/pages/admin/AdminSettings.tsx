@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Save, Settings as SettingsIcon, Activity } from "lucide-react";
+import { Save, Settings as SettingsIcon, Activity, AlertTriangle } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -12,6 +12,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useAdminSettings, useUpdateAdminSettings } from "@/hooks/useAdminSettings";
+import { useSettingsGlobalChangeDetection } from "@/hooks/useGlobalChangeDetection";
+import { GlobalChangeWarning } from "@/components/admin/GlobalChangeWarning";
 import { toast } from "sonner";
 
 const RESOLUTIONS = [
@@ -44,6 +46,19 @@ export default function AdminSettings() {
       setHasChanges(false);
     }
   }, [settings]);
+
+  // Detect global changes
+  const globalChanges = useSettingsGlobalChangeDetection(
+    { masterPrompt, defaultResolution, defaultRatio },
+    settings ? {
+      masterPrompt: settings.master_prompt,
+      defaultResolution: settings.default_resolution,
+      defaultRatio: settings.default_ratio,
+    } : null
+  );
+
+  const hasGlobalChanges = globalChanges.length > 0;
+  const hasCriticalChanges = globalChanges.some(c => c.severity === 'critical');
 
   const handleSave = async () => {
     try {
@@ -98,12 +113,22 @@ export default function AdminSettings() {
           <Button
             onClick={handleSave}
             disabled={!hasChanges || updateSettings.isPending}
-            className="gap-2"
+            className={`gap-2 ${hasCriticalChanges ? 'bg-amber-600 hover:bg-amber-700' : ''}`}
           >
+            {hasCriticalChanges && <AlertTriangle className="h-4 w-4" />}
             <Save className="h-4 w-4" />
-            {updateSettings.isPending ? "Saving..." : "Save Changes"}
+            {updateSettings.isPending ? "Saving..." : hasGlobalChanges ? "Save Global Changes" : "Save Changes"}
           </Button>
         </div>
+
+        {/* Global Change Warnings */}
+        {hasGlobalChanges && (
+          <div className="space-y-2">
+            {globalChanges.map((change, i) => (
+              <GlobalChangeWarning key={i} changeInfo={change} />
+            ))}
+          </div>
+        )}
 
         {/* Master Prompt */}
         <div className="rounded-lg border border-border/50 bg-card p-6 space-y-4">

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Edit, Trash2, Palette, Globe, Star, EyeOff, Tag } from "lucide-react";
+import { Plus, Edit, Trash2, Palette, Globe, Star, EyeOff, Tag, AlertTriangle } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { StyleModal } from "@/components/admin/StyleModal";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useStyles, useDeleteStyle, useUpdateStyle, Style } from "@/hooks/useStyles";
 import { useOrganizations } from "@/hooks/useOrganizations";
+import { detectStyleChangeImpact } from "@/hooks/useGlobalChangeDetection";
 import { toast } from "sonner";
 
 export default function AdminStyles() {
@@ -69,6 +70,12 @@ export default function AdminStyles() {
       toast.error("Failed to delete style");
     }
   };
+
+  // Get the style being deleted to check if it's global
+  const styleToDelete = styles?.find(s => s.id === deleteConfirmId);
+  const deleteChangeInfo = styleToDelete 
+    ? detectStyleChangeImpact(null, 'delete', styleToDelete)
+    : null;
 
   const handleToggleStatus = async (style: Style) => {
     try {
@@ -315,9 +322,21 @@ export default function AdminStyles() {
       <AlertDialog open={!!deleteConfirmId} onOpenChange={() => setDeleteConfirmId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete this style?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. The style will be permanently removed and will no longer be available to users.
+            <AlertDialogTitle className="flex items-center gap-2">
+              {deleteChangeInfo?.isGlobalChange && (
+                <AlertTriangle className="w-5 h-5 text-destructive" />
+              )}
+              Delete this style?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-3">
+              <span>
+                This action cannot be undone. The style will be permanently removed and will no longer be available to users.
+              </span>
+              {deleteChangeInfo?.isGlobalChange && (
+                <span className="block p-3 rounded-lg bg-destructive/10 border border-destructive/30 text-destructive text-sm">
+                  <strong>Global Impact:</strong> {deleteChangeInfo.warningMessage}
+                </span>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -326,7 +345,7 @@ export default function AdminStyles() {
               onClick={handleDelete}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              Delete
+              {deleteChangeInfo?.isGlobalChange ? 'Delete Global Style' : 'Delete'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

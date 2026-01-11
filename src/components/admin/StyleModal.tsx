@@ -19,6 +19,8 @@ import {
 } from "@/components/ui/select";
 import { useCreateStyle, useUpdateStyle, Style } from "@/hooks/useStyles";
 import { useOrganizations } from "@/hooks/useOrganizations";
+import { useStyleGlobalChangeDetection } from "@/hooks/useGlobalChangeDetection";
+import { GlobalChangeWarning } from "./GlobalChangeWarning";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Upload, X, Loader2 } from "lucide-react";
@@ -59,6 +61,18 @@ export function StyleModal({ open, onOpenChange, style }: StyleModalProps) {
 
   const isEditing = !!style;
 
+  // Detect global change impact
+  const globalChangeInfo = useStyleGlobalChangeDetection(
+    {
+      organizationId,
+      isDefault,
+      name,
+      promptModifier,
+      status,
+    },
+    style || null,
+    isEditing
+  );
   useEffect(() => {
     if (style) {
       setName(style.name);
@@ -369,6 +383,9 @@ export function StyleModal({ open, onOpenChange, style }: StyleModalProps) {
               />
             </div>
           </div>
+
+          {/* Global Change Warning */}
+          <GlobalChangeWarning changeInfo={globalChangeInfo} />
 
           <div className="flex justify-end gap-2 pt-4">
             <Button
