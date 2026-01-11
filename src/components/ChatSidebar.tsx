@@ -3,12 +3,11 @@ import {
   MessageSquarePlus, 
   Search, 
   FolderOpen, 
-  MessageCircle, 
   ChevronDown,
-  Sparkles,
-  Clock,
+  ChevronRight,
   PanelLeftClose,
-  PanelLeft
+  PanelLeft,
+  Sparkles
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
@@ -21,6 +20,11 @@ interface ChatConversation {
   updatedAt: Date;
 }
 
+interface Project {
+  id: string;
+  name: string;
+}
+
 interface ChatSidebarProps {
   conversations: ChatConversation[];
   activeConversationId?: string;
@@ -30,22 +34,8 @@ interface ChatSidebarProps {
   onToggleCollapse?: () => void;
 }
 
-// Mock data for demonstration
-const mockConversations: ChatConversation[] = [
-  { id: '1', title: 'Menu Photography Ideas', updatedAt: new Date() },
-  { id: '2', title: 'Instagram Caption Generator', updatedAt: new Date(Date.now() - 3600000) },
-  { id: '3', title: 'Weekly Promo Planning', updatedAt: new Date(Date.now() - 86400000) },
-  { id: '4', title: 'New Dish Launch Strategy', updatedAt: new Date(Date.now() - 172800000) },
-  { id: '5', title: 'Customer Engagement Tips', updatedAt: new Date(Date.now() - 259200000) },
-];
-
-const mockProjects = [
-  { id: 'p1', name: 'Summer Menu Campaign', icon: '🌴' },
-  { id: 'p2', name: 'Holiday Promotions', icon: '🎄' },
-];
-
 export function ChatSidebar({
-  conversations = mockConversations,
+  conversations = [],
   activeConversationId,
   onNewChat,
   onSelectConversation,
@@ -59,172 +49,184 @@ export function ChatSidebar({
     c.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const formatTimeAgo = (date: Date) => {
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
+  const projects: Project[] = []; // Empty for now
 
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    return `${diffDays}d ago`;
-  };
-
+  // Collapsed state
   if (isCollapsed) {
     return (
-      <div className="w-14 h-full bg-[hsl(220,20%,12%)] border-r border-white/5 flex flex-col items-center py-4 gap-4">
+      <div className="w-14 h-screen bg-[hsl(220,15%,8%)] border-r border-white/[0.06] flex flex-col items-center py-4 gap-3">
         <button
           onClick={onToggleCollapse}
-          className="p-2 rounded-lg hover:bg-white/10 transition-colors"
+          className="p-2.5 rounded-xl hover:bg-white/[0.06] transition-colors"
         >
-          <PanelLeft className="w-5 h-5 text-white/60" />
+          <PanelLeft className="w-5 h-5 text-white/50" />
         </button>
+        <div className="w-8 h-px bg-white/[0.06]" />
         <button
           onClick={onNewChat}
-          className="p-2 rounded-lg hover:bg-white/10 transition-colors"
+          className="p-2.5 rounded-xl hover:bg-white/[0.06] transition-colors"
           title="New chat"
         >
-          <MessageSquarePlus className="w-5 h-5 text-white/60" />
+          <MessageSquarePlus className="w-5 h-5 text-white/50" />
         </button>
         <button
-          className="p-2 rounded-lg hover:bg-white/10 transition-colors"
+          className="p-2.5 rounded-xl hover:bg-white/[0.06] transition-colors"
           title="Search"
         >
-          <Search className="w-5 h-5 text-white/60" />
+          <Search className="w-5 h-5 text-white/50" />
         </button>
         <button
-          className="p-2 rounded-lg hover:bg-white/10 transition-colors"
+          className="p-2.5 rounded-xl hover:bg-white/[0.06] transition-colors"
           title="Projects"
         >
-          <FolderOpen className="w-5 h-5 text-white/60" />
+          <FolderOpen className="w-5 h-5 text-white/50" />
         </button>
       </div>
     );
   }
 
   return (
-    <div className="w-64 h-full bg-[hsl(220,20%,12%)] border-r border-white/5 flex flex-col">
+    <div className="w-72 h-screen bg-[hsl(220,15%,8%)] border-r border-white/[0.06] flex flex-col">
       {/* Header */}
-      <div className="p-3 flex items-center justify-between border-b border-white/5">
-        <div className="flex items-center gap-2">
-          <Sparkles className="w-5 h-5 text-white/80" />
-          <span className="font-semibold text-white/90 text-sm">Stax AI</span>
+      <div className="p-4 flex items-center justify-between">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+            <Sparkles className="w-4 h-4 text-white" />
+          </div>
+          <span className="font-semibold text-white/90 text-[15px] tracking-tight">Stax AI</span>
         </div>
         <button
           onClick={onToggleCollapse}
-          className="p-1.5 rounded-lg hover:bg-white/10 transition-colors"
+          className="p-2 rounded-lg hover:bg-white/[0.06] transition-colors"
         >
-          <PanelLeftClose className="w-4 h-4 text-white/50" />
+          <PanelLeftClose className="w-4 h-4 text-white/40" />
         </button>
       </div>
 
-      {/* Actions */}
-      <div className="p-2 space-y-1">
+      {/* New Chat Button */}
+      <div className="px-3 pb-2">
         <button
           onClick={onNewChat}
-          className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-white/80 hover:bg-white/10 transition-colors"
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] transition-all text-white/80 group"
         >
-          <MessageSquarePlus className="w-4 h-4" />
-          <span>New chat</span>
+          <MessageSquarePlus className="w-[18px] h-[18px] text-white/50 group-hover:text-white/70 transition-colors" />
+          <span className="text-[14px] font-medium">New chat</span>
         </button>
+      </div>
 
-        {/* Search */}
+      {/* Search */}
+      <div className="px-3 pb-3">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
           <Input
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search chats"
-            className="pl-9 h-9 bg-white/5 border-white/10 text-white/80 placeholder:text-white/40 text-sm rounded-lg"
+            placeholder="Search chats..."
+            className="pl-10 h-10 bg-white/[0.03] border-white/[0.06] text-white/80 placeholder:text-white/30 text-[14px] rounded-xl focus:bg-white/[0.05] focus:border-white/[0.1] transition-colors"
           />
         </div>
       </div>
 
-      {/* Projects Section */}
-      <div className="px-2 py-1">
-        <button
-          onClick={() => setProjectsExpanded(!projectsExpanded)}
-          className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium text-white/50 hover:bg-white/5 transition-colors uppercase tracking-wide"
-        >
-          <div className="flex items-center gap-2">
-            <FolderOpen className="w-3.5 h-3.5" />
-            <span>Projects</span>
-          </div>
-          <ChevronDown className={cn(
-            "w-3.5 h-3.5 transition-transform",
-            projectsExpanded ? "" : "-rotate-90"
-          )} />
-        </button>
-        
-        {projectsExpanded && (
-          <div className="mt-1 space-y-0.5">
-            {mockProjects.map(project => (
-              <button
-                key={project.id}
-                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-white/70 hover:bg-white/10 transition-colors"
-              >
-                <span className="text-base">{project.icon}</span>
-                <span className="truncate">{project.name}</span>
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
+      <div className="w-full h-px bg-white/[0.06]" />
 
-      {/* Your Chats */}
-      <div className="flex-1 flex flex-col min-h-0 px-2 py-1">
-        <div className="px-3 py-2 text-xs font-medium text-white/50 uppercase tracking-wide flex items-center gap-2">
-          <MessageCircle className="w-3.5 h-3.5" />
-          <span>Your chats</span>
-        </div>
-
-        <ScrollArea className="flex-1">
-          <div className="space-y-0.5 pr-2">
-            {filteredConversations.length === 0 ? (
-              <p className="px-3 py-4 text-sm text-white/40 text-center">
-                {searchQuery ? 'No chats found' : 'No chats yet'}
-              </p>
-            ) : (
-              filteredConversations.map(conversation => (
-                <button
-                  key={conversation.id}
-                  onClick={() => onSelectConversation(conversation.id)}
-                  className={cn(
-                    "w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm transition-colors text-left",
-                    activeConversationId === conversation.id
-                      ? "bg-white/15 text-white"
-                      : "text-white/70 hover:bg-white/10"
-                  )}
-                >
-                  <MessageCircle className="w-4 h-4 flex-shrink-0 opacity-60" />
-                  <div className="flex-1 min-w-0">
-                    <p className="truncate">{conversation.title}</p>
+      {/* Scrollable content area */}
+      <ScrollArea className="flex-1">
+        <div className="p-3 space-y-4">
+          {/* Projects Section */}
+          <div>
+            <button
+              onClick={() => setProjectsExpanded(!projectsExpanded)}
+              className="w-full flex items-center gap-2 px-2 py-2 text-[12px] font-medium text-white/40 hover:text-white/60 transition-colors uppercase tracking-wider"
+            >
+              {projectsExpanded ? (
+                <ChevronDown className="w-3.5 h-3.5" />
+              ) : (
+                <ChevronRight className="w-3.5 h-3.5" />
+              )}
+              <FolderOpen className="w-3.5 h-3.5" />
+              <span>Past projects</span>
+            </button>
+            
+            {projectsExpanded && (
+              <div className="mt-2 px-2">
+                {projects.length === 0 ? (
+                  <div className="py-6 text-center">
+                    <div className="w-10 h-10 rounded-xl bg-white/[0.04] flex items-center justify-center mx-auto mb-3">
+                      <FolderOpen className="w-5 h-5 text-white/20" />
+                    </div>
+                    <p className="text-[13px] text-white/30">Nothing to see here yet</p>
                   </div>
-                </button>
-              ))
+                ) : (
+                  <div className="space-y-1">
+                    {projects.map(project => (
+                      <button
+                        key={project.id}
+                        className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[14px] text-white/60 hover:bg-white/[0.06] hover:text-white/80 transition-colors"
+                      >
+                        <span className="truncate">{project.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             )}
           </div>
-        </ScrollArea>
-      </div>
 
-      {/* Footer - Usage/Credits */}
-      <div className="p-3 border-t border-white/5 space-y-2">
-        <div className="flex items-center justify-between text-xs">
-          <span className="text-white/50">Daily credits</span>
-          <span className="text-white/70 font-medium">12 / 25</span>
+          {/* Divider */}
+          <div className="w-full h-px bg-white/[0.06]" />
+
+          {/* Chat History */}
+          <div>
+            <div className="px-2 py-2 text-[12px] font-medium text-white/40 uppercase tracking-wider">
+              Chat history
+            </div>
+            
+            <div className="mt-2 px-2">
+              {filteredConversations.length === 0 ? (
+                <div className="py-6 text-center">
+                  <div className="w-10 h-10 rounded-xl bg-white/[0.04] flex items-center justify-center mx-auto mb-3">
+                    <MessageSquarePlus className="w-5 h-5 text-white/20" />
+                  </div>
+                  <p className="text-[13px] text-white/30">
+                    {searchQuery ? 'No chats found' : 'Nothing to see here yet'}
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  {filteredConversations.map(conversation => (
+                    <button
+                      key={conversation.id}
+                      onClick={() => onSelectConversation(conversation.id)}
+                      className={cn(
+                        "w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[14px] transition-colors text-left",
+                        activeConversationId === conversation.id
+                          ? "bg-white/[0.1] text-white"
+                          : "text-white/60 hover:bg-white/[0.06] hover:text-white/80"
+                      )}
+                    >
+                      <span className="truncate">{conversation.title}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
-        <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
+      </ScrollArea>
+
+      {/* Footer - Usage indicator */}
+      <div className="p-4 border-t border-white/[0.06]">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-[12px] text-white/40 font-medium">Credits remaining</span>
+          <span className="text-[12px] text-white/60 font-semibold">12 / 25</span>
+        </div>
+        <div className="h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
           <div 
-            className="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full" 
+            className="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full transition-all duration-500" 
             style={{ width: '48%' }}
           />
         </div>
-        <div className="flex items-center gap-1.5 text-xs text-white/40">
-          <Clock className="w-3 h-3" />
-          <span>Resets in 8h 24m</span>
-        </div>
+        <p className="mt-2 text-[11px] text-white/30">Resets in 8h 24m</p>
       </div>
     </div>
   );
