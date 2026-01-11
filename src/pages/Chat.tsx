@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Header } from "@/components/Header";
+import { ChatSidebar } from "@/components/ChatSidebar";
 import { useChat } from "@/hooks/useChat";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -57,6 +58,8 @@ export default function Chat() {
   const [input, setInput] = useState("");
   const [activeAction, setActiveAction] = useState<QuickAction>(null);
   const [formValues, setFormValues] = useState<Record<string, string>>({});
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [activeConversationId, setActiveConversationId] = useState<string | undefined>();
   const formRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -114,6 +117,16 @@ export default function Chat() {
     setFormValues({});
   };
 
+  const handleNewChat = () => {
+    setActiveConversationId(undefined);
+    // Reset chat state here if needed
+  };
+
+  const handleSelectConversation = (id: string) => {
+    setActiveConversationId(id);
+    // Load conversation messages here
+  };
+
   const hasMessages = messages.length > 0;
 
   return (
@@ -127,7 +140,19 @@ export default function Chat() {
       
       <Header />
       
-      <main className="flex-1 flex flex-col relative z-10">
+      <div className="flex-1 flex relative z-10">
+        {/* Sidebar */}
+        <ChatSidebar
+          conversations={[]}
+          activeConversationId={activeConversationId}
+          onNewChat={handleNewChat}
+          onSelectConversation={handleSelectConversation}
+          isCollapsed={sidebarCollapsed}
+          onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+        />
+
+        {/* Main content */}
+        <main className="flex-1 flex flex-col">
         {hasMessages ? (
           <div className="flex-1 flex flex-col max-w-3xl mx-auto w-full">
             <ScrollArea className="flex-1 px-4 py-6" ref={scrollRef}>
@@ -373,7 +398,8 @@ export default function Chat() {
             </div>
           </div>
         )}
-      </main>
+        </main>
+      </div>
     </div>
   );
 }
