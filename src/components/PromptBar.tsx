@@ -1,6 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
+import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, horizontalListSortingStrategy } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { useDroppable } from '@dnd-kit/core';
-import { X, Image, Sparkles, Plus, Minus, Palette, ChevronDown, Check, ChevronUp, Pencil, AlertTriangle } from 'lucide-react';
+import { X, Image, Sparkles, Plus, Minus, Palette, ChevronDown, Check, ChevronUp, Pencil, AlertTriangle, GripVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
@@ -33,6 +36,7 @@ interface PromptBarProps {
   selectedPhotos: MenuPhoto[];
   onRemovePhoto: (id: string) => void;
   onAddExternalPhoto?: (photo: MenuPhoto) => void;
+  onReorderPhotos?: (photos: MenuPhoto[]) => void;
   onGenerate: (prompt: string, styleId?: string, styleSnapshot?: StyleSnapshot) => void;
   isGenerating: boolean;
   ratio: string;
@@ -47,6 +51,60 @@ interface PromptBarProps {
   selectedStyleId: string | null;
   setSelectedStyleId: (id: string | null) => void;
 }
+
+// Sortable photo item component
+interface SortablePhotoItemProps {
+  photo: MenuPhoto;
+  onRemove: (id: string) => void;
+  onDoubleClick: (photo: MenuPhoto) => void;
+}
+
+const SortablePhotoItem: React.FC<SortablePhotoItemProps> = ({ photo, onRemove, onDoubleClick }) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: photo.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 10 : 0,
+    opacity: isDragging ? 0.8 : 1,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`relative group cursor-grab active:cursor-grabbing ${isDragging ? 'scale-105' : ''}`}
+      {...attributes}
+      {...listeners}
+      onDoubleClick={() => onDoubleClick(photo)}
+    >
+      <img
+        src={photo.thumbnailSrc || photo.src}
+        alt={photo.name}
+        className="w-14 h-14 rounded-xl object-cover border border-border/50 pointer-events-none"
+        draggable={false}
+      />
+      <div className="absolute inset-0 rounded-xl bg-black/0 group-hover:bg-black/10 transition-colors" />
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          onRemove(photo.id);
+        }}
+        onPointerDown={(e) => e.stopPropagation()}
+        className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+      >
+        <X className="w-3 h-3" />
+      </button>
+    </div>
+  );
+};
 
 // Aspect ratio shapes - consistent simple rectangles
 const ratioShapes: Record<string, { w: number; h: number }> = {
@@ -81,6 +139,7 @@ export const PromptBar: React.FC<PromptBarProps> = ({
   selectedPhotos,
   onRemovePhoto,
   onAddExternalPhoto,
+  onReorderPhotos,
   onGenerate,
   isGenerating,
   ratio,
@@ -104,7 +163,31 @@ export const PromptBar: React.FC<PromptBarProps> = ({
   const [styleOpen, setStyleOpen] = useState(false);
   const [isStyleDragOver, setIsStyleDragOver] = useState(false);
   const [isPhotoDragOver, setIsPhotoDragOver] = useState(false);
+  const [lightboxPhoto, setLightboxPhoto] = useState<MenuPhoto | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // DnD sensors for photo reordering
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    
+    if (over && active.id !== over.id && onReorderPhotos) {
+      const oldIndex = selectedPhotos.findIndex((p) => p.id === active.id);
+      const newIndex = selectedPhotos.findIndex((p) => p.id === over.id);
+      const newPhotos = arrayMove(selectedPhotos, oldIndex, newIndex);
+      onReorderPhotos(newPhotos);
+    }
+  };
 
   const { data: styles = [], isLoading: stylesLoading } = useActiveStyles();
 
@@ -264,24 +347,28 @@ export const PromptBar: React.FC<PromptBarProps> = ({
         >
           {/* Left side: Content */}
           <div className="flex-1 flex flex-col">
-            {/* Row 1: Selected Photos */}
+            {/* Row 1: Selected Photos with drag-and-drop reordering */}
             {selectedPhotos.length > 0 && (
               <div className="flex items-center gap-2 px-5 pt-4 pb-2 flex-wrap">
-                {selectedPhotos.map((photo) => (
-                  <div key={photo.id} className="relative group">
-                    <img
-                      src={photo.thumbnailSrc || photo.src}
-                      alt={photo.name}
-                      className="w-14 h-14 rounded-xl object-cover border border-border/50"
-                    />
-                    <button
-                      onClick={() => onRemovePhoto(photo.id)}
-                      className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </div>
-                ))}
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={handleDragEnd}
+                >
+                  <SortableContext
+                    items={selectedPhotos.map(p => p.id)}
+                    strategy={horizontalListSortingStrategy}
+                  >
+                    {selectedPhotos.map((photo) => (
+                      <SortablePhotoItem
+                        key={photo.id}
+                        photo={photo}
+                        onRemove={onRemovePhoto}
+                        onDoubleClick={setLightboxPhoto}
+                      />
+                    ))}
+                  </SortableContext>
+                </DndContext>
                 {/* Add more photos hint - only show if under limit */}
                 {selectedPhotos.length < 8 && (
                   <button
@@ -548,6 +635,25 @@ export const PromptBar: React.FC<PromptBarProps> = ({
         <DialogContent className="max-w-3xl p-0 bg-transparent border-0">
           {styleGuideUrl && (
             <img src={styleGuideUrl} alt="Style guide" className="w-full rounded-lg" />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Photo Lightbox - opens on double-click */}
+      <Dialog open={!!lightboxPhoto} onOpenChange={(open) => !open && setLightboxPhoto(null)}>
+        <DialogContent className="max-w-4xl p-2 bg-background/95 backdrop-blur-xl">
+          {lightboxPhoto && (
+            <div className="flex flex-col gap-3">
+              <img 
+                src={lightboxPhoto.src} 
+                alt={lightboxPhoto.name} 
+                className="w-full max-h-[75vh] object-contain rounded-lg"
+              />
+              <div className="text-center">
+                <p className="font-medium text-foreground">{lightboxPhoto.name}</p>
+                <p className="text-sm text-muted-foreground">{lightboxPhoto.category}</p>
+              </div>
+            </div>
           )}
         </DialogContent>
       </Dialog>
