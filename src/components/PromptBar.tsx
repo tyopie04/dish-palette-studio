@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useDroppable } from '@dnd-kit/core';
-import { X, Image, Sparkles, Plus, Minus, Palette, ChevronDown, Check, ChevronUp, Pencil } from 'lucide-react';
+import { X, Image, Sparkles, Plus, Minus, Palette, ChevronDown, Check, ChevronUp, Pencil, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
@@ -8,6 +8,12 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useActiveStyles, ActiveStyle } from '@/hooks/useActiveStyles';
 import { cn } from '@/lib/utils';
+
+// Default fallback style when no styles are active or selected
+const FALLBACK_STYLE = {
+  name: 'Default Style',
+  prompt_modifier: 'Professional food photography, high-quality commercial style, appetizing presentation with perfect lighting and natural colors.',
+};
 
 interface MenuPhoto {
   id: string;
@@ -104,17 +110,25 @@ export const PromptBar: React.FC<PromptBarProps> = ({
   }, {} as Record<string, ActiveStyle[]>);
 
   const selectedStyle = styles.find(s => s.id === selectedStyleId);
+  
+  // Determine if we're using fallback (no styles available or none selected)
+  const hasNoStyles = !stylesLoading && styles.length === 0;
+  const usingFallback = hasNoStyles || (!selectedStyleId && !stylesLoading);
+  const effectiveStyle = selectedStyle || (usingFallback ? FALLBACK_STYLE : null);
 
   // Update style snippet when selected style changes
   useEffect(() => {
     if (selectedStyle) {
       setStyleSnippet(selectedStyle.prompt_modifier);
       setStyleSnippetExpanded(true);
+    } else if (usingFallback) {
+      setStyleSnippet(FALLBACK_STYLE.prompt_modifier);
+      setStyleSnippetExpanded(false);
     } else {
       setStyleSnippet('');
       setStyleSnippetExpanded(false);
     }
-  }, [selectedStyleId, selectedStyle]);
+  }, [selectedStyleId, selectedStyle, usingFallback]);
 
   const handleStyleDrop = (e: React.DragEvent) => {
     e.preventDefault();
@@ -145,9 +159,10 @@ export const PromptBar: React.FC<PromptBarProps> = ({
 
   const handleGenerate = () => {
     if (prompt.trim() || selectedPhotos.length > 0 || styleSnippet.trim()) {
-      // Combine user prompt with style snippet
+      // Combine user prompt with style snippet (including fallback)
+      const styleName = effectiveStyle?.name || 'Default';
       const fullPrompt = styleSnippet.trim() 
-        ? `${prompt.trim()}${prompt.trim() ? '\n\n' : ''}[Style: ${selectedStyle?.name || 'Custom'}]\n${styleSnippet.trim()}`
+        ? `${prompt.trim()}${prompt.trim() ? '\n\n' : ''}[Style: ${styleName}]\n${styleSnippet.trim()}`
         : prompt.trim();
       onGenerate(fullPrompt, selectedStyleId || undefined);
     }
@@ -231,6 +246,51 @@ export const PromptBar: React.FC<PromptBarProps> = ({
                 }}
               />
             </div>
+
+            {/* Fallback Style Warning */}
+            {usingFallback && !selectedStyle && (
+              <div className="px-5 pb-2">
+                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400">
+                  <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium">
+                      {hasNoStyles ? 'No styles available' : 'No style selected'}
+                    </p>
+                    <p className="text-[10px] opacity-80">
+                      Using default style: {FALLBACK_STYLE.name}
+                    </p>
+                  </div>
+                  <Collapsible open={styleSnippetExpanded} onOpenChange={setStyleSnippetExpanded}>
+                    <CollapsibleTrigger asChild>
+                      <button className="text-[10px] underline hover:no-underline">
+                        {styleSnippetExpanded ? 'Hide' : 'View'}
+                      </button>
+                    </CollapsibleTrigger>
+                  </Collapsible>
+                </div>
+                <Collapsible open={styleSnippetExpanded} onOpenChange={setStyleSnippetExpanded}>
+                  <CollapsibleContent>
+                    <div className="mt-2 relative">
+                      <textarea
+                        value={styleSnippet}
+                        onChange={(e) => setStyleSnippet(e.target.value)}
+                        placeholder="Style instructions..."
+                        className="w-full bg-amber-500/5 border border-amber-500/20 rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/60 resize-none focus:outline-none focus:ring-1 focus:ring-amber-500/50 min-h-[60px]"
+                        rows={2}
+                      />
+                      <div className="absolute bottom-2 right-2">
+                        <button
+                          onClick={() => setStyleSnippet(FALLBACK_STYLE.prompt_modifier)}
+                          className="text-[10px] text-muted-foreground hover:text-foreground px-1.5 py-0.5 rounded bg-muted/50 hover:bg-muted transition-colors"
+                        >
+                          Reset
+                        </button>
+                      </div>
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
+              </div>
+            )}
 
             {/* Style Snippet Section - shown when a style is selected */}
             {selectedStyle && (
