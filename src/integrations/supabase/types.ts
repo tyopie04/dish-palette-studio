@@ -50,6 +50,8 @@ export type Database = {
           prompt: string | null
           ratio: string | null
           resolution: string | null
+          style_id: string | null
+          style_snapshot: Json | null
           user_id: string
         }
         Insert: {
@@ -60,6 +62,8 @@ export type Database = {
           prompt?: string | null
           ratio?: string | null
           resolution?: string | null
+          style_id?: string | null
+          style_snapshot?: Json | null
           user_id: string
         }
         Update: {
@@ -70,6 +74,8 @@ export type Database = {
           prompt?: string | null
           ratio?: string | null
           resolution?: string | null
+          style_id?: string | null
+          style_snapshot?: Json | null
           user_id?: string
         }
         Relationships: [
@@ -78,6 +84,13 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "generations_style_id_fkey"
+            columns: ["style_id"]
+            isOneToOne: false
+            referencedRelation: "styles"
             referencedColumns: ["id"]
           },
         ]

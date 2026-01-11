@@ -17,7 +17,7 @@ import { ImageLightbox } from "@/components/ImageLightbox";
 import { ImageEditDialog } from "@/components/ImageEditDialog";
 import { MenuPhoto } from "@/components/PhotoCard";
 import { useMenuPhotos, MenuPhoto as StoredMenuPhoto } from "@/hooks/useMenuPhotos";
-import { useGenerations, GenerationEntry } from "@/hooks/useGenerations";
+import { useGenerations, GenerationEntry, StyleSnapshot } from "@/hooks/useGenerations";
 import { useDefaultSettings } from "@/hooks/useDefaultSettings";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -184,8 +184,8 @@ const Index = () => {
     return [];
   };
 
-  const handleGenerate = useCallback(async (prompt: string, styleId?: string) => {
-    console.log('[GENERATE] Starting generation with', selectedPhotos.length, 'photos, styleId:', styleId);
+  const handleGenerate = useCallback(async (prompt: string, styleId?: string, styleSnapshot?: StyleSnapshot) => {
+    console.log('[GENERATE] Starting generation with', selectedPhotos.length, 'photos, styleId:', styleId, 'styleSnapshot:', styleSnapshot?.name);
     
     // Set generating flag to prevent fetchGenerations from running
     setIsGenerating(true);
@@ -252,7 +252,7 @@ const Index = () => {
           const tempId = loadingIds[index];
           console.log('[GENERATE] Updating entry', tempId, 'with image of length', image?.length);
           if (tempId && image) {
-            updateEntryWithImage(tempId, image, { prompt, ratio: selectedRatio, resolution: selectedResolution });
+            updateEntryWithImage(tempId, image, { prompt, ratio: selectedRatio, resolution: selectedResolution, styleId, styleSnapshot });
           } else {
             console.error('[GENERATE] Missing tempId or image:', { tempId, hasImage: !!image });
           }

@@ -23,10 +23,16 @@ interface MenuPhoto {
   thumbnailSrc?: string;
 }
 
+export interface StyleSnapshot {
+  id?: string;
+  name: string;
+  prompt_modifier: string;
+}
+
 interface PromptBarProps {
   selectedPhotos: MenuPhoto[];
   onRemovePhoto: (id: string) => void;
-  onGenerate: (prompt: string, styleId?: string) => void;
+  onGenerate: (prompt: string, styleId?: string, styleSnapshot?: StyleSnapshot) => void;
   isGenerating: boolean;
   ratio: string;
   setRatio: (ratio: string) => void;
@@ -164,7 +170,15 @@ export const PromptBar: React.FC<PromptBarProps> = ({
       const fullPrompt = styleSnippet.trim() 
         ? `${prompt.trim()}${prompt.trim() ? '\n\n' : ''}[Style: ${styleName}]\n${styleSnippet.trim()}`
         : prompt.trim();
-      onGenerate(fullPrompt, selectedStyleId || undefined);
+      
+      // Create style snapshot for auditability
+      const snapshot: StyleSnapshot | undefined = styleSnippet.trim() ? {
+        id: selectedStyleId || undefined,
+        name: styleName,
+        prompt_modifier: styleSnippet.trim(),
+      } : undefined;
+      
+      onGenerate(fullPrompt, selectedStyleId || undefined, snapshot);
     }
   };
 
