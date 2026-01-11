@@ -661,6 +661,7 @@ const Index = () => {
                     selectedPhotos={selectedPhotos}
                     onRemovePhoto={handleRemovePhoto}
                     onAddExternalPhoto={handleAddExternalPhoto}
+                    onReorderPhotos={setSelectedPhotos}
                     onGenerate={handleGenerate}
                     isGenerating={isGenerating}
                     ratio={selectedRatio}
