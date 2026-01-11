@@ -404,7 +404,33 @@ export const PromptBar: React.FC<PromptBarProps> = ({
               />
             </div>
 
-            {/* Style indicator removed - only ring on button shows selection */}
+            {/* Selected Style Indicator - always visible */}
+            {selectedStyle && (
+              <div className="flex items-center gap-2 px-5 pb-2">
+                <button
+                  onClick={() => setStyleOpen(true)}
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/30 hover:bg-primary/20 transition-colors"
+                >
+                  {selectedStyle.thumbnail_url ? (
+                    <img 
+                      src={selectedStyle.thumbnail_url} 
+                      alt={selectedStyle.name}
+                      className="w-5 h-5 rounded object-cover"
+                    />
+                  ) : (
+                    <Palette className="w-4 h-4 text-primary" />
+                  )}
+                  <span className="text-sm font-medium text-primary">{selectedStyle.name}</span>
+                  <X 
+                    className="w-3.5 h-3.5 text-primary/70 hover:text-primary ml-1"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedStyleId(null);
+                    }}
+                  />
+                </button>
+              </div>
+            )}
 
             {/* Row 3: Controls */}
             <div className="flex items-center gap-1 px-4 pb-4">
@@ -480,7 +506,7 @@ export const PromptBar: React.FC<PromptBarProps> = ({
                 </PopoverContent>
               </Popover>
 
-              {/* Style Selector */}
+              {/* Style Selector - Visual Gallery */}
               <Popover open={styleOpen} onOpenChange={setStyleOpen}>
                 <PopoverTrigger asChild>
                   <Button 
@@ -488,88 +514,119 @@ export const PromptBar: React.FC<PromptBarProps> = ({
                     size="sm" 
                     className={cn(
                       "h-9 px-3 gap-2 rounded-full border-border/50 bg-muted/30 hover:bg-muted/50",
-                      selectedStyle && "border-primary/50"
+                      selectedStyle && "border-primary/50 bg-primary/5"
                     )}
                   >
-                    <Palette className="w-4 h-4" />
-                    <span className="text-sm font-medium max-w-[80px] truncate">
-                      {selectedStyle?.name || 'Style'}
+                    {selectedStyle?.thumbnail_url ? (
+                      <img 
+                        src={selectedStyle.thumbnail_url} 
+                        alt={selectedStyle.name}
+                        className="w-5 h-5 rounded object-cover"
+                      />
+                    ) : (
+                      <Palette className="w-4 h-4" />
+                    )}
+                    <span className="text-sm font-medium max-w-[100px] truncate">
+                      {selectedStyle?.name || 'Choose Style'}
                     </span>
                     <ChevronDown className="w-3 h-3 opacity-50" />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-[340px] p-3 bg-popover max-h-96 overflow-y-auto" align="start">
+                <PopoverContent 
+                  className="w-[420px] p-2 bg-popover/95 backdrop-blur-xl border-border/50 shadow-2xl max-h-[480px] overflow-y-auto" 
+                  align="start"
+                  sideOffset={8}
+                >
                   {stylesLoading ? (
-                    <div className="p-4 text-center text-sm text-muted-foreground">Loading styles...</div>
+                    <div className="p-8 text-center text-sm text-muted-foreground">Loading styles...</div>
                   ) : styles.length === 0 ? (
-                    <div className="p-4 text-center text-sm text-muted-foreground">No styles available</div>
+                    <div className="p-8 text-center text-sm text-muted-foreground">No styles available</div>
                   ) : (
-                    <div className="space-y-4">
-                      {/* None option + first category grid */}
-                      <div className="grid grid-cols-3 gap-2">
-                        {/* No Style tile */}
+                    <div className="grid grid-cols-3 gap-1.5">
+                      {/* No Style tile */}
+                      <button
+                        onClick={() => {
+                          setSelectedStyleId(null);
+                          setStyleOpen(false);
+                        }}
+                        className={cn(
+                          "group relative aspect-square rounded-xl overflow-hidden transition-all duration-200",
+                          "hover:scale-[1.02] hover:shadow-lg focus:outline-none",
+                          !selectedStyleId 
+                            ? "ring-3 ring-primary shadow-lg shadow-primary/25" 
+                            : "hover:ring-2 hover:ring-border"
+                        )}
+                      >
+                        <div className="absolute inset-0 bg-muted/80 flex items-center justify-center">
+                          <div className="flex flex-col items-center gap-2">
+                            <div className="w-12 h-12 rounded-full border-2 border-dashed border-muted-foreground/50 flex items-center justify-center">
+                              <X className="w-5 h-5 text-muted-foreground" />
+                            </div>
+                          </div>
+                        </div>
+                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-2 pt-6">
+                          <p className="text-xs font-semibold text-white truncate">No Style</p>
+                        </div>
+                        {!selectedStyleId && (
+                          <div className="absolute top-2 left-2 w-6 h-6 bg-primary rounded-full flex items-center justify-center shadow-lg">
+                            <Check className="w-3.5 h-3.5 text-primary-foreground" />
+                          </div>
+                        )}
+                      </button>
+
+                      {/* All styles in unified grid */}
+                      {styles.map((style) => (
                         <button
+                          key={style.id}
                           onClick={() => {
-                            setSelectedStyleId(null);
+                            setSelectedStyleId(style.id);
                             setStyleOpen(false);
                           }}
                           className={cn(
-                            "flex flex-col items-center gap-1.5 p-2 rounded-xl transition-all",
-                            "hover:bg-muted/50 focus:outline-none",
-                            !selectedStyleId && "ring-2 ring-primary bg-primary/10"
+                            "group relative aspect-square rounded-xl overflow-hidden transition-all duration-200",
+                            "hover:scale-[1.02] hover:shadow-lg focus:outline-none",
+                            selectedStyleId === style.id 
+                              ? "ring-3 ring-primary shadow-lg shadow-primary/25" 
+                              : "hover:ring-2 hover:ring-border"
                           )}
                         >
-                          <div className="w-20 h-20 rounded-lg bg-muted/50 border-2 border-dashed border-border flex items-center justify-center">
-                            <X className="w-6 h-6 text-muted-foreground" />
+                          {style.thumbnail_url ? (
+                            <img 
+                              src={style.thumbnail_url} 
+                              alt={style.name}
+                              className="absolute inset-0 w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="absolute inset-0 bg-gradient-to-br from-muted to-muted/50 flex items-center justify-center">
+                              <Palette className="w-10 h-10 text-muted-foreground/50" />
+                            </div>
+                          )}
+                          
+                          {/* Gradient overlay with name */}
+                          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-2 pt-8">
+                            <p className="text-xs font-semibold text-white truncate">{style.name}</p>
+                            {style.category && (
+                              <p className="text-[10px] text-white/60 truncate">{style.category}</p>
+                            )}
                           </div>
-                          <span className="text-xs font-medium text-center truncate w-full">No Style</span>
+
+                          {/* Hover overlay */}
+                          <div className="absolute inset-0 bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+
+                          {/* Selection indicator */}
+                          {selectedStyleId === style.id && (
+                            <div className="absolute top-2 left-2 w-6 h-6 bg-primary rounded-full flex items-center justify-center shadow-lg">
+                              <Check className="w-3.5 h-3.5 text-primary-foreground" />
+                            </div>
+                          )}
+
+                          {/* Default badge */}
+                          {style.is_default && (
+                            <div className="absolute top-2 right-2 text-[9px] font-medium bg-black/60 text-white px-1.5 py-0.5 rounded-full backdrop-blur-sm">
+                              Default
+                            </div>
+                          )}
                         </button>
-                      </div>
-                      
-                      {/* Styles grouped by category */}
-                      {Object.entries(stylesByCategory).map(([category, categoryStyles]) => (
-                        <div key={category}>
-                          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-1 mb-2">{category}</p>
-                          <div className="grid grid-cols-3 gap-2">
-                            {categoryStyles.map((style) => (
-                              <button
-                                key={style.id}
-                                onClick={() => {
-                                  setSelectedStyleId(style.id);
-                                  setStyleOpen(false);
-                                }}
-                                className={cn(
-                                  "flex flex-col items-center gap-1.5 p-2 rounded-xl transition-all relative",
-                                  "hover:bg-muted/50 focus:outline-none",
-                                  selectedStyleId === style.id && "ring-2 ring-primary bg-primary/10"
-                                )}
-                              >
-                                {style.thumbnail_url ? (
-                                  <img 
-                                    src={style.thumbnail_url} 
-                                    alt={style.name} 
-                                    className="w-20 h-20 rounded-lg object-cover"
-                                  />
-                                ) : (
-                                  <div className="w-20 h-20 rounded-lg bg-muted/50 flex items-center justify-center">
-                                    <Palette className="w-6 h-6 text-muted-foreground" />
-                                  </div>
-                                )}
-                                <span className="text-xs font-medium text-center truncate w-full">{style.name}</span>
-                                {style.is_default && (
-                                  <span className="absolute top-1 right-1 text-[9px] bg-primary text-primary-foreground px-1.5 py-0.5 rounded-full">
-                                    Default
-                                  </span>
-                                )}
-                                {selectedStyleId === style.id && (
-                                  <div className="absolute top-1 left-1 w-5 h-5 bg-primary rounded-full flex items-center justify-center">
-                                    <Check className="w-3 h-3 text-primary-foreground" />
-                                  </div>
-                                )}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
                       ))}
                     </div>
                   )}
