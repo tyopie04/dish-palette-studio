@@ -2,6 +2,12 @@ import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
+export interface StyleSnapshot {
+  id?: string;
+  name: string;
+  prompt_modifier: string;
+}
+
 export interface GenerationEntry {
   id: string;
   images: string[];
@@ -10,6 +16,8 @@ export interface GenerationEntry {
   prompt?: string;
   ratio?: string;
   resolution?: string;
+  styleId?: string;
+  styleSnapshot?: StyleSnapshot;
 }
 
 export const useGenerations = () => {
@@ -136,7 +144,7 @@ export const useGenerations = () => {
     return ids;
   }, []);
 
-  const updateEntryWithImage = useCallback(async (tempId: string, image: string, metadata?: { prompt?: string; ratio?: string; resolution?: string }) => {
+  const updateEntryWithImage = useCallback(async (tempId: string, image: string, metadata?: { prompt?: string; ratio?: string; resolution?: string; styleId?: string; styleSnapshot?: StyleSnapshot }) => {
     console.log('[GENERATIONS] ============ updateEntryWithImage START ============');
     console.log('[GENERATIONS] Step 0: Called with tempId:', tempId);
     console.log('[GENERATIONS] Step 0: Image length:', image?.length);
@@ -236,6 +244,12 @@ export const useGenerations = () => {
           prompt: metadata?.prompt,
           ratio: metadata?.ratio,
           resolution: metadata?.resolution,
+          style_id: metadata?.styleId || null,
+          style_snapshot: metadata?.styleSnapshot ? {
+            id: metadata.styleSnapshot.id,
+            name: metadata.styleSnapshot.name,
+            prompt_modifier: metadata.styleSnapshot.prompt_modifier,
+          } : null,
         })
         .select()
         .single();
