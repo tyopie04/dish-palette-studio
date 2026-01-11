@@ -126,7 +126,7 @@ export const PromptBar: React.FC<PromptBarProps> = ({
   useEffect(() => {
     if (selectedStyle) {
       setStyleSnippet(selectedStyle.prompt_modifier);
-      setStyleSnippetExpanded(true);
+      setStyleSnippetExpanded(false); // Keep collapsed by default
     } else if (usingFallback) {
       setStyleSnippet(FALLBACK_STYLE.prompt_modifier);
       setStyleSnippetExpanded(false);
