@@ -32,6 +32,7 @@ export interface StyleSnapshot {
 interface PromptBarProps {
   selectedPhotos: MenuPhoto[];
   onRemovePhoto: (id: string) => void;
+  onAddExternalPhoto?: (photo: MenuPhoto) => void;
   onGenerate: (prompt: string, styleId?: string, styleSnapshot?: StyleSnapshot) => void;
   isGenerating: boolean;
   ratio: string;
@@ -79,6 +80,7 @@ const resolutionOptions = [
 export const PromptBar: React.FC<PromptBarProps> = ({
   selectedPhotos,
   onRemovePhoto,
+  onAddExternalPhoto,
   onGenerate,
   isGenerating,
   ratio,
@@ -101,6 +103,7 @@ export const PromptBar: React.FC<PromptBarProps> = ({
   const [resolutionOpen, setResolutionOpen] = useState(false);
   const [styleOpen, setStyleOpen] = useState(false);
   const [isStyleDragOver, setIsStyleDragOver] = useState(false);
+  const [isPhotoDragOver, setIsPhotoDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: styles = [], isLoading: stylesLoading } = useActiveStyles();
@@ -163,6 +166,56 @@ export const PromptBar: React.FC<PromptBarProps> = ({
     setIsStyleDragOver(false);
   };
 
+  // Handle external photo drop into the prompt bar
+  const handlePhotoDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsPhotoDragOver(false);
+    
+    if (!onAddExternalPhoto) return;
+    
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+      const maxPhotos = 8;
+      const availableSlots = maxPhotos - selectedPhotos.length;
+      
+      if (availableSlots <= 0) {
+        return;
+      }
+      
+      const filesToProcess = Array.from(files).slice(0, availableSlots);
+      
+      filesToProcess.forEach((file) => {
+        if (file.type.startsWith('image/')) {
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            const dataUrl = event.target?.result as string;
+            const photo: MenuPhoto = {
+              id: `external-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+              name: file.name.replace(/\.[^/.]+$/, ''),
+              src: dataUrl,
+              category: 'External',
+            };
+            onAddExternalPhoto(photo);
+          };
+          reader.readAsDataURL(file);
+        }
+      });
+    }
+  };
+
+  const handlePhotoDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsPhotoDragOver(true);
+  };
+
+  const handlePhotoDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsPhotoDragOver(false);
+  };
+
   const handleGenerate = () => {
     if (prompt.trim() || selectedPhotos.length > 0 || styleSnippet.trim()) {
       // Combine user prompt with style snippet (including fallback)
@@ -202,8 +255,11 @@ export const PromptBar: React.FC<PromptBarProps> = ({
         {/* Main Prompt Container */}
         <div
           ref={setNodeRef}
+          onDrop={handlePhotoDrop}
+          onDragOver={handlePhotoDragOver}
+          onDragLeave={handlePhotoDragLeave}
           className={`max-w-6xl w-full bg-card/95 backdrop-blur-xl border border-border/50 rounded-3xl shadow-2xl transition-all duration-200 flex ${
-            isOver ? 'ring-2 ring-primary scale-[1.02]' : ''
+            isOver || isPhotoDragOver ? 'ring-2 ring-primary scale-[1.02]' : ''
           }`}
         >
           {/* Left side: Content */}

@@ -173,6 +173,17 @@ const Index = () => {
     }
   }, [selectedPhotos]);
 
+  const handleAddExternalPhoto = useCallback((photo: MenuPhoto) => {
+    if (selectedPhotos.length >= MAX_SELECTED_PHOTOS) {
+      toast.error("Maximum 8 photos allowed");
+      return;
+    }
+    if (!selectedPhotos.find((p) => p.id === photo.id)) {
+      setSelectedPhotos((prev) => [...prev, photo]);
+      toast.success(`Added ${photo.name} to prompt`);
+    }
+  }, [selectedPhotos]);
+
   const handleRemovePhoto = useCallback((id: string) => {
     setSelectedPhotos((prev) => prev.filter((p) => p.id !== id));
   }, []);
@@ -649,6 +660,7 @@ const Index = () => {
                   <PromptBar
                     selectedPhotos={selectedPhotos}
                     onRemovePhoto={handleRemovePhoto}
+                    onAddExternalPhoto={handleAddExternalPhoto}
                     onGenerate={handleGenerate}
                     isGenerating={isGenerating}
                     ratio={selectedRatio}
