@@ -1,11 +1,13 @@
 import React, { useState, useRef } from 'react';
 import { useDroppable } from '@dnd-kit/core';
-import { X, Image, Sparkles, Plus, Minus, Upload } from 'lucide-react';
+import { X, Image, Sparkles, Plus, Minus, Palette, ChevronDown, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { useActiveStyles, ActiveStyle } from '@/hooks/useActiveStyles';
+import { cn } from '@/lib/utils';
+
 interface MenuPhoto {
   id: string;
   name: string;
@@ -17,7 +19,7 @@ interface MenuPhoto {
 interface PromptBarProps {
   selectedPhotos: MenuPhoto[];
   onRemovePhoto: (id: string) => void;
-  onGenerate: (prompt: string) => void;
+  onGenerate: (prompt: string, styleId?: string) => void;
   isGenerating: boolean;
   ratio: string;
   setRatio: (ratio: string) => void;
@@ -28,6 +30,8 @@ interface PromptBarProps {
   styleGuideUrl: string | null;
   setStyleGuideUrl: (url: string | null) => void;
   loadingCount?: number;
+  selectedStyleId: string | null;
+  setSelectedStyleId: (id: string | null) => void;
 }
 
 // Aspect ratio shapes - consistent simple rectangles
@@ -73,16 +77,30 @@ export const PromptBar: React.FC<PromptBarProps> = ({
   styleGuideUrl,
   setStyleGuideUrl,
   loadingCount = 0,
+  selectedStyleId,
+  setSelectedStyleId,
 }) => {
   const [prompt, setPrompt] = useState('');
   const [styleGuideLightboxOpen, setStyleGuideLightboxOpen] = useState(false);
   const [ratioOpen, setRatioOpen] = useState(false);
   const [resolutionOpen, setResolutionOpen] = useState(false);
-  const [styleGuideOpen, setStyleGuideOpen] = useState(false);
+  const [styleOpen, setStyleOpen] = useState(false);
   const [isStyleDragOver, setIsStyleDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const { data: styles = [], isLoading: stylesLoading } = useActiveStyles();
+
   const { setNodeRef, isOver } = useDroppable({ id: 'prompt-bar-drop' });
+
+  // Group styles by category
+  const stylesByCategory = styles.reduce((acc, style) => {
+    const cat = style.category || 'Other';
+    if (!acc[cat]) acc[cat] = [];
+    acc[cat].push(style);
+    return acc;
+  }, {} as Record<string, ActiveStyle[]>);
+
+  const selectedStyle = styles.find(s => s.id === selectedStyleId);
 
   const handleStyleDrop = (e: React.DragEvent) => {
     e.preventDefault();
@@ -113,7 +131,7 @@ export const PromptBar: React.FC<PromptBarProps> = ({
 
   const handleGenerate = () => {
     if (prompt.trim() || selectedPhotos.length > 0) {
-      onGenerate(prompt);
+      onGenerate(prompt, selectedStyleId || undefined);
     }
   };
 
@@ -267,6 +285,105 @@ export const PromptBar: React.FC<PromptBarProps> = ({
                       </button>
                     ))}
                   </div>
+                </PopoverContent>
+              </Popover>
+
+              {/* Style Selector */}
+              <Popover open={styleOpen} onOpenChange={setStyleOpen}>
+                <PopoverTrigger asChild>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className={cn(
+                      "h-9 px-3 gap-2 rounded-full border-border/50 bg-muted/30 hover:bg-muted/50",
+                      selectedStyle && "border-primary/50"
+                    )}
+                  >
+                    <Palette className="w-4 h-4" />
+                    <span className="text-sm font-medium max-w-[80px] truncate">
+                      {selectedStyle?.name || 'Style'}
+                    </span>
+                    <ChevronDown className="w-3 h-3 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-72 p-2 bg-popover max-h-80 overflow-y-auto" align="start">
+                  {stylesLoading ? (
+                    <div className="p-4 text-center text-sm text-muted-foreground">Loading styles...</div>
+                  ) : styles.length === 0 ? (
+                    <div className="p-4 text-center text-sm text-muted-foreground">No styles available</div>
+                  ) : (
+                    <div className="space-y-3">
+                      {/* None option */}
+                      <button
+                        onClick={() => {
+                          setSelectedStyleId(null);
+                          setStyleOpen(false);
+                        }}
+                        className={cn(
+                          "w-full flex items-center gap-3 p-2 rounded-lg transition-colors text-left",
+                          !selectedStyleId ? "bg-primary text-primary-foreground" : "hover:bg-muted"
+                        )}
+                      >
+                        <div className="w-8 h-8 rounded-md bg-muted/50 flex items-center justify-center">
+                          <X className="w-4 h-4" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium">No Style</p>
+                          <p className="text-xs opacity-70">Use default generation</p>
+                        </div>
+                      </button>
+                      
+                      {/* Styles grouped by category */}
+                      {Object.entries(stylesByCategory).map(([category, categoryStyles]) => (
+                        <div key={category}>
+                          <p className="text-xs font-medium text-muted-foreground px-2 py-1">{category}</p>
+                          <div className="space-y-0.5">
+                            {categoryStyles.map((style) => (
+                              <button
+                                key={style.id}
+                                onClick={() => {
+                                  setSelectedStyleId(style.id);
+                                  setStyleOpen(false);
+                                }}
+                                className={cn(
+                                  "w-full flex items-center gap-3 p-2 rounded-lg transition-colors text-left",
+                                  selectedStyleId === style.id 
+                                    ? "bg-primary text-primary-foreground" 
+                                    : "hover:bg-muted"
+                                )}
+                              >
+                                {style.thumbnail_url ? (
+                                  <img 
+                                    src={style.thumbnail_url} 
+                                    alt={style.name} 
+                                    className="w-8 h-8 rounded-md object-cover"
+                                  />
+                                ) : (
+                                  <div className="w-8 h-8 rounded-md bg-muted/50 flex items-center justify-center">
+                                    <Palette className="w-4 h-4" />
+                                  </div>
+                                )}
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-1.5">
+                                    <p className="text-sm font-medium truncate">{style.name}</p>
+                                    {style.is_default && (
+                                      <span className="text-[10px] bg-primary/20 text-primary px-1 rounded">Default</span>
+                                    )}
+                                  </div>
+                                  {style.description && (
+                                    <p className="text-xs opacity-70 truncate">{style.description}</p>
+                                  )}
+                                </div>
+                                {selectedStyleId === style.id && (
+                                  <Check className="w-4 h-4 flex-shrink-0" />
+                                )}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </PopoverContent>
               </Popover>
 

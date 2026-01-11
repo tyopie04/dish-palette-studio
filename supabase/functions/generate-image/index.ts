@@ -487,6 +487,17 @@ function getRandomStylePreset(): typeof stylePresets[0] {
 }
 
 // Brain: Gemini 2.5 Pro for reasoning and blueprint creation (MULTIMODAL)
+// Extended style type to support both hardcoded presets and database styles
+type StyleConfig = {
+  name: string;
+  lighting: string;
+  background: string;
+  mood: string;
+  props: string;
+  colorGrade: string;
+  promptModifier?: string; // For database styles
+};
+
 async function createImageBlueprint(
   LOVABLE_API_KEY: string,
   userPrompt: string,
@@ -495,7 +506,7 @@ async function createImageBlueprint(
   dimensionString: string,
   photoNames: string[],
   hasStyleGuide: boolean,
-  selectedStyle: typeof stylePresets[0] | null,
+  selectedStyle: StyleConfig | null,
   masterPrompt: string,
   imageUrls?: string[],
   styleGuideUrl?: string
@@ -514,7 +525,19 @@ STYLE GUIDE PROVIDED - Extract style AND composition elements from the style gui
 - The INGREDIENTS come from the menu photos, but the ANGLE/POSE comes from the style guide
 - Do NOT copy any food from the style guide - only the visual style and composition`;
   } else if (selectedStyle) {
-    styleSection = `
+    // Check if this is a database style with promptModifier
+    if (selectedStyle.promptModifier) {
+      styleSection = `
+MANDATORY STYLE PRESET - YOU MUST USE THIS EXACT STYLE:
+Style Name: ${selectedStyle.name}
+
+STYLE INSTRUCTIONS (apply these exactly):
+${selectedStyle.promptModifier}
+
+⚠️ CRITICAL: You MUST apply this "${selectedStyle.name}" style exactly as described above. Do NOT default to other aesthetics. Do NOT derive any style from logos or brand assets.`;
+    } else {
+      // Fallback to hardcoded preset format
+      styleSection = `
 MANDATORY STYLE PRESET - YOU MUST USE THIS EXACT STYLE:
 Style Name: ${selectedStyle.name}
 - Lighting: ${selectedStyle.lighting}
@@ -524,6 +547,7 @@ Style Name: ${selectedStyle.name}
 - Color Grade: ${selectedStyle.colorGrade}
 
 ⚠️ CRITICAL: You MUST apply this "${selectedStyle.name}" style. Do NOT default to dark/moody aesthetics unless that is the selected style. Do NOT derive any style from logos or brand assets.`;
+    }
   }
   
   const systemPrompt = `You are an expert food photography art director. Your PRIMARY TASK is to execute the USER'S CREATIVE DIRECTION while photographing real menu items.
@@ -786,7 +810,7 @@ serve(async (req) => {
     console.log('[AUTH] Authenticated user:', authenticatedUserId);
 
     // Parse request body - DO NOT trust userId from client, use authenticatedUserId instead
-    const { prompt, ratio, resolution, photoAmount = 1, imageUrls: providedImageUrls, photoNames: providedPhotoNames, styleGuideUrl, autoSelectPhotos = false } = await req.json();
+    const { prompt, ratio, resolution, photoAmount = 1, imageUrls: providedImageUrls, photoNames: providedPhotoNames, styleGuideUrl, autoSelectPhotos = false, styleId } = await req.json();
     
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
@@ -870,16 +894,44 @@ serve(async (req) => {
     const dimensionString = `${width}x${height} pixels`;
     const ratioDesc = `${ratio} aspect ratio`;
     
-    // Select a random style preset ONLY if no style guide AND no custom prompt
+    // Fetch style from database if styleId provided
+    let dbStyle: { name: string; prompt_modifier: string; description: string | null } | null = null;
+    if (styleId) {
+      const { data: styleData } = await supabaseAdmin
+        .from("styles")
+        .select("name, prompt_modifier, description")
+        .eq("id", styleId)
+        .eq("status", "active")
+        .maybeSingle();
+      
+      if (styleData) {
+        dbStyle = styleData;
+        console.log('[STYLE] Using database style:', dbStyle.name);
+      }
+    }
+    
+    // Select a random style preset ONLY if no style guide AND no custom prompt AND no database style
     const hasCustomPrompt = prompt && prompt.trim().length > 0;
-    const selectedStyle = (!styleGuideUrl && !hasCustomPrompt) ? getRandomStylePreset() : null;
+    const selectedStyle = (!styleGuideUrl && !hasCustomPrompt && !dbStyle) ? getRandomStylePreset() : null;
+    
+    // Build custom style object from database style if available
+    const customStyleFromDb = dbStyle ? {
+      name: dbStyle.name,
+      lighting: "Apply style instructions",
+      background: "Apply style instructions", 
+      mood: "Apply style instructions",
+      props: "Apply style instructions",
+      colorGrade: "Apply style instructions",
+      promptModifier: dbStyle.prompt_modifier,
+    } : null;
     
     console.log('=== BRAIN + HAND ARCHITECTURE ===');
     console.log('Target resolution:', dimensionString);
     console.log('Number of menu photos:', imageUrls?.length || 0);
     console.log('Photo names:', photoNames?.join(', ') || 'None');
     console.log('Style guide provided:', !!styleGuideUrl);
-    console.log('Selected style preset:', selectedStyle?.name || 'Using style guide');
+    console.log('Database style:', dbStyle?.name || 'None');
+    console.log('Selected style preset:', selectedStyle?.name || customStyleFromDb?.name || 'Using style guide');
 
     // ========== PHASE 1: BRAIN (Gemini 2.5 Pro - MULTIMODAL) ==========
     // The Brain SEES the actual images and creates a detailed blueprint
@@ -891,7 +943,7 @@ serve(async (req) => {
       dimensionString,
       photoNames || [],
       !!styleGuideUrl,
-      selectedStyle,
+      customStyleFromDb || selectedStyle,
       masterPrompt,
       imageUrls,
       styleGuideUrl
@@ -906,6 +958,8 @@ serve(async (req) => {
     
     // Style instructions for the Hand
     let styleInstructions = "";
+    const effectiveStyle = customStyleFromDb || selectedStyle;
+    
     if (styleGuideUrl) {
       styleInstructions = `
 
@@ -915,17 +969,27 @@ STYLE REFERENCE IMAGE PROVIDED:
 - ⚠️ The INGREDIENTS from the menu photo must be preserved - but the VIEWING ANGLE should match the style guide
 - If the style guide shows food being held/eaten, position the menu item food the same way
 - The style guide shows the AESTHETIC and COMPOSITION to recreate with the menu item food`;
-    } else if (selectedStyle) {
-      styleInstructions = `
+    } else if (effectiveStyle) {
+      // Check if this is a database style with promptModifier
+      if ('promptModifier' in effectiveStyle && effectiveStyle.promptModifier) {
+        styleInstructions = `
 
-MANDATORY STYLE: "${selectedStyle.name}"
-- Lighting: ${selectedStyle.lighting}
-- Background: ${selectedStyle.background}
-- Mood: ${selectedStyle.mood}
-- Props: ${selectedStyle.props}
-- Color Grade: ${selectedStyle.colorGrade}
+MANDATORY STYLE: "${effectiveStyle.name}"
+${effectiveStyle.promptModifier}
 
-⚠️ You MUST use this "${selectedStyle.name}" style exactly as specified. Do NOT default to dark/moody aesthetics unless that is the specified style.`;
+⚠️ You MUST use this "${effectiveStyle.name}" style exactly as specified. Apply the style instructions precisely.`;
+      } else {
+        styleInstructions = `
+
+MANDATORY STYLE: "${effectiveStyle.name}"
+- Lighting: ${effectiveStyle.lighting}
+- Background: ${effectiveStyle.background}
+- Mood: ${effectiveStyle.mood}
+- Props: ${effectiveStyle.props}
+- Color Grade: ${effectiveStyle.colorGrade}
+
+⚠️ You MUST use this "${effectiveStyle.name}" style exactly as specified. Do NOT default to dark/moody aesthetics unless that is the specified style.`;
+      }
     }
     
     // Resolution quality hint for the model - more explicit
