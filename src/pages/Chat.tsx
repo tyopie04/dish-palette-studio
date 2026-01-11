@@ -130,29 +130,30 @@ export default function Chat() {
   const hasMessages = messages.length > 0;
 
   return (
-    <div className="min-h-screen flex flex-col relative overflow-hidden">
-      {/* Animated gradient background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-[hsl(250,60%,45%)] via-[hsl(270,50%,50%)] to-[hsl(330,60%,55%)]" />
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,hsl(280,60%,50%,0.3),transparent)]" />
-      <div className="absolute w-[800px] h-[800px] rounded-full bg-[hsl(330,70%,60%)] opacity-40 blur-[150px] animate-float-slow top-0 right-0" />
-      <div className="absolute w-[600px] h-[600px] rounded-full bg-[hsl(280,60%,55%)] opacity-35 blur-[120px] animate-float-reverse bottom-0 left-0" />
-      <div className="absolute w-[500px] h-[500px] rounded-full bg-[hsl(320,65%,60%)] opacity-40 blur-[100px] animate-float-diagonal top-1/3 left-1/2" />
-      
-      <Header />
-      
-      <div className="flex-1 flex relative z-10">
-        {/* Sidebar */}
-        <ChatSidebar
-          conversations={[]}
-          activeConversationId={activeConversationId}
-          onNewChat={handleNewChat}
-          onSelectConversation={handleSelectConversation}
-          isCollapsed={sidebarCollapsed}
-          onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
-        />
+    <div className="h-screen flex overflow-hidden">
+      {/* Sidebar - Full height */}
+      <ChatSidebar
+        conversations={[]}
+        activeConversationId={activeConversationId}
+        onNewChat={handleNewChat}
+        onSelectConversation={handleSelectConversation}
+        isCollapsed={sidebarCollapsed}
+        onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+      />
+
+      {/* Main content area */}
+      <div className="flex-1 flex flex-col relative overflow-hidden">
+        {/* Animated gradient background */}
+        <div className="absolute inset-0 bg-gradient-to-br from-[hsl(250,60%,45%)] via-[hsl(270,50%,50%)] to-[hsl(330,60%,55%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,hsl(280,60%,50%,0.3),transparent)]" />
+        <div className="absolute w-[800px] h-[800px] rounded-full bg-[hsl(330,70%,60%)] opacity-40 blur-[150px] animate-float-slow top-0 right-0" />
+        <div className="absolute w-[600px] h-[600px] rounded-full bg-[hsl(280,60%,55%)] opacity-35 blur-[120px] animate-float-reverse bottom-0 left-0" />
+        <div className="absolute w-[500px] h-[500px] rounded-full bg-[hsl(320,65%,60%)] opacity-40 blur-[100px] animate-float-diagonal top-1/3 left-1/2" />
+        
+        <Header />
 
         {/* Main content */}
-        <main className="flex-1 flex flex-col">
+        <main className="flex-1 flex flex-col relative z-10">
         {hasMessages ? (
           <div className="flex-1 flex flex-col max-w-3xl mx-auto w-full">
             <ScrollArea className="flex-1 px-4 py-6" ref={scrollRef}>
