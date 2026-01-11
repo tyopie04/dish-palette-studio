@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Plus, Edit, Trash2, Palette, Globe, Star, EyeOff, Tag, AlertTriangle } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { StyleModal } from "@/components/admin/StyleModal";
-import { GlobalChangeConfirmModal } from "@/components/admin/GlobalChangeConfirmModal";
+import { GlobalChangeConfirmModal, GlobalChangeSummary } from "@/components/admin/GlobalChangeConfirmModal";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -397,6 +397,12 @@ export default function AdminStyles() {
         onOpenChange={(open) => !open && setPendingGlobalAction(null)}
         onConfirm={handleGlobalActionConfirm}
         isPending={updateStyle.isPending}
+        summary={pendingGlobalAction ? {
+          itemType: 'Style',
+          itemName: pendingGlobalAction.style.name,
+          fieldsChanged: [pendingGlobalAction.type === 'status' ? 'Status' : 'Default Status'],
+          scope: 'all_clients',
+        } : undefined}
       />
     </AdminLayout>
   );

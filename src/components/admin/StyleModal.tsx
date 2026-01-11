@@ -21,7 +21,7 @@ import { useCreateStyle, useUpdateStyle, Style } from "@/hooks/useStyles";
 import { useOrganizations } from "@/hooks/useOrganizations";
 import { useStyleGlobalChangeDetection } from "@/hooks/useGlobalChangeDetection";
 import { GlobalChangeWarning } from "./GlobalChangeWarning";
-import { GlobalChangeConfirmModal } from "./GlobalChangeConfirmModal";
+import { GlobalChangeConfirmModal, GlobalChangeSummary } from "./GlobalChangeConfirmModal";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Upload, X, Loader2 } from "lucide-react";
@@ -426,7 +426,33 @@ const handleGlobalConfirm = async () => {
         onOpenChange={setShowGlobalConfirm}
         onConfirm={handleGlobalConfirm}
         isPending={isPending}
+        summary={{
+          itemType: 'Style',
+          itemName: name || style?.name || 'Unnamed Style',
+          fieldsChanged: getChangedFields(),
+          scope: 'all_clients',
+        }}
       />
     </Dialog>
   );
+
+  function getChangedFields(): string[] {
+    if (!isEditing || !style) {
+      return ['New global style'];
+    }
+    
+    const changes: string[] = [];
+    if (name !== style.name) changes.push('Name');
+    if (promptModifier !== style.prompt_modifier) changes.push('Prompt Snippet');
+    if (description !== (style.description || '')) changes.push('Description');
+    if (category !== style.category) changes.push('Category');
+    if (status !== style.status) changes.push('Status');
+    if (isDefault !== style.is_default) changes.push('Default Status');
+    if (thumbnailUrl !== (style.thumbnail_url || '')) changes.push('Thumbnail');
+    
+    const orgChanged = (organizationId === 'global' ? null : organizationId) !== style.organization_id;
+    if (orgChanged) changes.push('Organization Scope');
+    
+    return changes.length > 0 ? changes : ['Configuration'];
+  }
 }
