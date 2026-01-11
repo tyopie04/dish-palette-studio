@@ -247,51 +247,6 @@ export const PromptBar: React.FC<PromptBarProps> = ({
               />
             </div>
 
-            {/* Fallback Style Warning */}
-            {usingFallback && !selectedStyle && (
-              <div className="px-5 pb-2">
-                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400">
-                  <AlertTriangle className="w-4 h-4 flex-shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium">
-                      {hasNoStyles ? 'No styles available' : 'No style selected'}
-                    </p>
-                    <p className="text-[10px] opacity-80">
-                      Using default style: {FALLBACK_STYLE.name}
-                    </p>
-                  </div>
-                  <Collapsible open={styleSnippetExpanded} onOpenChange={setStyleSnippetExpanded}>
-                    <CollapsibleTrigger asChild>
-                      <button className="text-[10px] underline hover:no-underline">
-                        {styleSnippetExpanded ? 'Hide' : 'View'}
-                      </button>
-                    </CollapsibleTrigger>
-                  </Collapsible>
-                </div>
-                <Collapsible open={styleSnippetExpanded} onOpenChange={setStyleSnippetExpanded}>
-                  <CollapsibleContent>
-                    <div className="mt-2 relative">
-                      <textarea
-                        value={styleSnippet}
-                        onChange={(e) => setStyleSnippet(e.target.value)}
-                        placeholder="Style instructions..."
-                        className="w-full bg-amber-500/5 border border-amber-500/20 rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/60 resize-none focus:outline-none focus:ring-1 focus:ring-amber-500/50 min-h-[60px]"
-                        rows={2}
-                      />
-                      <div className="absolute bottom-2 right-2">
-                        <button
-                          onClick={() => setStyleSnippet(FALLBACK_STYLE.prompt_modifier)}
-                          className="text-[10px] text-muted-foreground hover:text-foreground px-1.5 py-0.5 rounded bg-muted/50 hover:bg-muted transition-colors"
-                        >
-                          Reset
-                        </button>
-                      </div>
-                    </div>
-                  </CollapsibleContent>
-                </Collapsible>
-              </div>
-            )}
-
             {/* Style Snippet Section - shown when a style is selected */}
             {selectedStyle && (
               <Collapsible open={styleSnippetExpanded} onOpenChange={setStyleSnippetExpanded}>
