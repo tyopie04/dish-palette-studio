@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,7 +19,9 @@ import {
 } from "@/components/ui/select";
 import { useCreateStyle, useUpdateStyle, Style } from "@/hooks/useStyles";
 import { useOrganizations } from "@/hooks/useOrganizations";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { Upload, X, Loader2 } from "lucide-react";
 
 const CATEGORY_OPTIONS = [
   "Studio",
@@ -47,6 +49,9 @@ export function StyleModal({ open, onOpenChange, style }: StyleModalProps) {
   const [status, setStatus] = useState<"active" | "inactive">("active");
   const [isDefault, setIsDefault] = useState(false);
   const [hasColorPicker, setHasColorPicker] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: organizations } = useOrganizations();
   const createStyle = useCreateStyle();
@@ -135,6 +140,52 @@ export function StyleModal({ open, onOpenChange, style }: StyleModalProps) {
 
   const isPending = createStyle.isPending || updateStyle.isPending;
 
+  const handleThumbnailUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select an image file");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image must be less than 5MB");
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      const fileExt = file.name.split(".").pop();
+      const fileName = `style-thumbnails/${crypto.randomUUID()}.${fileExt}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from("generated-images")
+        .upload(fileName, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from("generated-images")
+        .getPublicUrl(fileName);
+
+      setThumbnailUrl(publicUrl);
+      toast.success("Thumbnail uploaded");
+    } catch (error) {
+      console.error("Upload error:", error);
+      toast.error("Failed to upload thumbnail");
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
+
+  const handleRemoveThumbnail = () => {
+    setThumbnailUrl("");
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
@@ -199,25 +250,63 @@ export function StyleModal({ open, onOpenChange, style }: StyleModalProps) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="thumbnail-url">Thumbnail URL (optional)</Label>
-            <Input
-              id="thumbnail-url"
-              value={thumbnailUrl}
-              onChange={(e) => setThumbnailUrl(e.target.value)}
-              placeholder="https://example.com/thumbnail.jpg"
-            />
-            {thumbnailUrl && (
-              <div className="mt-2">
-                <img
-                  src={thumbnailUrl}
-                  alt="Thumbnail preview"
-                  className="w-20 h-20 object-cover rounded border border-border"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).style.display = "none";
-                  }}
+            <Label>Thumbnail (optional)</Label>
+            <div className="flex items-start gap-3">
+              {thumbnailUrl ? (
+                <div className="relative group">
+                  <img
+                    src={thumbnailUrl}
+                    alt="Thumbnail preview"
+                    className="w-24 h-24 object-cover rounded-lg border border-border"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = "/placeholder.svg";
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleRemoveThumbnail}
+                    className="absolute -top-2 -right-2 w-6 h-6 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploading}
+                  className="w-24 h-24 border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center gap-1 text-muted-foreground hover:border-primary hover:text-primary transition-colors disabled:opacity-50"
+                >
+                  {isUploading ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <>
+                      <Upload className="w-5 h-5" />
+                      <span className="text-xs">Upload</span>
+                    </>
+                  )}
+                </button>
+              )}
+              <div className="flex-1 space-y-2">
+                <Input
+                  id="thumbnail-url"
+                  value={thumbnailUrl}
+                  onChange={(e) => setThumbnailUrl(e.target.value)}
+                  placeholder="Or paste image URL"
+                  className="text-sm"
                 />
+                <p className="text-xs text-muted-foreground">
+                  Upload an image or paste a URL
+                </p>
               </div>
-            )}
+            </div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleThumbnailUpload}
+              className="hidden"
+            />
           </div>
 
           <div className="space-y-2">
