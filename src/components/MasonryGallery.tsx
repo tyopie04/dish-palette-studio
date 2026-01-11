@@ -260,10 +260,14 @@ export const MasonryGallery: React.FC<MasonryGalleryProps> = ({
     rows.push(allItems.slice(i, i + ITEMS_PER_ROW));
   }
 
+  // Account for container padding (p-2 = 8px on each side = 16px total)
+  const CONTAINER_PADDING = 16;
+  const effectiveWidth = containerWidth - CONTAINER_PADDING;
+
   return (
     <>
       <div 
-        className="min-h-[400px] h-auto overflow-y-auto overflow-x-hidden p-2 pb-24 w-full" 
+        className="min-h-[400px] h-auto overflow-y-auto overflow-x-hidden p-2 pb-24 w-full box-border" 
         ref={containerRef}
       >
         <div className="flex flex-col w-full" style={{ gap: `${GAP}px` }}>
@@ -310,7 +314,7 @@ export const MasonryGallery: React.FC<MasonryGalleryProps> = ({
             }
 
             const gapSpace = GAP * (row.length - 1);
-            const rowAvailableWidth = containerWidth - gapSpace;
+            const rowAvailableWidth = effectiveWidth - gapSpace;
             const totalAspectRatio = row.reduce((sum, item) => sum + item.aspectRatio, 0);
             
             // Height that makes all items fit exactly in the row width
