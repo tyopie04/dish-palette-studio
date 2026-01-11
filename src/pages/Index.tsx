@@ -100,6 +100,7 @@ const Index = () => {
   const [selectedResolution, setSelectedResolution] = useState("2K");
   const [selectedPhotoAmount, setSelectedPhotoAmount] = useState(1);
   const [styleGuideUrl, setStyleGuideUrl] = useState<string | null>(null);
+  const [selectedStyleId, setSelectedStyleId] = useState<string | null>(null);
   const [photoSize, setPhotoSize] = useState<"small" | "medium" | "large">("medium");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
@@ -183,8 +184,8 @@ const Index = () => {
     return [];
   };
 
-  const handleGenerate = useCallback(async (prompt: string) => {
-    console.log('[GENERATE] Starting generation with', selectedPhotos.length, 'photos');
+  const handleGenerate = useCallback(async (prompt: string, styleId?: string) => {
+    console.log('[GENERATE] Starting generation with', selectedPhotos.length, 'photos, styleId:', styleId);
     
     // Set generating flag to prevent fetchGenerations from running
     setIsGenerating(true);
@@ -218,6 +219,7 @@ const Index = () => {
           imageUrls, 
           photoNames, 
           styleGuideUrl: styleGuideBase64,
+          styleId,
         }
       });
       
@@ -658,6 +660,8 @@ const Index = () => {
                     styleGuideUrl={styleGuideUrl}
                     setStyleGuideUrl={setStyleGuideUrl}
                     loadingCount={activeGenerations}
+                    selectedStyleId={selectedStyleId}
+                    setSelectedStyleId={setSelectedStyleId}
                   />
                 </div>
               </div>
