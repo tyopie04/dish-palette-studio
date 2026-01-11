@@ -261,61 +261,7 @@ export const PromptBar: React.FC<PromptBarProps> = ({
               />
             </div>
 
-            {/* Style Snippet Section - shown when a style is selected */}
-            {selectedStyle && (
-              <Collapsible open={styleSnippetExpanded} onOpenChange={setStyleSnippetExpanded}>
-                <div className="px-5 pb-2">
-                  <CollapsibleTrigger asChild>
-                    <button className="flex items-center gap-2 text-xs text-primary hover:text-primary/80 transition-colors group">
-                      <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-primary/10 border border-primary/20">
-                        <Palette className="w-3 h-3" />
-                        <span className="font-medium">{selectedStyle.name}</span>
-                        <Pencil className="w-2.5 h-2.5 opacity-60" />
-                      </div>
-                      {styleSnippetExpanded ? (
-                        <ChevronUp className="w-3.5 h-3.5" />
-                      ) : (
-                        <ChevronDown className="w-3.5 h-3.5" />
-                      )}
-                      <span className="text-muted-foreground text-[10px]">
-                        {styleSnippetExpanded ? 'Collapse style' : 'Expand to edit style'}
-                      </span>
-                    </button>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent>
-                    <div className="mt-2 relative">
-                      <textarea
-                        value={styleSnippet}
-                        onChange={(e) => setStyleSnippet(e.target.value)}
-                        placeholder="Style instructions..."
-                        className="w-full bg-primary/5 border border-primary/20 rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/60 resize-none focus:outline-none focus:ring-1 focus:ring-primary/50 min-h-[60px]"
-                        rows={3}
-                      />
-                      <div className="absolute bottom-2 right-2 flex items-center gap-1">
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <button
-                                onClick={() => selectedStyle && setStyleSnippet(selectedStyle.prompt_modifier)}
-                                className="text-[10px] text-muted-foreground hover:text-foreground px-1.5 py-0.5 rounded bg-muted/50 hover:bg-muted transition-colors"
-                              >
-                                Reset
-                              </button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p className="text-xs">Reset to original style</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      </div>
-                    </div>
-                    <p className="text-[10px] text-muted-foreground mt-1">
-                      Edit the style instructions above. Your changes apply to this generation only.
-                    </p>
-                  </CollapsibleContent>
-                </div>
-              </Collapsible>
-            )}
+            {/* Style indicator removed - only ring on button shows selection */}
 
             {/* Row 3: Controls */}
             <div className="flex items-center gap-1 px-4 pb-4">
