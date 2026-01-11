@@ -4,30 +4,42 @@ import { supabase } from "@/integrations/supabase/client";
 export interface Style {
   id: string;
   name: string;
+  description: string | null;
   prompt_modifier: string;
   thumbnail_url: string | null;
   organization_id: string | null;
   organization_name?: string | null;
   has_color_picker: boolean;
+  category: string;
+  status: 'active' | 'inactive';
+  is_default: boolean;
   created_at: string;
   updated_at: string;
 }
 
 export interface CreateStyleInput {
   name: string;
+  description?: string;
   prompt_modifier: string;
   thumbnail_url?: string;
   organization_id?: string | null;
   has_color_picker?: boolean;
+  category?: string;
+  status?: 'active' | 'inactive';
+  is_default?: boolean;
 }
 
 export interface UpdateStyleInput {
   id: string;
   name?: string;
+  description?: string;
   prompt_modifier?: string;
   thumbnail_url?: string;
   organization_id?: string | null;
   has_color_picker?: boolean;
+  category?: string;
+  status?: 'active' | 'inactive';
+  is_default?: boolean;
 }
 
 export function useStyles(filterOrgId?: string) {
@@ -61,6 +73,7 @@ export function useStyles(filterOrgId?: string) {
 
       return data.map(style => ({
         ...style,
+        status: style.status as 'active' | 'inactive',
         organization_name: style.organization_id ? orgMap.get(style.organization_id) : null,
       }));
     },
@@ -77,10 +90,14 @@ export function useCreateStyle() {
         .from("styles")
         .insert({
           name: input.name,
+          description: input.description || null,
           prompt_modifier: input.prompt_modifier,
           thumbnail_url: input.thumbnail_url || null,
           organization_id: input.organization_id || null,
           has_color_picker: input.has_color_picker ?? false,
+          category: input.category || 'Studio',
+          status: input.status || 'active',
+          is_default: input.is_default ?? false,
         })
         .select()
         .single();

@@ -205,32 +205,44 @@ export type Database = {
       }
       styles: {
         Row: {
+          category: string | null
           created_at: string
+          description: string | null
           has_color_picker: boolean
           id: string
+          is_default: boolean | null
           name: string
           organization_id: string | null
           prompt_modifier: string
+          status: string | null
           thumbnail_url: string | null
           updated_at: string
         }
         Insert: {
+          category?: string | null
           created_at?: string
+          description?: string | null
           has_color_picker?: boolean
           id?: string
+          is_default?: boolean | null
           name: string
           organization_id?: string | null
           prompt_modifier: string
+          status?: string | null
           thumbnail_url?: string | null
           updated_at?: string
         }
         Update: {
+          category?: string | null
           created_at?: string
+          description?: string | null
           has_color_picker?: boolean
           id?: string
+          is_default?: boolean | null
           name?: string
           organization_id?: string | null
           prompt_modifier?: string
+          status?: string | null
           thumbnail_url?: string | null
           updated_at?: string
         }
