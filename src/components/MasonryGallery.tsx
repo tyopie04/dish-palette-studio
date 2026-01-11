@@ -260,8 +260,8 @@ export const MasonryGallery: React.FC<MasonryGalleryProps> = ({
     rows.push(allItems.slice(i, i + ITEMS_PER_ROW));
   }
 
-  // Account for container padding (p-2 = 8px on each side = 16px total)
-  const CONTAINER_PADDING = 16;
+  // Account for container padding (p-2 = 8px on each side = 16px total) + small buffer for sub-pixel rendering
+  const CONTAINER_PADDING = 18;
   const effectiveWidth = containerWidth - CONTAINER_PADDING;
 
   return (
